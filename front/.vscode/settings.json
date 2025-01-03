@@ -1,0 +1,45 @@
+{
+  // EDITOR
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always",
+    "source.fixAll.stylelint": "explicit"
+  },
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+
+  // FORMAT RULES
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false,
+  "stylelint.enable": true,
+
+  // ESLINT
+  "eslint.validate": ["typescript", "javascript", "vue"],
+  "eslint.options": {
+    "extensions": [".js", ".ts", ".vue"]
+  },
+  "vue.codeActions.enabled": false,
+  "files.autoSaveDelay": 500,
+  "stylelint.validate": [
+    "vue" // 추가
+  ]
+}
