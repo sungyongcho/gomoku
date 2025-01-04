@@ -19,11 +19,12 @@ const emit = defineEmits(["put"]);
 const onClickCell = () => {
   emit("put", { x: props.x, y: props.y });
 };
+const { turn } = storeToRefs(useGameStore());
 </script>
 
 <template>
   <button
-    class="relative flex h-[calc(min(80vw,80vh)/19)] w-[calc(min(80vw,80vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-84px,90vh-84px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)]"
+    class="relative flex h-[calc(min(80vw,80vh)/19)] w-[calc(min(80vw,80vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-84px,90vh-84px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)] [&_.previewStone]:hover:block"
     @click="onClickCell"
     :disabled="stoneType ? true : false"
   >
@@ -51,8 +52,13 @@ const onClickCell = () => {
     </small>
     <span
       v-if="stoneType"
-      class="absolute z-10 h-[calc(min(68vw,68vh)/19)] w-[calc(min(68vw,68vh)/19)] rounded-[50%] shadow-[0_2px_6px_1px_#78716c] -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
+      class="absolute z-10 h-[calc(min(70vw,70vh)/19)] w-[calc(min(70vw,70vh)/19)] rounded-[50%] shadow-[0_2px_6px_1px_#78716c] -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
       :class="{ 'bg-white': stoneType == 'O', 'bg-black': stoneType == 'X' }"
+    ></span>
+    <span
+      v-else
+      class="previewStone absolute z-10 hidden h-[calc(min(70vw,70vh)/19)] w-[calc(min(70vw,70vh)/19)] rounded-[50%] opacity-50 -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
+      :class="{ 'bg-white': turn == 'O', 'bg-black': turn == 'X' }"
     ></span>
   </button>
 </template>
