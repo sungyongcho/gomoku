@@ -3,6 +3,7 @@ import { range, pipe, toArray, map } from "@fxts/core";
 
 export const useGameStore = defineStore("game", () => {
   const { playStoneSound, playUndoSound } = useSound();
+  const { getCapturedStones } = useStoneLogic();
   const settings = ref({
     capture: true,
     doubleThree: true,
@@ -12,11 +13,8 @@ export const useGameStore = defineStore("game", () => {
     advantage2: 0,
     isPlayer2AI: true,
   });
-
-  const turn = ref<Stone>("X"); // Player1 = 'X', Player2 = 'O'
-  const histories = ref<History[]>([]);
-  const boardData = ref<{ stoneType: Stone }[][]>(
-    pipe(
+  const initialBoard = () => {
+    return pipe(
       range(19),
       map((_) =>
         pipe(
@@ -26,8 +24,17 @@ export const useGameStore = defineStore("game", () => {
         ),
       ),
       toArray,
-    ),
-  );
+    );
+  };
+  const turn = ref<Stone>("X"); // Player1 = 'X', Player2 = 'O'
+  const histories = ref<History[]>([]);
+  const boardData = ref<{ stoneType: Stone }[][]>(initialBoard());
+  const initGame = () => {
+    turn.value = "X";
+    histories.value = [];
+    boardData.value = initialBoard();
+  };
+
   const changeTurn = () => {
     turn.value = turn.value === "X" ? "O" : "X";
   };
@@ -42,12 +49,28 @@ export const useGameStore = defineStore("game", () => {
     { x, y }: { x: number; y: number },
     stone: Stone,
   ) => {
+    // Check double-three
+
+    // Check if captured stone exist
+    const capturedStones = getCapturedStones({
+      x,
+      y,
+      stone,
+      boardData: boardData.value,
+    });
+
+    // Add to history
     histories.value.push({
       coordinate: { x, y },
       stoneType: stone,
+      capturedStones: capturedStones,
     });
 
+    // Update board
     boardData.value[y][x].stoneType = stone;
+    capturedStones.forEach(({ x, y }) => {
+      boardData.value[y][x].stoneType = "";
+    });
     playStoneSound();
     changeTurn();
   };
@@ -99,6 +122,7 @@ export const useGameStore = defineStore("game", () => {
     turn,
     histories,
     boardData,
+    initGame,
     changeTurn,
     historyToLog,
     addStoneToBoardData,
