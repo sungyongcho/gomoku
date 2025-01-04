@@ -1,13 +1,16 @@
 <script setup lang="ts">
 const showSettings = ref(false);
 const { settings } = storeToRefs(useGameStore());
+const { initGame } = useGameStore();
 const $router = useRouter();
 const onGameWithAI = () => {
   settings.value.isPlayer2AI = true;
+  initGame();
   $router.push("/game");
 };
 const onGameWithHuman = () => {
   settings.value.isPlayer2AI = false;
+  initGame();
   $router.push("/game");
 };
 </script>
