@@ -27,6 +27,7 @@ watch(
   <Dialog
     v-model:visible="_visible"
     modal
+    dismissableMask
     header="Settings"
     :style="{ width: '60vw' }"
     class="bg-white"

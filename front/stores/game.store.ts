@@ -2,8 +2,9 @@ import type { Stone, History } from "~/types/game";
 import { range, pipe, toArray, map } from "@fxts/core";
 
 export const useGameStore = defineStore("game", () => {
+  const { doAlert } = useAlertStore();
   const { playStoneSound, playUndoSound } = useSound();
-  const { getCapturedStones } = useStoneLogic();
+  const { getCapturedStones, checkDoubleThree } = useStoneLogic();
   const settings = ref({
     capture: true,
     doubleThree: true,
@@ -28,9 +29,11 @@ export const useGameStore = defineStore("game", () => {
   };
   const turn = ref<Stone>("X"); // Player1 = 'X', Player2 = 'O'
   const histories = ref<History[]>([]);
+  const gameOver = ref(false);
   const boardData = ref<{ stoneType: Stone }[][]>(initialBoard());
   const initGame = () => {
     turn.value = "X";
+    gameOver.value = false;
     histories.value = [];
     boardData.value = initialBoard();
   };
@@ -50,6 +53,10 @@ export const useGameStore = defineStore("game", () => {
     stone: Stone,
   ) => {
     // Check double-three
+    if (checkDoubleThree({ x, y, stone, boardData: boardData.value })) {
+      doAlert("Caution", "Double-three is not allowed", "Warn");
+      return;
+    }
 
     // Check if captured stone exist
     const capturedStones = getCapturedStones({
@@ -122,6 +129,7 @@ export const useGameStore = defineStore("game", () => {
     turn,
     histories,
     boardData,
+    gameOver,
     initGame,
     changeTurn,
     historyToLog,

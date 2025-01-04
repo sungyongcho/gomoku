@@ -3,5 +3,6 @@
 <template>
   <NuxtLayout>
     <NuxtPage />
+    <AlertModal />
   </NuxtLayout>
 </template>
