@@ -9,9 +9,9 @@ type BoardInput = {
 const directions = [
   { x: 1, y: 0 },
   { x: 1, y: -1 },
+  { x: 0, y: -1 },
   { x: -1, y: -1 },
   { x: -1, y: 0 },
-  { x: 0, y: -1 },
   { x: 1, y: 1 },
   { x: 0, y: 1 },
   { x: -1, y: 1 },
@@ -94,14 +94,27 @@ const is_$OO_ = (
   direction: { dx: number; dy: number },
 ) => {
   // Handle exception case: X_$OO_X
+  // Handle exception case: $OO_O
   const oppositeStone = getOppositeStone(stone);
   const edgeStones = [
     move({ x, y }, direction, -2),
     move({ x, y }, direction, 4),
   ];
+  const fourStones = [
+    move({ x, y }, direction, 1),
+    move({ x, y }, direction, 2),
+    move({ x, y }, direction, 3),
+    move({ x, y }, direction, 4),
+  ];
+  const expectedFourStones = [stone, stone, "", stone];
   if (
     edgeStones.every((st) =>
       isOutOfBoundOrOpposite(st, boardData, oppositeStone),
+    ) ||
+    fourStones.every(
+      (st, i) =>
+        !isOutOfBound(st) &&
+        boardData[st.y][st.x].stoneType === expectedFourStones[i],
     )
   ) {
     return false;
@@ -204,14 +217,27 @@ const is_O$O_ = (
   direction: { dx: number; dy: number },
 ) => {
   // Handle exception case: X_O$O_X
+  // Handle exception case: O$O_O
   const oppositeStone = getOppositeStone(stone);
   const edgeStones = [
     move({ x, y }, direction, -3),
     move({ x, y }, direction, 3),
   ];
+  const fourStones = [
+    move({ x, y }, direction, -1),
+    move({ x, y }, direction, 1),
+    move({ x, y }, direction, 2),
+    move({ x, y }, direction, 3),
+  ];
+  const expectedFourStones = [stone, stone, "", stone];
   if (
     edgeStones.every((st) =>
       isOutOfBoundOrOpposite(st, boardData, oppositeStone),
+    ) ||
+    fourStones.every(
+      (st, i) =>
+        !isOutOfBound(st) &&
+        boardData[st.y][st.x].stoneType === expectedFourStones[i],
     )
   ) {
     return false;
@@ -281,7 +307,6 @@ const checkDoubleThree = ({ x, y, stone, boardData }: BoardInput) => {
   let count = 0; // if more than 2, it is double three
   count += checkEdgeOpenThree({ x, y, stone, boardData });
   count += checkMiddleOpenThree({ x, y, stone, boardData });
-  console.log(count);
   return count >= 2;
 };
 
