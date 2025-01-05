@@ -52,13 +52,7 @@ export const useGameStore = defineStore("game", () => {
     { x, y }: { x: number; y: number },
     stone: Stone,
   ) => {
-    // Check double-three
-    if (checkDoubleThree({ x, y, stone, boardData: boardData.value })) {
-      doAlert("Caution", "Double-three is not allowed", "Warn");
-      return;
-    }
-
-    // Check if captured stone exist
+    // Calculate captured stone
     const capturedStones = getCapturedStones({
       x,
       y,
@@ -66,12 +60,23 @@ export const useGameStore = defineStore("game", () => {
       boardData: boardData.value,
     });
 
+    // Check double-three (double-three can be bypassed by capturing)
+    if (
+      capturedStones.length == 0 &&
+      checkDoubleThree({ x, y, stone, boardData: boardData.value })
+    ) {
+      doAlert("Caution", "Double-three is not allowed", "Warn");
+      return;
+    }
+
     // Add to history
     histories.value.push({
       coordinate: { x, y },
       stoneType: stone,
       capturedStones: capturedStones,
     });
+
+    //
 
     // Update board
     boardData.value[y][x].stoneType = stone;
