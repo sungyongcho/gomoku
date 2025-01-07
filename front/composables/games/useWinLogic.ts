@@ -87,7 +87,7 @@ export const useWinLogic = () => {
       const winLines = lines.filter((line) => line.length >= 5);
       const oppositeStone = getOppositeStone(turn);
       const oppositeCapturedStones = oppositeStone === "X" ? player1 : player2;
-      console.log("winLines", winLines, oppositeCapturedStones);
+
       if (winLines.length > 0 && oppositeCapturedStones < goal - 1) {
         return [
           situation,
@@ -151,7 +151,6 @@ export const useWinLogic = () => {
         }
       }
 
-      console.log("nonBreakableWinLines", nonBreakableWinLines, winLines);
       if (
         (checkBreakable && nonBreakableWinLines.length > 0) ||
         (!checkBreakable && winLines.length > 0)

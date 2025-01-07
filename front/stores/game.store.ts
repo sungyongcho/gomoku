@@ -108,7 +108,7 @@ export const useGameStore = defineStore("game", () => {
       },
       checkBreakable,
     );
-    console.log(gameResult.result, `(${x}, ${y})`);
+
     if (gameResult.result) {
       gameOver.value = true;
       switch (gameResult.result) {
