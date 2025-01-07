@@ -5,6 +5,7 @@ import aiImage from "~/assets/ai.webp";
 
 const { player1TotalCaptured, player2TotalCaptured, settings } =
   storeToRefs(useGameStore());
+const { deleteLastHistory, initGame } = useGameStore();
 </script>
 
 <template>

@@ -4,7 +4,9 @@ definePageMeta({
 });
 
 const { histories, boardData } = storeToRefs(useGameStore());
-const { showGameOverIfWinnerExists } = useGameStore();
+const { showGameOverIfWinnerExists, deleteLastHistory, initGame } =
+  useGameStore();
+
 watch(
   () => histories.value,
   (newHistory, oldHistory) => {
@@ -30,12 +32,22 @@ watch(
 </script>
 <template>
   <main
-    class="flex h-[calc(100vh-68px)] w-full items-center justify-center -sm:h-[calc(100vh-128px)]"
+    class="flex h-[calc(100vh-80px)] w-full items-start justify-center -lg:h-[calc(100vh-68px)] lg:items-center"
   >
     <div
       class="flex max-w-[1280px] items-center justify-center gap-10 -lg:flex-col-reverse"
     >
-      <GoBoard />
+      <div>
+        <GoBoard />
+        <div class="mt-3 flex w-full justify-center gap-3">
+          <Button
+            label="Undo a move"
+            icon="pi pi-undo"
+            @click="deleteLastHistory"
+          />
+          <Button label="Restart" icon="pi pi-play" @click="initGame" />
+        </div>
+      </div>
       <InfoBoard />
     </div>
   </main>

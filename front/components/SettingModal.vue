@@ -29,7 +29,7 @@ watch(
     modal
     dismissableMask
     header="Settings"
-    :style="{ width: '60vw' }"
+    :style="{ width: '90vw', maxWidth: '800px' }"
     class="bg-white"
     closeOnEscape
     pt:mask:class="backdrop-blur-sm"

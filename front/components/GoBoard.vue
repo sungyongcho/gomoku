@@ -8,7 +8,7 @@ const onPutStone = ({ x, y }: { x: number; y: number }) => {
 </script>
 <template>
   <section
-    class="rounded-md bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-100 to-yellow-600"
+    class="mt-2 rounded-md bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-100 to-yellow-600 pl-5 pt-5"
   >
     <div v-for="(row, rowIndex) in boardData" :key="rowIndex" class="flex">
       <div v-for="(cell, cellIndex) in row" :key="cellIndex" class="flex">
