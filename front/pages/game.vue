@@ -14,7 +14,6 @@ watch(
       const prevHistory = oldHistory.at(-1);
       if (!prevHistory) return;
 
-      console.log("After History added");
       nextTick(() => {
         showGameOverIfWinnerExists(
           {
@@ -43,6 +42,7 @@ watch(
           <Button
             label="Undo a move"
             icon="pi pi-undo"
+            :disabled="histories.length < 1"
             @click="deleteLastHistory"
           />
           <Button label="Restart" icon="pi pi-play" @click="initGame" />
