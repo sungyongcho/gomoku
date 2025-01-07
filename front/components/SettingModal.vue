@@ -7,7 +7,7 @@ const props = defineProps({
     default: false,
   },
 });
-const emit = defineEmits(["update:modelValue:visible"]);
+const emit = defineEmits(["update:visible"]);
 const { visible: _visible } = useVModels(props, emit);
 const { settings } = storeToRefs(useGameStore());
 const onSave = () => {

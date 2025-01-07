@@ -2,6 +2,31 @@
 definePageMeta({
   layout: "game",
 });
+
+const { histories, boardData } = storeToRefs(useGameStore());
+const { showGameOverIfWinnerExists } = useGameStore();
+watch(
+  () => histories.value,
+  (newHistory, oldHistory) => {
+    if (newHistory.length > 0 && newHistory.length > oldHistory.length) {
+      const prevHistory = oldHistory.at(-1);
+      if (!prevHistory) return;
+
+      console.log("After History added");
+      nextTick(() => {
+        showGameOverIfWinnerExists(
+          {
+            x: prevHistory.coordinate.x,
+            y: prevHistory.coordinate.y,
+            stone: prevHistory.stoneType,
+            boardData: boardData.value,
+          },
+          false,
+        );
+      });
+    }
+  },
+);
 </script>
 <template>
   <main
