@@ -24,7 +24,7 @@ const { turn, gameOver } = storeToRefs(useGameStore());
 
 <template>
   <button
-    class="relative flex h-[calc(min(80vw,80vh)/19)] w-[calc(min(80vw,80vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-84px,90vh-84px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)] [&_.previewStone]:hover:block"
+    class="relative flex h-[calc(min(78vw,78vh)/19)] w-[calc(min(78vw,78vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-130px,90vh-130px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)] [&_.previewStone]:hover:block"
     @click="onClickCell"
     :disabled="stoneType || gameOver ? true : false"
   >
