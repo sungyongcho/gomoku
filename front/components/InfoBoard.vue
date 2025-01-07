@@ -5,8 +5,11 @@ import aiImage from "~/assets/ai.webp";
 
 const { histories, player1TotalCaptured, player2TotalCaptured, settings } =
   storeToRefs(useGameStore());
-const { historyToLog, deleteLastHistory } = useGameStore();
+const { historyToLog, deleteLastHistory, initGame } = useGameStore();
 const historyEl = ref<HTMLElement>();
+const onRestartGame = () => {
+  initGame();
+};
 
 watch(histories.value, () => {
   nextTick(() => {
@@ -61,14 +64,22 @@ watch(histories.value, () => {
           {{ historyToLog(h) }}
         </p>
       </div>
-      <Button
-        label="Undo a move"
-        severity="primary"
-        icon="pi pi-undo"
-        class="mt-2 w-full"
-        :disabled="!histories.length"
-        @click="deleteLastHistory"
-      />
+      <div class="flex flex-col gap-2">
+        <Button
+          label="Undo a move"
+          severity="primary"
+          icon="pi pi-undo"
+          class="mt-2 w-full"
+          :disabled="!histories.length"
+          @click="deleteLastHistory"
+        />
+        <Button
+          class="w-full"
+          label="Restart game"
+          severity="primary"
+          @click="onRestartGame"
+        />
+      </div>
     </section>
   </aside>
 </template>
