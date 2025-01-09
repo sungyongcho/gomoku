@@ -3,6 +3,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from back.services.gomoku import (
     convert_board_for_print,
     get_board,
+    play_next,
     reset_board,
     update_board,
 )
@@ -44,9 +45,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
                 print(x, y, player)
                 success = update_board(x, y, player)
-                board_to_print = convert_board_for_print()
-                print(board_to_print)
                 if success:
+                    play_next()
+                    board_to_print = convert_board_for_print()
+                    print(board_to_print)
                     await websocket.send_json(
                         {"type": "move", "status": "success", "board": get_board()}
                     )
