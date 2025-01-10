@@ -18,7 +18,12 @@ def get_board():
     return convert_board_for_print()
 
 
-def update_board(x: int, y: int, player: str) -> bool:
+def update_board(x: int, y: int, player: str):
+    check_capture(x, y, player)
+    place_stone(x, y, player)
+
+
+def place_stone(x: int, y: int, player: str) -> bool:
     """Updates the board with a new move and measures processing time."""
     if 0 <= x < BOARD_SIZE and 0 <= y < BOARD_SIZE and board[y][x] == 0:
         board[y][x] = player
@@ -26,6 +31,10 @@ def update_board(x: int, y: int, player: str) -> bool:
         return True
 
     return False
+
+
+def check_capture(x: int, y: int, player: str):
+    pass
 
 
 def record_history(x: int, y: int, player: str) -> None:
@@ -41,7 +50,7 @@ def play_next():
 
     last_move = history[len(history) - 1]
     x, y = last_move["x"], last_move["y"]
-    update_board(x + 1, y + 1, "O")
+    place_stone(x + 1, y + 1, "O")
     end_time = time.time()  # Record the end time
     elapsed_time_ms = (end_time - start_time) * 1000  # Convert to ms
     print(f"Update processed in {elapsed_time_ms:.3f} ms")
