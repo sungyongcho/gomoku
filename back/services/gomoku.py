@@ -1,63 +1,81 @@
-import time
-
-BOARD_SIZE = 19
-board = [[0 for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
-history = []
+from back.config import *
+from back.services.board import Board
+from back.services.capture import capture_opponent
 
 
-def convert_board_for_print():
-    """Converts the board to a human-readable string."""
-    symbols = {0: ".", "X": "X", "O": "O"}  # Mapping of values to symbols
-    board_to_print = ""
-    for row in board:
-        board_to_print += "".join(symbols[cell] for cell in row) + "\n"
-    return board_to_print
+class Gomoku:
+    def __init__(self, board_size=19):
+        self.board_size = board_size
+        self.board = Board()
+        self.history = []
+        self.p1_capture = 0
+        self.p2_capture = 0
+        # for testing - capture
+        self.board.set_value(2, 1, "O")
+        self.board.set_value(3, 1, "O")
+        self.board.set_value(4, 1, "X")
+
+        self.board.set_value(2, 2, "O")
+        self.board.set_value(3, 3, "O")
+        self.board.set_value(4, 4, "X")
+
+        self.board.set_value(1, 2, "O")
+        self.board.set_value(1, 3, "O")
+        self.board.set_value(1, 4, "X")
+        # for testing - capture
+
+    def print_board(self) -> str:
+        return self.board.convert_board_for_print()
+
+    def reset_board(self) -> None:
+        self.board.reset_board()
+        self.history = []
+        self.p1_capture = 0
+        self.p2_capture = 0
+
+    def update_board(self, x: int, y: int, player: str) -> bool:
+        captured_stones = capture_opponent(self.board, x, y, player)
+        if captured_stones:
+            for pair in captured_stones:
+                self.board.set_value(pair[0], pair[1], EMPTY_SPACE)
+                self.record_history(
+                    pair[0],
+                    pair[1],
+                    PLAYER_1 if player == PLAYER_2 else PLAYER_2,
+                    "capture",
+                )
+            if player == PLAYER_1:
+                self.p1_capture += len(captured_stones)
+            else:
+                self.p2_capture += len(captured_stones)
+        print(f"Capture score - p1: {self.p1_capture}, p2: {self.p2_capture}")
+        return self.place_stone(x, y, player)
+
+    def place_stone(self, x: int, y: int, player: str) -> bool:
+        if (
+            0 <= x < self.board_size
+            and 0 <= y < self.board_size
+            and self.board[x][y] == "."
+        ):
+            self.board.set_value(x, y, player)
+            self.record_history(x, y, player, "place")
+            return True
+        return False
+
+    def record_history(self, x: int, y: int, player: str, type: str) -> None:
+        self.history.append({"x": x, "y": y, "player": player, "type": type})
+
+    def print_history(self) -> None:
+        print(self.history)
 
 
-def get_board():
-    return convert_board_for_print()
+# def play_next():
+#     start_time = time.time()  # Record the start time
 
-
-def update_board(x: int, y: int, player: str):
-    check_capture(x, y, player)
-    place_stone(x, y, player)
-
-
-def place_stone(x: int, y: int, player: str) -> bool:
-    """Updates the board with a new move and measures processing time."""
-    if 0 <= x < BOARD_SIZE and 0 <= y < BOARD_SIZE and board[y][x] == 0:
-        board[y][x] = player
-        record_history(x, y, player)
-        return True
-
-    return False
-
-
-def check_capture(x: int, y: int, player: str):
-    pass
-
-
-def record_history(x: int, y: int, player: str) -> None:
-    history.append({"x": x, "y": y, "player": player})
-
-
-def print_history():
-    print(history)
-
-
-def play_next():
-    start_time = time.time()  # Record the start time
-
-    last_move = history[len(history) - 1]
-    x, y = last_move["x"], last_move["y"]
-    place_stone(x + 1, y + 1, "O")
-    end_time = time.time()  # Record the end time
-    elapsed_time_ms = (end_time - start_time) * 1000  # Convert to ms
-    print(f"Update processed in {elapsed_time_ms:.3f} ms")
-    pass
-
-
-def reset_board():
-    """Resets the board to an empty state."""
-    global board
-    board = [[0 for _ in range(BOARD_SIZE)] for _ in range(BOARD_SIZE)]
+#     last_move = history[len(history) - 1]
+#     x, y = last_move["x"], last_move["y"]
+#     # place_stone(x + 1, y + 1, "O")
+#     end_time = time.time()  # Record the end time
+#     elapsed_time_ms = (end_time - start_time) * 1000  # Convert to ms
+#     print(f"Update processed in {elapsed_time_ms:.3f} ms")
+#     pass
