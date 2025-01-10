@@ -1,12 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from back.services.gomoku import (
-    convert_board_for_print,
-    get_board,
-    play_next,
-    reset_board,
-    update_board,
-)
+from back.services.gomoku import Gomoku
 
 router = APIRouter()
 
@@ -35,6 +29,7 @@ manager = ConnectionManager()
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
+        game = Gomoku()
         while True:
             data = await websocket.receive_json()
             if data["type"] == "move":
@@ -44,20 +39,25 @@ async def websocket_endpoint(websocket: WebSocket):
                     data["new_stone"]["player"],
                 )
                 print(x, y, player)
-                success = update_board(x, y, player)
+                success = game.update_board(x, y, player)
                 if success:
-                    play_next()
-                    board_to_print = convert_board_for_print()
+                    # play_next()
+                    board_to_print = game.print_board()
                     print(board_to_print)
+                    game.print_history()
                     await websocket.send_json(
-                        {"type": "move", "status": "success", "board": get_board()}
+                        {
+                            "type": "move",
+                            "status": "success",
+                            "board": game.print_board(),
+                        }
                     )
                 else:
                     await websocket.send_json(
                         {"type": "error", "error": "Invalid move"}
                     )
             elif data["type"] == "reset":
-                reset_board()
+                game.reset_board()
                 # await websocket.send_json({"type": "reset", "board": get_board()})
     except WebSocketDisconnect:
         manager.disconnect(websocket)
