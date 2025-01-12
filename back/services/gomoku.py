@@ -1,7 +1,7 @@
-from back.config import *
-from back.services.board import Board
-from back.services.capture import capture_opponent
-from back.services.doublethree import check_doublethree
+from config import *
+from services.board import Board
+from services.capture import capture_opponent
+from services.doublethree import check_doublethree
 
 
 class Gomoku:

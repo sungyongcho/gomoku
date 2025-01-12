@@ -1,4 +1,4 @@
-from back.config import *
+from config import *
 
 
 def dfs_capture(board, x, y, player, direction, count) -> bool:
