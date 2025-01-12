@@ -16,27 +16,42 @@ def check_middle(
     dir: Tuple[int, int],
     player: str,
 ) -> bool:
-    """Check for an open three pattern with a middle gap."""
-    # Ensure all required cells are within bounds
-    if not is_within_bounds(x, y, dir[0] * 3, dir[1] * 3):
+    """Check for an open three pattern with or without a middle gap."""
+
+    def get_line(
+        board: Board, x: int, y: int, dir: Tuple[int, int], length: int
+    ) -> str:
+        """Construct a line of cells in the given direction up to the specified length."""
+        return "".join(
+            [
+                board.get_value(x + dir[0] * i, y + dir[1] * i)
+                for i in range(1, length + 1)
+                if is_within_bounds(x, y, dir[0] * i, dir[1] * i)
+            ]
+        )
+
+    # Check if at least 2 cells ahead are within bounds
+    if not is_within_bounds(x, y, dir[0] * 2, dir[1] * 2):
         return False
 
-    # Check the pattern in the opposite direction and the current sequence
+    # Check the pattern in the opposite direction
     if not (
         board.get_value(x - dir[0], y - dir[1]) == player
         and board.get_value(x - dir[0] * 2, y - dir[1] * 2) == EMPTY_SPACE
     ):
         return False
 
-    # Construct the line and check for specific patterns
-    line = "".join(
-        [
-            board.get_value(x + dir[0], y + dir[1]),
-            board.get_value(x + dir[0] * 2, y + dir[1] * 2),
-            board.get_value(x + dir[0] * 3, y + dir[1] * 3),
-        ]
-    )
-    return line[:2] == f"{player}." or line == f".{player}."
+    # Check patterns with 2 cells ahead
+    line = get_line(board, x, y, dir, 2)
+    if line == f"{player}.":
+        return True
+
+    # Check patterns with 3 cells ahead if possible
+    line = get_line(board, x, y, dir, 3)
+    if line == f"{player}.{player}":
+        return True
+
+    return False
 
 
 def dfs(
