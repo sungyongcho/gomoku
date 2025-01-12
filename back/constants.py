@@ -1,8 +1,8 @@
 # board
 NUM_LINES = 19
+EMPTY_SPACE = "."
 PLAYER_1 = "X"  # Black stone
 PLAYER_2 = "O"  # White stone
-EMPTY_SPACE = "."
 
 # direction for doublethree
 NORTH = (0, -1)

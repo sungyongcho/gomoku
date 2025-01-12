@@ -1,7 +1,7 @@
-from config import *
+from constants import EMPTY_SPACE, PLAYER_1, PLAYER_2
+from rules.capture import capture_opponent
+from rules.doublethree import check_doublethree
 from services.board import Board
-from services.capture import capture_opponent
-from services.doublethree import check_doublethree
 
 
 class Gomoku:
