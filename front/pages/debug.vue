@@ -3,7 +3,7 @@ import { useWebSocket } from "@vueuse/core";
 import type { SocketMoveResponse } from "~/types/game";
 
 definePageMeta({
-  layout: "game",
+  layout: "debug",
 });
 
 const { histories, turn, boardData } = storeToRefs(useGameStore());
