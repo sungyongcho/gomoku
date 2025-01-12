@@ -1,4 +1,4 @@
-from config import *
+from constants import EMPTY_SPACE, NUM_LINES, PLAYER_1
 
 
 class Column:

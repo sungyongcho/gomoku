@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from config import *
+from constants import DIRECTIONS, EMPTY_SPACE, NUM_LINES, PLAYER_1, PLAYER_2
 from services.board import Board
 
 
