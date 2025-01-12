@@ -2,14 +2,10 @@
   "type": "move",
   "status": "success",
   "board": [],
-  "player": "X",
-  "capturedStones": [
-    { "x": 1, "y": 1, "stone": "O" },
-    { "x": 1, "y": 1, "stone": "O" }
-  ],
-  "newStone": {
-    "x": 1,
-    "y": 1,
-    "stone": "O"
-  }
+  "score": [{"player": "O", "score": 1}, {"player": "X", "score": 3}]
+}
+,
+{
+  "type": "error",
+  "status": "doublethree",
 }
