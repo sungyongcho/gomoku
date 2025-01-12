@@ -1,0 +1,8 @@
+services:
+  backend:
+    build:
+      context: ./back
+    ports:
+      - "8000:8000" # Expose FastAPI service
+    volumes:
+      - ./back:/app
