@@ -74,3 +74,36 @@ docker comopose 실행법
 	- dev-up-build => "docker compose -f docker-compose.yml up --build"
 	- dev-down => "docker compose -f docker-compose.yml down"
 
+backend reset example
+
+example_move.json (착수용)
+`
+{
+  "type": "move",
+  "new_stone": {
+    "x": 1,
+    "y": 1,
+    "player": "X"
+  }
+}
+`
+
+example_reset.json (리셋용)
+`
+{
+  "type": "reset"
+}
+`
+response_move.json (backend 착수응답)
+{
+  "type": "move",
+  "status": "success",
+  "board": "...................\n.X.................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n...................\n"
+}
+
+response_error.json (backend 착수 에러)
+{
+  "type": "error",
+  "error": "Invalid move"
+}
+
