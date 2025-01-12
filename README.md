@@ -46,4 +46,31 @@ gomoku 게임 규칙
 doublethree → 캡처 → 오목 → 무승부 순으로 규칙 검사
 
 
-doublethree 구현 로직 설명 - TBA
+33 확인법
+착수하는 돌이 끝에 위치
+_$OO_ : 8가지 (단, X_$OO_ X, $OO_O 인 경우는 제외해야함)
+_$O_O_: 8가지 (단, O_$O_O 인 경우 제외)
+_$_ OO_: 8가지
+착수하는 돌이 중간에 위치
+_O$O_: 4가지 (단, X_O$O_ X, O$O_O 인 경우는 제외해야함)
+_O$_O_: 8가지
+
+12/01/2025
+--------------
+승리조건 체크
+- 오목이 되었다 하더라도 하나라도 끊길 수 있으면 게임은 계속 진행.
+- 캡쳐 점수가 최대에 달하면 게임 승리
+- 오목이 더이상 잡히지 않으면 게임 승리
+edge case
+- 6목 달성 후 상대방이 끊어도 5목일때?
+- 상대방이 잡아야 하는데 안잡고 방치하면? -> 바로 상대방이 승리
+
+무승부는 front에서 구현
+
+docker comopose 실행법
+- `source alias.sh` 실행후 아래 4기지 명령어 실행
+	- dev => "docker compose -f docker-compose.yml"
+	- dev-up => "docker compose -f docker-compose.yml up"
+	- dev-up-build => "docker compose -f docker-compose.yml up --build"
+	- dev-down => "docker compose -f docker-compose.yml down"
+

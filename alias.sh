@@ -1,6 +1,6 @@
 #!/bin/sh
 
-### Hypertube
+### gomoku
 ### Docker compose commands
 
 ## for development environment
