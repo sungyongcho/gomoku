@@ -1,8 +1,22 @@
 services:
-  backend:
+  back:
     build:
       context: ./back
     ports:
       - "8000:8000" # Expose FastAPI service
     volumes:
       - ./back:/app
+
+  front:
+    build:
+      context: ./front
+    ports:
+      - "3000:3000" # Expose Nuxt.js frontend
+    depends_on:
+      - back
+    volumes:
+      - ./front:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+
+volumes:
+  node_modules:
