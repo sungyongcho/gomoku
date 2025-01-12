@@ -1,3 +1,5 @@
+from typing import List
+
 from constants import EMPTY_SPACE, PLAYER_1, PLAYER_2
 from rules.capture import capture_opponent
 from rules.doublethree import check_doublethree
@@ -8,9 +10,11 @@ class Gomoku:
     def __init__(self, board_size=19):
         self.board_size = board_size
         self.board = Board()
-        self.history = []
-        self.p1_capture = 0
-        self.p2_capture = 0
+        # self.history = []
+        self.last_player = ""
+        self.next_player = ""
+        self.last_player_capture = 0
+        self.next_player_capture = 0
         # # for testing - capture
         # self.board.set_value(2, 1, "O")
         # self.board.set_value(3, 1, "O")
@@ -28,14 +32,21 @@ class Gomoku:
         self.board.set_value(2, 1, "X")
         self.board.set_value(3, 1, "X")
 
+    def set_game(
+        self, board: List[List[str]], last_player: str, next_player: str
+    ) -> None:
+        self.board.set_board(board)
+        self.last_player = last_player
+        self.next_player = next_player
+
     def print_board(self) -> str:
         return self.board.convert_board_for_print()
 
     def reset_board(self) -> None:
         self.board.reset_board()
-        self.history = []
-        self.p1_capture = 0
-        self.p2_capture = 0
+        # self.history = []
+        self.last_player_capture = 0
+        self.next_player_capture = 0
 
     def update_board(self, x: int, y: int, player: str) -> bool:
         captured_stones = capture_opponent(self.board, x, y, player)

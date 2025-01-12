@@ -1,9 +1,14 @@
 {
   "type": "move",
-  "player": "X",
+  "nextPlayer": "X",
+  "lastPlay": {
+    "coordinate": { "x": 9, "y": 10 },
+    "stone": "X",
+    "capturedStones": [] // no need
+  },
   "board": [],
   "scores": {
     "X": 0,
     "O": 0
-  }
+  } // need this
 }

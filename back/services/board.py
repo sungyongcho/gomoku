@@ -1,4 +1,6 @@
-from constants import EMPTY_SPACE, NUM_LINES, PLAYER_1
+from typing import List
+
+from constants import EMPTY_SPACE, NUM_LINES
 
 
 class Column:
@@ -15,10 +17,9 @@ class Column:
 
 
 class Board:
-    def __init__(self, board=None) -> None:
+    def __init__(self, board: List[List[str]] = None) -> None:
         # define board position
-        self.position = [[EMPTY_SPACE] * NUM_LINES for _ in range(NUM_LINES)]
-        self.turn = PLAYER_1
+        self.position = board or [[EMPTY_SPACE] * NUM_LINES for _ in range(NUM_LINES)]
         # create a copy of previous board state if available
         # if board is not None:
         #     self.__dict__ = deepcopy(board.__dict__)
@@ -27,16 +28,19 @@ class Board:
         """Get a column to support [][] access"""
         return Column([row[col] for row in self.position])
 
+    def set_board(self, board: List[List[str]]) -> None:
+        self.position = board
+
+    def reset_board(self):
+        """Resets the board to an empty state."""
+        self.position = [[EMPTY_SPACE] * NUM_LINES for _ in range(NUM_LINES)]
+
     def get_value(self, col: int, row: int) -> str:
         return self.position[row][col]
 
     def set_value(self, col: int, row: int, value: str) -> str:
         self.position[row][col] = value
         return value
-
-    def reset_board(self):
-        """Resets the board to an empty state."""
-        self.position = [[EMPTY_SPACE] * NUM_LINES for _ in range(NUM_LINES)]
 
     def convert_board_for_print(
         self,
