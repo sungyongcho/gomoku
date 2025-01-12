@@ -29,7 +29,7 @@ export const useGameStore = defineStore("game", () => {
       map((_) =>
         pipe(
           range(19),
-          map((_) => ({ stoneType: "" as Stone })),
+          map((_) => ({ stone: "." as Stone })),
           toArray,
         ),
       ),
@@ -39,11 +39,11 @@ export const useGameStore = defineStore("game", () => {
   const turn = ref<Stone>("X"); // Player1 = 'X', Player2 = 'O'
   const histories = ref<History[]>([]);
   const gameOver = ref(false);
-  const boardData = ref<{ stoneType: Stone }[][]>(initialBoard());
+  const boardData = ref<{ stone: Stone }[][]>(initialBoard());
   const player1TotalCaptured = computed(() => {
     return (
       histories.value
-        .filter((h: History) => h.stoneType === "X")
+        .filter((h: History) => h.stone === "X")
         .reduce((acc: number, h: History) => {
           if (!h.capturedStones?.length) return acc;
           return h.capturedStones?.length / 2 + acc;
@@ -54,7 +54,7 @@ export const useGameStore = defineStore("game", () => {
   const player2TotalCaptured = computed(() => {
     return (
       histories.value
-        .filter((h: History) => h.stoneType === "O")
+        .filter((h: History) => h.stone === "O")
         .reduce((acc: number, h: History) => {
           if (!h.capturedStones?.length) return acc;
           return h.capturedStones?.length / 2 + acc;
@@ -69,11 +69,12 @@ export const useGameStore = defineStore("game", () => {
     boardData.value = initialBoard();
   };
 
-  const changeTurn = () => {
-    turn.value = turn.value === "X" ? "O" : "X";
+  const changeTurn = (t?: Stone) => {
+    if (t) turn.value = t;
+    else turn.value = turn.value === "X" ? "O" : "X";
   };
   const historyToLog = (h: History) => {
-    const player = h.stoneType === "X" ? "Black" : "White";
+    const player = h.stone === "X" ? "Black" : "White";
     const x = String.fromCharCode("A".charCodeAt(0) + h.coordinate.x);
     const y = h.coordinate.y + 1;
 
@@ -84,9 +85,9 @@ export const useGameStore = defineStore("game", () => {
     { x, y, boardData, stone }: BoardInput,
     capturedStones: BoardStone[],
   ) => {
-    boardData[y][x].stoneType = stone;
+    boardData[y][x].stone = stone;
     capturedStones.forEach(({ x, y }) => {
-      boardData[y][x].stoneType = "";
+      boardData[y][x].stone = ".";
     });
   };
 
@@ -128,6 +129,30 @@ export const useGameStore = defineStore("game", () => {
     }
   };
 
+  const debugAddStoneToBoardData = (
+    { x, y }: { x: number; y: number },
+    stone: Stone,
+  ) => {
+    // Calculate captured stone
+    const capturedStones = getCapturedStones({
+      x,
+      y,
+      stone,
+      boardData: boardData.value,
+    });
+
+    // Update board
+    updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
+
+    playStoneSound();
+
+    histories.value = histories.value.concat({
+      coordinate: { x, y },
+      stone,
+      capturedStones: capturedStones,
+    });
+  };
+
   const addStoneToBoardData = (
     { x, y }: { x: number; y: number },
     stone: Stone,
@@ -161,7 +186,7 @@ export const useGameStore = defineStore("game", () => {
     // Add to history
     histories.value = histories.value.concat({
       coordinate: { x, y },
-      stoneType: stone,
+      stone,
       capturedStones: capturedStones,
     });
   };
@@ -174,21 +199,19 @@ export const useGameStore = defineStore("game", () => {
     // Recover captured stones
     if (lastHistory.capturedStones) {
       lastHistory.capturedStones.forEach(({ x, y }) => {
-        boardData.value[y][x].stoneType =
-          lastHistory.stoneType === "X" ? "O" : "X";
+        boardData.value[y][x].stone = lastHistory.stone === "X" ? "O" : "X";
       });
     }
 
     // Undo last move
-    boardData.value[lastHistory.coordinate.y][
-      lastHistory.coordinate.x
-    ].stoneType = "";
+    boardData.value[lastHistory.coordinate.y][lastHistory.coordinate.x].stone =
+      ".";
 
     // Delete last history
     histories.value = histories.value.slice(0, -1);
     gameOver.value = false;
     playUndoSound();
-    changeTurn();
+    changeTurn(lastHistory.stone);
   };
 
   return {
@@ -200,6 +223,7 @@ export const useGameStore = defineStore("game", () => {
     initGame,
     changeTurn,
     historyToLog,
+    debugAddStoneToBoardData,
     addStoneToBoardData,
     deleteLastHistory,
     showGameOverIfWinnerExists,

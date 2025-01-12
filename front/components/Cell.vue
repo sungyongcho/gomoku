@@ -10,7 +10,7 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
-  stoneType: {
+  stone: {
     type: String as PropType<Stone>,
     default: "",
   },
@@ -26,7 +26,7 @@ const { turn, gameOver } = storeToRefs(useGameStore());
   <button
     class="relative flex h-[calc(min(78vw,78vh)/19)] w-[calc(min(78vw,78vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-130px,90vh-130px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)] [&_.previewStone]:hover:block"
     @click="onClickCell"
-    :disabled="stoneType || gameOver ? true : false"
+    :disabled="stone !== '.' || gameOver ? true : false"
   >
     <hr
       v-if="x < 18"
@@ -51,9 +51,9 @@ const { turn, gameOver } = storeToRefs(useGameStore());
       {{ String.fromCharCode("A".charCodeAt(0) + x) }}
     </small>
     <span
-      v-if="stoneType"
+      v-if="stone !== '.'"
       class="absolute z-10 h-[calc(min(70vw,70vh)/19)] w-[calc(min(70vw,70vh)/19)] rounded-[50%] shadow-[0_2px_6px_1px_#78716c] -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
-      :class="{ 'bg-white': stoneType == 'O', 'bg-black': stoneType == 'X' }"
+      :class="{ 'bg-white': stone == 'O', 'bg-black': stone == 'X' }"
     ></span>
     <span
       v-else-if="!gameOver"

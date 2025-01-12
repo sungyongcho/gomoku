@@ -57,6 +57,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     )
             elif data["type"] == "reset":
                 game.reset_board()
-                # await websocket.send_json({"type": "reset", "board": get_board()})
+                await websocket.send_json({"type": "reset", "board": get_board()})
     except WebSocketDisconnect:
         manager.disconnect(websocket)
