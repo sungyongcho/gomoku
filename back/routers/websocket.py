@@ -1,6 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-
-from back.services.gomoku import Gomoku
+from services.gomoku import Gomoku
 
 router = APIRouter()
 

@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-
-from back.routers import websocket
+from routers import websocket
 
 app = FastAPI()
 

@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from back.config import *
-from back.services.board import Board
+from config import *
+from services.board import Board
 
 
 def is_within_bounds(x: int, y: int, offset_x: int, offset_y: int) -> bool:
