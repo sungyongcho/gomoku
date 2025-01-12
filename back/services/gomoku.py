@@ -1,6 +1,7 @@
 from back.config import *
 from back.services.board import Board
 from back.services.capture import capture_opponent
+from back.services.doublethree import check_doublethree
 
 
 class Gomoku:
@@ -10,19 +11,22 @@ class Gomoku:
         self.history = []
         self.p1_capture = 0
         self.p2_capture = 0
-        # for testing - capture
-        self.board.set_value(2, 1, "O")
-        self.board.set_value(3, 1, "O")
-        self.board.set_value(4, 1, "X")
+        # # for testing - capture
+        # self.board.set_value(2, 1, "O")
+        # self.board.set_value(3, 1, "O")
+        # self.board.set_value(4, 1, "X")
 
-        self.board.set_value(2, 2, "O")
-        self.board.set_value(3, 3, "O")
-        self.board.set_value(4, 4, "X")
+        # self.board.set_value(2, 2, "O")
+        # self.board.set_value(3, 3, "O")
+        # self.board.set_value(4, 4, "X")
 
-        self.board.set_value(1, 2, "O")
-        self.board.set_value(1, 3, "O")
-        self.board.set_value(1, 4, "X")
-        # for testing - capture
+        # self.board.set_value(1, 2, "O")
+        # self.board.set_value(1, 3, "O")
+        # self.board.set_value(1, 4, "X")
+        # for testing - doublethree
+        self.board.set_value(0, 1, "X")
+        self.board.set_value(2, 1, "X")
+        self.board.set_value(3, 1, "X")
 
     def print_board(self) -> str:
         return self.board.convert_board_for_print()
@@ -36,20 +40,29 @@ class Gomoku:
     def update_board(self, x: int, y: int, player: str) -> bool:
         captured_stones = capture_opponent(self.board, x, y, player)
         if captured_stones:
-            for pair in captured_stones:
-                self.board.set_value(pair[0], pair[1], EMPTY_SPACE)
-                self.record_history(
-                    pair[0],
-                    pair[1],
-                    PLAYER_1 if player == PLAYER_2 else PLAYER_2,
-                    "capture",
-                )
-            if player == PLAYER_1:
-                self.p1_capture += len(captured_stones)
-            else:
-                self.p2_capture += len(captured_stones)
-        print(f"Capture score - p1: {self.p1_capture}, p2: {self.p2_capture}")
+            self.remove_captured_stone(captured_stones, player)
+        if self.is_doublethree(self.board, x, y, player):
+            return False
         return self.place_stone(x, y, player)
+
+    def remove_captured_stone(self, captured_stones: list, player: str) -> None:
+        for pair in captured_stones:
+            self.board.set_value(pair[0], pair[1], EMPTY_SPACE)
+            self.record_history(
+                pair[0],
+                pair[1],
+                PLAYER_1 if player == PLAYER_2 else PLAYER_2,
+                "capture",
+            )
+        if player == PLAYER_1:
+            self.p1_capture += len(captured_stones)
+        else:
+            self.p2_capture += len(captured_stones)
+        print(f"Capture score - p1: {self.p1_capture}, p2: {self.p2_capture}")
+
+    def is_doublethree(self, board: Board, x: int, y: int, player: str) -> bool:
+        check_doublethree(board, x, y, player)
+        pass
 
     def place_stone(self, x: int, y: int, player: str) -> bool:
         if (
