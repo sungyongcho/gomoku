@@ -1,0 +1,9 @@
+{
+  "type": "move",
+  "status": "success",
+  "board": []
+},
+{
+  "type": "error",
+  "status": "doublethree",
+}

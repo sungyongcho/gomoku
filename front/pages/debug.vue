@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useWebSocket } from "@vueuse/core";
+
 import type { SocketMoveResponse } from "~/types/game";
 
 definePageMeta({
@@ -18,10 +19,12 @@ const { status, data, send, open, close } = useWebSocket(
 );
 
 const onSendData = () => {
+  console.log(histories.value.at(-1));
   send(
     JSON.stringify({
       type: "move",
-      player: turn.value === "X" ? "O" : "X",
+      nextPlayer: turn.value === "X" ? "O" : "X",
+      lastPlay: histories.value.at(-1),
       board: boardData.value.map((row) =>
         row.map((col) => (col.stone === "" ? "." : col.stone)),
       ),
