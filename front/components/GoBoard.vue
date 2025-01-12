@@ -1,10 +1,10 @@
 <script setup lang="ts">
-const { turn, boardData } = storeToRefs(useGameStore());
-const { addStoneToBoardData } = useGameStore();
+const { boardData } = storeToRefs(useGameStore());
 
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
-  addStoneToBoardData({ x, y }, turn.value);
+  emit("put", { x, y });
 };
+const emit = defineEmits(["put"]);
 </script>
 <template>
   <section
@@ -16,7 +16,7 @@ const onPutStone = ({ x, y }: { x: number; y: number }) => {
           :x="cellIndex"
           :y="rowIndex"
           @put="onPutStone"
-          :stoneType="cell.stoneType"
+          :stone="cell.stone"
         />
       </div>
     </div>

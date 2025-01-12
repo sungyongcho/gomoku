@@ -1,8 +1,9 @@
 {
   "type": "move",
-  "new_stone": {
-    "x": 1,
-    "y": 1,
-    "player": "X"
+  "player": "X",
+  "board": [],
+  "scores": {
+    "X": 0,
+    "O": 0
   }
 }

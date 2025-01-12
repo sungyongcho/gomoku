@@ -29,7 +29,7 @@ export const useCaptureLogic = () => {
       const [x, y] = [coordinate.x + direction.dx, coordinate.y + direction.dy];
       if (isOutOfBound({ x, y })) return [];
 
-      const stoneInBoard = boardData[y][x].stoneType;
+      const stoneInBoard = boardData[y][x].stone;
       if (stoneInBoard !== expectedPatterns[depth]) {
         return [];
       }
@@ -44,7 +44,7 @@ export const useCaptureLogic = () => {
         {
           x,
           y,
-          stoneType: stoneInBoard,
+          stone: stoneInBoard,
         },
       ];
       return DFS({ x, y }, direction, depth + 1, newCapturedStones);

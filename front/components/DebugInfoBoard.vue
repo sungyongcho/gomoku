@@ -23,11 +23,12 @@ watch(histories.value, () => {
 <template>
   <aside class="flex w-[300px] flex-col items-center gap-5">
     <section class="flex w-full items-center justify-between gap-10 -lg:hidden">
-      <div
+      <button
         class="flex flex-col items-center justify-center border-4 border-transparent p-2"
         :class="{
           ['border-yellow-500']: turn === 'X',
         }"
+        @click="turn = 'X'"
       >
         <Avatar
           size="xlarge"
@@ -36,15 +37,16 @@ watch(histories.value, () => {
           class="border-4 border-black shadow-[0_0_4px_1px_gray]"
         />
         <span>Player1</span>
-      </div>
+      </button>
 
       <span class="text-2xl">vs</span>
 
-      <div
+      <button
         class="flex flex-col items-center justify-center border-4 border-transparent p-2"
         :class="{
           ['border-yellow-500']: turn === 'O',
         }"
+        @click="turn = 'O'"
       >
         <Avatar
           class="border-4 border-gray-100 shadow-[0_0_4px_1px_black]"
@@ -53,7 +55,7 @@ watch(histories.value, () => {
           :image="settings.isPlayer2AI ? aiImage : player2Image"
         />
         <span> {{ settings.isPlayer2AI ? "AI" : "Player2" }}</span>
-      </div>
+      </button>
     </section>
 
     <CapturedScore

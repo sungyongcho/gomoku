@@ -35,7 +35,7 @@ export const useDoubleThreeLogic = () => {
       fourStones.every(
         (st, i) =>
           !isOutOfBound(st) &&
-          boardData[st.y][st.x].stoneType === expectedFourStones[i],
+          boardData[st.y][st.x].stone === expectedFourStones[i],
       )
     ) {
       return false;
@@ -52,7 +52,7 @@ export const useDoubleThreeLogic = () => {
     if (
       stones.every(
         (st, i) =>
-          !isOutOfBound(st) && boardData[st.y][st.x].stoneType === expected[i],
+          !isOutOfBound(st) && boardData[st.y][st.x].stone === expected[i],
       )
     ) {
       return true;
@@ -76,7 +76,7 @@ export const useDoubleThreeLogic = () => {
     if (
       stones.every(
         (st, i) =>
-          !isOutOfBound(st) && boardData[st.y][st.x].stoneType === expected[i],
+          !isOutOfBound(st) && boardData[st.y][st.x].stone === expected[i],
       )
     ) {
       return true;
@@ -101,7 +101,7 @@ export const useDoubleThreeLogic = () => {
       exceptionStones.every(
         (st, i) =>
           !isOutOfBound(st) &&
-          boardData[st.y][st.x].stoneType === exceptionExpected[i],
+          boardData[st.y][st.x].stone === exceptionExpected[i],
       )
     ) {
       return false;
@@ -118,7 +118,7 @@ export const useDoubleThreeLogic = () => {
     if (
       stones.every(
         (st, i) =>
-          !isOutOfBound(st) && boardData[st.y][st.x].stoneType === expected[i],
+          !isOutOfBound(st) && boardData[st.y][st.x].stone === expected[i],
       )
     ) {
       return true;
@@ -177,7 +177,7 @@ export const useDoubleThreeLogic = () => {
       fourStones.every(
         (st, i) =>
           !isOutOfBound(st) &&
-          boardData[st.y][st.x].stoneType === expectedFourStones[i],
+          boardData[st.y][st.x].stone === expectedFourStones[i],
       )
     ) {
       return false;
@@ -194,7 +194,7 @@ export const useDoubleThreeLogic = () => {
     if (
       stones.every(
         (st, i) =>
-          !isOutOfBound(st) && boardData[st.y][st.x].stoneType === expected[i],
+          !isOutOfBound(st) && boardData[st.y][st.x].stone === expected[i],
       )
     ) {
       return true;
@@ -218,7 +218,7 @@ export const useDoubleThreeLogic = () => {
     if (
       stones.every(
         (st, i) =>
-          !isOutOfBound(st) && boardData[st.y][st.x].stoneType === expected[i],
+          !isOutOfBound(st) && boardData[st.y][st.x].stone === expected[i],
       )
     ) {
       return true;

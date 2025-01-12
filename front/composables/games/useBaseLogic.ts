@@ -10,12 +10,10 @@ export const useBaseLogic = () => {
   };
   const isOutOfBoundOrOpposite = (
     { x, y }: { x: number; y: number },
-    boardData: { stoneType: Stone }[][],
+    boardData: { stone: Stone }[][],
     oppositeStone: Stone,
   ) => {
-    return (
-      isOutOfBound({ x, y }) || boardData[y][x].stoneType === oppositeStone
-    );
+    return isOutOfBound({ x, y }) || boardData[y][x].stone === oppositeStone;
   };
   const directions = [
     { x: 1, y: 0 },
@@ -41,10 +39,7 @@ export const useBaseLogic = () => {
     direction: { dx: number; dy: number },
   ) => {
     const moved = move({ x, y }, direction, 1);
-    if (
-      isOutOfBound(moved) ||
-      boardData[moved.y][moved.x].stoneType !== stone
-    ) {
+    if (isOutOfBound(moved) || boardData[moved.y][moved.x].stone !== stone) {
       return { x, y, stone };
     }
     return moveToEdgeOfLine(

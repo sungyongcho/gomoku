@@ -6,7 +6,7 @@ import { pipe } from "@fxts/core";
 type GameSituation = {
   x: number;
   y: number;
-  boardData: { stoneType: Stone }[][];
+  boardData: { stone: Stone }[][];
   turn: Stone;
   captured: {
     player1: number;
@@ -23,13 +23,12 @@ export const useWinLogic = () => {
     direction: { dx: number; dy: number },
     res: BoardStone[] = [],
   ): BoardStone[] => {
-    if (isOutOfBound({ x, y }) || boardData[y][x].stoneType !== stone)
-      return res;
+    if (isOutOfBound({ x, y }) || boardData[y][x].stone !== stone) return res;
 
     return getStonesInLine(
       { x: x + direction.dx, y: y + direction.dy, stone, boardData },
       direction,
-      [...res, { x, y, stoneType: stone }],
+      [...res, { x, y, stone }],
     );
   };
 
@@ -129,12 +128,12 @@ export const useWinLogic = () => {
               stonesPattern1.every(
                 (st, idx) =>
                   !isOutOfBound(st) &&
-                  boardData[st.y][st.x].stoneType === expected[idx],
+                  boardData[st.y][st.x].stone === expected[idx],
               ) ||
               stonesPattern2.every(
                 (st, idx) =>
                   !isOutOfBound(st) &&
-                  boardData[st.y][st.x].stoneType === expected[idx],
+                  boardData[st.y][st.x].stone === expected[idx],
               )
             ) {
               isBreakable = true;

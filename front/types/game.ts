@@ -1,7 +1,7 @@
-export type Stone = "O" | "X" | "";
-export type BoardStone = { x: number; y: number; stoneType: Stone };
+export type Stone = "O" | "X" | ".";
+export type BoardStone = { x: number; y: number; stone: Stone };
 export type History = {
-  stoneType: Stone;
+  stone: Stone;
   coordinate: { x: number; y: number };
   capturedStones?: BoardStone[];
 };
@@ -10,7 +10,7 @@ export type BoardInput = {
   x: number;
   y: number;
   stone: Stone;
-  boardData: { stoneType: Stone }[][];
+  boardData: { stone: Stone }[][];
 };
 
 export enum GAME_END_SCENARIO {
@@ -22,4 +22,13 @@ export enum GAME_END_SCENARIO {
 export type GameResult = {
   result?: GAME_END_SCENARIO;
   winner?: Stone;
+};
+
+export type SocketMoveResponse = {
+  type: "move";
+  status: "success" | "error";
+  board: Stone[][];
+  player: Stone;
+  capturedStones: { x: number; y: number; stone: Stone }[];
+  newStone: { x: number; y: number; stone: Stone };
 };

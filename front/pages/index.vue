@@ -13,6 +13,12 @@ const onGameWithHuman = () => {
   initGame();
   $router.push("/game");
 };
+
+const onGameDebug = () => {
+  settings.value.isPlayer2AI = false;
+  initGame();
+  $router.push("/debug");
+};
 </script>
 
 <template>
@@ -36,5 +42,12 @@ const onGameWithHuman = () => {
     </section>
 
     <SettingModal v-model:visible="showSettings" />
+
+    <button
+      class="absolute right-[30px] top-[30px] flex items-center justify-center rounded-[50%] bg-white p-3 transition-colors hover:bg-gray-200"
+      @click="onGameDebug"
+    >
+      <i class="pi pi-wrench text-[20px]"></i>
+    </button>
   </main>
 </template>

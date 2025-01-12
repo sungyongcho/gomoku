@@ -3,9 +3,17 @@ definePageMeta({
   layout: "game",
 });
 
-const { histories, boardData } = storeToRefs(useGameStore());
-const { showGameOverIfWinnerExists, deleteLastHistory, initGame } =
-  useGameStore();
+const { histories, boardData, turn } = storeToRefs(useGameStore());
+const {
+  showGameOverIfWinnerExists,
+  deleteLastHistory,
+  initGame,
+  addStoneToBoardData,
+} = useGameStore();
+
+const onPutStone = ({ x, y }: { x: number; y: number }) => {
+  addStoneToBoardData({ x, y }, turn.value);
+};
 
 watch(
   () => histories.value,
@@ -19,7 +27,7 @@ watch(
           {
             x: prevHistory.coordinate.x,
             y: prevHistory.coordinate.y,
-            stone: prevHistory.stoneType,
+            stone: prevHistory.stone,
             boardData: boardData.value,
           },
           false,
@@ -37,7 +45,7 @@ watch(
       class="flex max-w-[1280px] items-center justify-center gap-10 -lg:flex-col-reverse"
     >
       <div>
-        <GoBoard />
+        <GoBoard @put="onPutStone" />
         <div class="mt-3 flex w-full justify-center gap-3">
           <Button
             label="Undo a move"
