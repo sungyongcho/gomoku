@@ -65,3 +65,46 @@ async def websocket_endpoint(websocket: WebSocket):
             #     )
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+
+@router.websocket("/ws/debug")
+async def debug_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        game = Gomoku()
+        while True:
+            data = await websocket.receive_json()
+            if data["type"] == "move":
+                x, y, last_player, next_player, board = (
+                    data["lastPlay"]["coordinate"]["x"],
+                    data["lastPlay"]["coordinate"]["y"],
+                    data["lastPlay"]["stone"],
+                    data["nextPlayer"],
+                    data["board"],
+                )
+                print(x, y, last_player, next_player, board, flush=True)
+                game.set_game(board, last_player, next_player)
+                # success = game.update_board(x, y, player)
+            #     if success:
+            #         # play_next()
+            #         board_to_print = game.print_board()
+            #         print(board_to_print)
+            #         game.print_history()
+            #         await websocket.send_json(
+            #             {
+            #                 "type": "move",
+            #                 "status": "success",
+            #                 "board": game.print_board(),
+            #             }
+            #         )
+            #     else:
+            #         await websocket.send_json(
+            #             {"type": "error", "error": "Invalid move"}
+            #         )
+            # elif data["type"] == "reset":
+            #     game.reset_board()
+            #     await websocket.send_json(
+            #         {"type": "reset", "board": game.print_board()}
+            #     )
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
