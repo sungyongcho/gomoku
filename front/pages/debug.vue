@@ -27,7 +27,6 @@ const { status, data, send, open, close } = useWebSocket(
 );
 
 const onSendData = () => {
-  console.log(histories.value.at(-1));
   send(
     JSON.stringify({
       type: "move",
