@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { useWebSocket } from "@vueuse/core";
 
-import type { SocketMoveResponse } from "~/types/game";
+import type { SocketDebugMoveResponse, SocketMoveRequest } from "~/types/game";
 
 definePageMeta({
   layout: "debug",
 });
 
-const { histories, turn, boardData } = storeToRefs(useGameStore());
+const { histories, turn, boardData, settings } = storeToRefs(useGameStore());
 const { deleteLastHistory, initGame, debugAddStoneToBoardData } =
   useGameStore();
+const { doAlert } = useAlertStore();
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   debugAddStoneToBoardData({ x, y }, turn.value);
 };
@@ -24,26 +25,32 @@ const onSendData = () => {
     JSON.stringify({
       type: "move",
       nextPlayer: turn.value === "X" ? "O" : "X",
-      lastPlay: histories.value.at(-1),
-      board: boardData.value.map((row) =>
-        row.map((col) => (col.stone === "" ? "." : col.stone)),
-      ),
-    }),
+      goal: settings.value.totalPairCaptured,
+      lastPlay: lastHistory.value
+        ? {
+            coordinate: {
+              x: lastHistory.value?.coordinate.x,
+              y: lastHistory.value?.coordinate.y,
+            },
+            stone: lastHistory.value?.stone,
+          }
+        : undefined,
+      board: boardData.value.map((row) => row.map((col) => col.stone)),
+    } as SocketMoveRequest),
   );
 };
 
-watch(data, (res: SocketMoveResponse) => {
-  if (res.status === "error") {
-    // Handle Error
-    console.error("Error from socket server");
+watch(data, (res: SocketDebugMoveResponse) => {
+  if (res.type === "error") {
+    doAlert("Caution", "Double-three is not allowed", "Warn");
     return;
   }
 
   boardData.value = res.board.map((row) => row.map((col) => ({ stone: col })));
-  turn.value = res.player === "X" ? "O" : "X";
+  turn.value = res.lastPlay.stone === "X" ? "O" : "X";
   histories.value = histories.value.concat({
-    coordinate: { x: res.newStone.x, y: res.newStone.y },
-    stone: res.player,
+    coordinate: res.lastPlay.coordinate,
+    stone: res.lastPlay.stone,
     capturedStones: res.capturedStones,
   });
 });

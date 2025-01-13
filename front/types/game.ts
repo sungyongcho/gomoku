@@ -24,11 +24,26 @@ export type GameResult = {
   winner?: Stone;
 };
 
-export type SocketMoveResponse = {
+export type SocketMoveRequest = {
   type: "move";
-  status: "success" | "error";
+  nextPlayer: Stone;
+  goal: number;
+  lastPlay?: {
+    coordinate: { x: number; y: number };
+    stone: Stone;
+  };
   board: Stone[][];
-  player: Stone;
+  scores: { player: Stone; score: number }[];
+};
+
+export type SocketDebugMoveResponse = {
+  type: "move" | "error";
+  status: "success" | "doublethree";
+  lastPlay: {
+    coordinate: { x: number; y: number };
+    stone: Stone;
+  };
+  board: Stone[][];
   capturedStones: { x: number; y: number; stone: Stone }[];
-  newStone: { x: number; y: number; stone: Stone };
+  scores: { player: Stone; score: number }[];
 };
