@@ -7,7 +7,14 @@ definePageMeta({
   layout: "debug",
 });
 
-const { histories, turn, boardData, settings } = storeToRefs(useGameStore());
+const {
+  histories,
+  turn,
+  boardData,
+  settings,
+  player1TotalCaptured,
+  player2TotalCaptured,
+} = storeToRefs(useGameStore());
 const { deleteLastHistory, initGame, debugAddStoneToBoardData } =
   useGameStore();
 const { doAlert } = useAlertStore();
@@ -36,6 +43,10 @@ const onSendData = () => {
           }
         : undefined,
       board: boardData.value.map((row) => row.map((col) => col.stone)),
+      scores: [
+        { player: "X", score: player1TotalCaptured.value },
+        { player: "O", score: player2TotalCaptured.value },
+      ],
     } as SocketMoveRequest),
   );
 };
