@@ -31,6 +31,9 @@ class Board:
     def set_board(self, board: List[List[str]]) -> None:
         self.position = board
 
+    def get_board(self) -> List[List[str]]:
+        return self.position
+
     def reset_board(self):
         """Resets the board to an empty state."""
         self.position = [[EMPTY_SPACE] * NUM_LINES for _ in range(NUM_LINES)]

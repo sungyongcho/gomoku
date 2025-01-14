@@ -63,13 +63,15 @@ watch(data, (rawData) => {
       return;
     }
 
-    // boardData.value = res.board.map((row) => row.map((col) => ({ stone: col })));
-    // turn.value = res.lastPlay.stone === "X" ? "O" : "X";
-    // histories.value = histories.value.concat({
-    //   coordinate: res.lastPlay.coordinate,
-    //   stone: res.lastPlay.stone,
-    //   capturedStones: res.capturedStones,
-    // });
+    boardData.value = res.board.map((row) =>
+      row.map((col) => ({ stone: col })),
+    );
+    turn.value = res.lastPlay.stone === "X" ? "O" : "X";
+    histories.value = histories.value.concat({
+      coordinate: res.lastPlay.coordinate,
+      stone: res.lastPlay.stone,
+      capturedStones: res.capturedStones,
+    });
   } catch (error) {
     console.error("Error processing WebSocket data:", error);
     doAlert(

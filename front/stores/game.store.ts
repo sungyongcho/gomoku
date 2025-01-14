@@ -1,12 +1,13 @@
+import { map, pipe, range, toArray } from "@fxts/core";
+import { useStorage } from "@vueuse/core";
+
 import {
-  type Stone,
-  type History,
   type BoardInput,
   type BoardStone,
   GAME_END_SCENARIO,
+  type History,
+  type Stone,
 } from "~/types/game";
-import { range, pipe, toArray, map } from "@fxts/core";
-import { useStorage } from "@vueuse/core";
 
 export const useGameStore = defineStore("game", () => {
   const { doAlert } = useAlertStore();
@@ -100,6 +101,10 @@ export const useGameStore = defineStore("game", () => {
     });
   };
 
+  const updateBoardDebugTemp = ({ x, y, boardData, stone }: BoardInput) => {
+    boardData[y][x].stone = stone;
+  };
+
   const debugAddStoneToBoardData = (
     { x, y }: { x: number; y: number },
     stone: Stone,
@@ -112,8 +117,11 @@ export const useGameStore = defineStore("game", () => {
       boardData: boardData.value,
     });
 
-    // Update board
-    updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
+    // // Update board
+    // updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
+
+    // Update board debug temp
+    updateBoardDebugTemp({ x, y, boardData: boardData.value, stone });
 
     playStoneSound();
 
