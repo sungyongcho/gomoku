@@ -23,7 +23,7 @@ const onPutStone = ({ x, y }: { x: number; y: number }) => {
 };
 const lastHistory = computed(() => histories.value.at(-1));
 const { status, data, send, open, close } = useWebSocket(
-  "ws://localhost:8000/ws/gomoku",
+  "ws://localhost:8000/ws/debug",
 );
 
 const onSendData = () => {
@@ -50,19 +50,30 @@ const onSendData = () => {
   );
 };
 
-watch(data, (res: SocketDebugMoveResponse) => {
-  if (res.type === "error") {
-    doAlert("Caution", "Double-three is not allowed", "Warn");
-    return;
-  }
+watch(data, (rawData) => {
+  try {
+    const res: SocketDebugMoveResponse =
+      typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+    if (res.type === "error") {
+      doAlert("Caution", "Double-three is not allowed", "Warn");
+      return;
+    }
 
-  boardData.value = res.board.map((row) => row.map((col) => ({ stone: col })));
-  turn.value = res.lastPlay.stone === "X" ? "O" : "X";
-  histories.value = histories.value.concat({
-    coordinate: res.lastPlay.coordinate,
-    stone: res.lastPlay.stone,
-    capturedStones: res.capturedStones,
-  });
+    // boardData.value = res.board.map((row) => row.map((col) => ({ stone: col })));
+    // turn.value = res.lastPlay.stone === "X" ? "O" : "X";
+    // histories.value = histories.value.concat({
+    //   coordinate: res.lastPlay.coordinate,
+    //   stone: res.lastPlay.stone,
+    //   capturedStones: res.capturedStones,
+    // });
+  } catch (error) {
+    console.error("Error processing WebSocket data:", error);
+    doAlert(
+      "Error",
+      "An unexpected error occurred while processing data.",
+      "Warn",
+    );
+  }
 });
 </script>
 <template>

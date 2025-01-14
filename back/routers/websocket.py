@@ -75,15 +75,22 @@ async def debug_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_json()
             if data["type"] == "move":
-                x, y, last_player, next_player, board = (
+                x, y, last_player, next_player, goal, board = (
                     data["lastPlay"]["coordinate"]["x"],
                     data["lastPlay"]["coordinate"]["y"],
                     data["lastPlay"]["stone"],
                     data["nextPlayer"],
+                    data["goal"],
                     data["board"],
                 )
-                print(x, y, last_player, next_player, board, flush=True)
-                game.set_game(board, last_player, next_player)
+                print(x, y, last_player, next_player, goal, board, flush=True)
+                # game.set_game(board, last_player, next_player)
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "status": "doublethree",
+                    }
+                )
                 # success = game.update_board(x, y, player)
             #     if success:
             #         # play_next()
