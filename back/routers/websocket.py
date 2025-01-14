@@ -75,6 +75,18 @@ async def debug_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_json()
             if data["type"] == "move":
+                # ai first
+                if "lastPlay" not in data:
+                    print("ai first", flush=True)
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "status": "tba",
+                        }
+                    )
+                    continue
+
+                # human player first
                 x, y, last_player, next_player, goal, board = (
                     data["lastPlay"]["coordinate"]["x"],
                     data["lastPlay"]["coordinate"]["y"],
