@@ -1,15 +1,23 @@
 import { useDoubleThreeLogic } from "./games/useDoubleThreeLogic";
 import { useCaptureLogic } from "./games/useCaptureLogic";
-import { useWinLogic } from "./games/useWinLogic";
+import { useEndLogic } from "./games/useEndLogic";
 
 export const useGameLogic = () => {
   const { checkDoubleThree } = useDoubleThreeLogic();
   const { getCapturedStones } = useCaptureLogic();
-  const { checkWinCondition } = useWinLogic();
+  const {
+    isCaptureEnded,
+    isCurrentTurnFiveEnded,
+    isDrawEnded,
+    isPerfectFiveEnded,
+  } = useEndLogic();
 
   return {
     getCapturedStones,
     checkDoubleThree,
-    checkWinCondition,
+    isCaptureEnded,
+    isCurrentTurnFiveEnded,
+    isDrawEnded,
+    isPerfectFiveEnded,
   };
 };

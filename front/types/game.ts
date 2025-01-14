@@ -19,6 +19,18 @@ export enum GAME_END_SCENARIO {
   DRAW = "DRAW",
 }
 
+export type GameSituation = {
+  x: number;
+  y: number;
+  boardData: { stone: Stone }[][];
+  turn: Stone;
+  captured: {
+    player1: number;
+    player2: number;
+    goal: number;
+  };
+};
+
 export type GameResult = {
   result?: GAME_END_SCENARIO;
   winner?: Stone;

@@ -2,7 +2,7 @@ import type { Stone, BoardInput } from "~/types/game";
 
 export const useBaseLogic = () => {
   const getOppositeStone = (stone: Stone) => {
-    if (!stone) return "";
+    if (!stone) return ".";
     return stone === "X" ? "O" : "X";
   };
   const isOutOfBound = ({ x, y }: { x: number; y: number }) => {

@@ -27,7 +27,7 @@ export const useDoubleThreeLogic = () => {
       move({ x, y }, direction, 3),
       move({ x, y }, direction, 4),
     ];
-    const expectedFourStones = [stone, stone, "", stone];
+    const expectedFourStones = [stone, stone, ".", stone];
     if (
       edgeStones.every((st) =>
         isOutOfBoundOrOpposite(st, boardData, oppositeStone),
@@ -48,7 +48,7 @@ export const useDoubleThreeLogic = () => {
       move({ x, y }, direction, 2),
       move({ x, y }, direction, 3),
     ];
-    const expected = ["", stone, stone, ""];
+    const expected = [".", stone, stone, "."];
     if (
       stones.every(
         (st, i) =>
@@ -72,7 +72,7 @@ export const useDoubleThreeLogic = () => {
       move({ x, y }, direction, 3),
       move({ x, y }, direction, 4),
     ];
-    const expected = ["", "", stone, stone, ""];
+    const expected = [".", ".", stone, stone, "."];
     if (
       stones.every(
         (st, i) =>
@@ -96,7 +96,7 @@ export const useDoubleThreeLogic = () => {
       move({ x, y }, direction, 2),
       move({ x, y }, direction, 3),
     ];
-    const exceptionExpected = [stone, "", stone, "", stone];
+    const exceptionExpected = [stone, ".", stone, ".", stone];
     if (
       exceptionStones.every(
         (st, i) =>
@@ -114,7 +114,7 @@ export const useDoubleThreeLogic = () => {
       move({ x, y }, direction, 3),
       move({ x, y }, direction, 4),
     ];
-    const expected = ["", stone, "", stone, ""];
+    const expected = [".", stone, ".", stone, "."];
     if (
       stones.every(
         (st, i) =>
@@ -169,7 +169,7 @@ export const useDoubleThreeLogic = () => {
       move({ x, y }, direction, 2),
       move({ x, y }, direction, 3),
     ];
-    const expectedFourStones = [stone, stone, "", stone];
+    const expectedFourStones = [stone, stone, ".", stone];
     if (
       edgeStones.every((st) =>
         isOutOfBoundOrOpposite(st, boardData, oppositeStone),
@@ -190,7 +190,7 @@ export const useDoubleThreeLogic = () => {
       move({ x, y }, direction, 1),
       move({ x, y }, direction, 2),
     ];
-    const expected = ["", stone, stone, ""];
+    const expected = [".", stone, stone, "."];
     if (
       stones.every(
         (st, i) =>
@@ -214,7 +214,7 @@ export const useDoubleThreeLogic = () => {
       move({ x, y }, direction, 2),
       move({ x, y }, direction, 3),
     ];
-    const expected = ["", stone, "", stone, ""];
+    const expected = [".", stone, ".", stone, "."];
     if (
       stones.every(
         (st, i) =>
