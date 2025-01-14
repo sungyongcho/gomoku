@@ -117,5 +117,5 @@ def check_doublethree(board: Board, x: int, y: int, player: str) -> bool:
         ):
             print(f"Open three detected using DFS in direction {dir}.")
             openthree_count += 1
-
+    print("fuch", openthree_count >= 2, flush=True)
     return openthree_count >= 2

@@ -85,7 +85,6 @@ async def debug_endpoint(websocket: WebSocket):
                         }
                     )
                     continue
-
                 # human player first
                 x, y, last_player, next_player, goal, board = (
                     data["lastPlay"]["coordinate"]["x"],
@@ -95,31 +94,26 @@ async def debug_endpoint(websocket: WebSocket):
                     data["goal"],
                     data["board"],
                 )
-                print(x, y, last_player, next_player, goal, board, flush=True)
-                # game.set_game(board, last_player, next_player)
-                await websocket.send_json(
-                    {
-                        "type": "error",
-                        "status": "doublethree",
-                    }
-                )
-                # success = game.update_board(x, y, player)
-            #     if success:
-            #         # play_next()
-            #         board_to_print = game.print_board()
-            #         print(board_to_print)
-            #         game.print_history()
-            #         await websocket.send_json(
-            #             {
-            #                 "type": "move",
-            #                 "status": "success",
-            #                 "board": game.print_board(),
-            #             }
-            #         )
-            #     else:
-            #         await websocket.send_json(
-            #             {"type": "error", "error": "Invalid move"}
-            #         )
+                # print(x, y, last_player, next_player, goal, board, flush=True)
+                game.set_game(board, goal, last_player, next_player)
+                print("before\n", game.print_board(), flush=True)
+                success = game.update_board(x, y, last_player)
+                print("after\n", game.print_board(), flush=True)
+                if success:
+                    # TODO: when play_next() executes, the "next player" changes
+                    lastPlay = game.play_next()
+                    await websocket.send_json(
+                        {
+                            "type": "move",
+                            "status": "success",
+                            "board": game.get_board(),
+                            "scores": game.get_scores(),
+                            "lastPlay": lastPlay,
+                            "capturedStones": game.get_captured_stones(),
+                        }
+                    )
+                else:
+                    await websocket.send_json({"type": "error", "error": "doublethree"})
             # elif data["type"] == "reset":
             #     game.reset_board()
             #     await websocket.send_json(
