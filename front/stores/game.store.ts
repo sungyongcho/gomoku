@@ -11,8 +11,14 @@ import { useStorage } from "@vueuse/core";
 export const useGameStore = defineStore("game", () => {
   const { doAlert } = useAlertStore();
   const { playStoneSound, playUndoSound } = useSound();
-  const { getCapturedStones, checkDoubleThree, checkWinCondition } =
-    useGameLogic();
+  const {
+    getCapturedStones,
+    checkDoubleThree,
+    isCaptureEnded,
+    isCurrentTurnFiveEnded,
+    isDrawEnded,
+    isPerfectFiveEnded,
+  } = useGameLogic();
   const settings = useStorage("settings", {
     capture: true,
     doubleThree: true,
@@ -36,10 +42,13 @@ export const useGameStore = defineStore("game", () => {
       toArray,
     );
   };
-  const turn = ref<Stone>("X"); // Player1 = 'X', Player2 = 'O'
-  const histories = ref<History[]>([]);
-  const gameOver = ref(false);
-  const boardData = ref<{ stone: Stone }[][]>(initialBoard());
+  const turn = useStorage<Stone>("turn", "X"); // Player1 = 'X', Player2 = 'O'
+  const histories = useStorage<History[]>("histories", []);
+  const gameOver = useStorage<boolean>("gameOver", false);
+  const boardData = useStorage<{ stone: Stone }[][]>(
+    "boardData",
+    initialBoard(),
+  );
   const player1TotalCaptured = computed(() => {
     return (
       histories.value
@@ -91,44 +100,6 @@ export const useGameStore = defineStore("game", () => {
     });
   };
 
-  const showGameOverIfWinnerExists = (
-    { x, y, stone }: BoardInput,
-    checkBreakable: boolean = true,
-  ) => {
-    const gameResult = checkWinCondition(
-      {
-        x,
-        y,
-        turn: stone,
-        boardData: boardData.value,
-        captured: {
-          player1: player1TotalCaptured.value,
-          player2: player2TotalCaptured.value,
-          goal: settings.value.totalPairCaptured,
-        },
-      },
-      checkBreakable,
-    );
-
-    if (gameResult.result) {
-      gameOver.value = true;
-      switch (gameResult.result) {
-        case GAME_END_SCENARIO.PAIR_CAPTURED:
-          doAlert(
-            "Game Over",
-            `${gameResult.winner === "X" ? "Black" : "White"} Win - Captured ${settings.value.totalPairCaptured}`,
-            "Info",
-          );
-        case GAME_END_SCENARIO.FIVE_OR_MORE_STONES:
-          doAlert(
-            "Game Over",
-            `${gameResult.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
-            "Info",
-          );
-      }
-    }
-  };
-
   const debugAddStoneToBoardData = (
     { x, y }: { x: number; y: number },
     stone: Stone,
@@ -151,6 +122,28 @@ export const useGameStore = defineStore("game", () => {
       stone,
       capturedStones: capturedStones,
     });
+  };
+
+  const deleteLastHistory = () => {
+    const lastHistory = histories.value.at(-1);
+    if (!lastHistory) return;
+
+    // Recover captured stones
+    if (lastHistory.capturedStones) {
+      lastHistory.capturedStones.forEach(({ x, y }) => {
+        boardData.value[y][x].stone = lastHistory.stone === "X" ? "O" : "X";
+      });
+    }
+
+    // Undo last move
+    boardData.value[lastHistory.coordinate.y][lastHistory.coordinate.x].stone =
+      ".";
+
+    // Delete last history
+    histories.value = histories.value.slice(0, -1);
+    gameOver.value = false;
+    playUndoSound();
+    changeTurn(lastHistory.stone);
   };
 
   const addStoneToBoardData = (
@@ -177,41 +170,73 @@ export const useGameStore = defineStore("game", () => {
     // Update board
     updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
 
-    // Check Win condition
-    showGameOverIfWinnerExists({ x, y, stone, boardData: boardData.value });
-
-    playStoneSound();
-    changeTurn();
-
     // Add to history
     histories.value = histories.value.concat({
       coordinate: { x, y },
       stone,
       capturedStones: capturedStones,
     });
-  };
 
-  const deleteLastHistory = () => {
-    if (histories.value.length === 0) return;
+    // Check end condition
+    const situation = {
+      x,
+      y,
+      boardData: boardData.value,
+      turn: stone,
+      captured: {
+        player1: player1TotalCaptured.value,
+        player2: player2TotalCaptured.value,
+        goal: settings.value.totalPairCaptured,
+      },
+    };
+    const perfectFiveEnded = isPerfectFiveEnded(situation);
 
-    const lastHistory = histories.value[histories.value.length - 1];
-
-    // Recover captured stones
-    if (lastHistory.capturedStones) {
-      lastHistory.capturedStones.forEach(({ x, y }) => {
-        boardData.value[y][x].stone = lastHistory.stone === "X" ? "O" : "X";
-      });
+    if (perfectFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
+      gameOver.value = true;
+      return doAlert(
+        "Game Over",
+        `${perfectFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
+        "Info",
+      );
     }
 
-    // Undo last move
-    boardData.value[lastHistory.coordinate.y][lastHistory.coordinate.x].stone =
-      ".";
+    playStoneSound();
+    changeTurn();
 
-    // Delete last history
-    histories.value = histories.value.slice(0, -1);
-    gameOver.value = false;
-    playUndoSound();
-    changeTurn(lastHistory.stone);
+    nextTick(() => {
+      // Check end condition after change turn
+      // Check capture points
+      situation.turn = turn.value;
+      const captureEnded = isCaptureEnded(situation);
+      if (captureEnded.result === GAME_END_SCENARIO.PAIR_CAPTURED) {
+        gameOver.value = true;
+        return doAlert(
+          "Game Over",
+          `${captureEnded.winner === "X" ? "Black" : "White"} Win - Captured ${situation.captured.goal}`,
+          "Info",
+        );
+      }
+
+      // Check current turn's five stones or more
+      const currentTurnFiveEnded = isCurrentTurnFiveEnded(situation);
+      if (
+        currentTurnFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES
+      ) {
+        gameOver.value = true;
+        return doAlert(
+          "Game Over",
+          `${currentTurnFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
+          "Info",
+        );
+      }
+
+      // Check Draw
+      const drawEnded = isDrawEnded(situation);
+      if (drawEnded.result === GAME_END_SCENARIO.DRAW) {
+        gameOver.value = true;
+        return doAlert("Game Over", "Draw", "Info");
+      }
+    });
   };
 
   return {
@@ -226,7 +251,6 @@ export const useGameStore = defineStore("game", () => {
     debugAddStoneToBoardData,
     addStoneToBoardData,
     deleteLastHistory,
-    showGameOverIfWinnerExists,
     player1TotalCaptured,
     player2TotalCaptured,
   };

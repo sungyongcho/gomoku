@@ -3,39 +3,12 @@ definePageMeta({
   layout: "game",
 });
 
-const { histories, boardData, turn } = storeToRefs(useGameStore());
-const {
-  showGameOverIfWinnerExists,
-  deleteLastHistory,
-  initGame,
-  addStoneToBoardData,
-} = useGameStore();
+const { histories, turn } = storeToRefs(useGameStore());
+const { deleteLastHistory, initGame, addStoneToBoardData } = useGameStore();
 
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   addStoneToBoardData({ x, y }, turn.value);
 };
-
-watch(
-  () => histories.value,
-  (newHistory, oldHistory) => {
-    if (newHistory.length > 0 && newHistory.length > oldHistory.length) {
-      const prevHistory = oldHistory.at(-1);
-      if (!prevHistory) return;
-
-      nextTick(() => {
-        showGameOverIfWinnerExists(
-          {
-            x: prevHistory.coordinate.x,
-            y: prevHistory.coordinate.y,
-            stone: prevHistory.stone,
-            boardData: boardData.value,
-          },
-          false,
-        );
-      });
-    }
-  },
-);
 </script>
 <template>
   <main
