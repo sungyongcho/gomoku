@@ -55,6 +55,10 @@ watch(data, (rawData) => {
     const res: SocketDebugMoveResponse =
       typeof rawData === "string" ? JSON.parse(rawData) : rawData;
     if (res.type === "error") {
+      if (res.status === "tba") {
+        doAlert("Caution", "TBA", "Warn");
+        return;
+      }
       doAlert("Caution", "Double-three is not allowed", "Warn");
       return;
     }
