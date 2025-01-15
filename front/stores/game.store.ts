@@ -138,8 +138,8 @@ export const useGameStore = defineStore("game", () => {
 
     // Recover captured stones
     if (lastHistory.capturedStones) {
-      lastHistory.capturedStones.forEach(({ x, y }) => {
-        boardData.value[y][x].stone = lastHistory.stone === "X" ? "O" : "X";
+      lastHistory.capturedStones.forEach(({ x, y, stone }) => {
+        boardData.value[y][x].stone = stone;
       });
     }
 
