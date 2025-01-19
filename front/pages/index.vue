@@ -8,10 +8,15 @@ const onGameWithAI = () => {
   initGame();
   $router.push("/game");
 };
+
 const onGameWithHuman = () => {
   settings.value.isPlayer2AI = false;
   initGame();
   $router.push("/game");
+};
+
+const onHowToPlay = () => {
+  $router.push("/how-to-play");
 };
 
 const onGameDebug = () => {
@@ -30,13 +35,19 @@ const onGameDebug = () => {
 
       <div class="flex flex-col gap-4">
         <Button class="w-[220px]" size="large" @click="onGameWithAI">
-          Player vs AI
+          <i class="pi pi-user text-[20px]"></i> Player vs AI
+          <i class="pi pi-android text-[20px]"></i>
         </Button>
-        <Button class="w-[220px]" size="large" @click="onGameWithHuman"
-          >Player vs Player</Button
-        >
+        <Button class="w-[220px]" size="large" @click="onGameWithHuman">
+          <i class="pi pi-user text-[20px]"></i> Player vs Player
+          <i class="pi pi-user text-[20px]"></i>
+        </Button>
         <Button @click="showSettings = true" class="w-[220px]" size="large">
           <i class="pi pi-cog text-[20px]"></i> Settings
+        </Button>
+
+        <Button @click="onHowToPlay" class="w-[220px]" size="large">
+          <i class="pi pi-question-circle text-[20px]"></i> How to play
         </Button>
       </div>
     </section>
