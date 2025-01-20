@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from constants import DIRECTIONS, EMPTY_SPACE, NUM_LINES, PLAYER_1, PLAYER_2
+from constants import DIRECTIONS, NUM_LINES, PLAYER_1, PLAYER_2, UNIQUE_DIRECTIONS
 from services.board import Board
 
 
@@ -9,90 +9,107 @@ def is_within_bounds(x: int, y: int, offset_x: int, offset_y: int) -> bool:
     return 0 <= x + offset_x < NUM_LINES and 0 <= y + offset_y < NUM_LINES
 
 
+def get_line(
+    board: Board, x: int, y: int, dir: Tuple[int, int], length: int
+) -> str | bool:
+    """Construct a line of cells in the given direction up to the specified length."""
+
+    result = []
+    for i in range(1, length + 1):
+        if not is_within_bounds(x, y, (dir[0] * i), (dir[1] * i)):
+            return False
+        new_x = x + dir[0] * i
+        new_y = y + dir[1] * i
+        result.append(board.get_value(new_x, new_y))
+    return "".join(result)
+
+
 def check_middle(
-    board: Board,
-    x: int,
-    y: int,
-    dir: Tuple[int, int],
-    player: str,
+    board: Board, x: int, y: int, dir: Tuple[int, int], player: str, opponent: str
 ) -> bool:
     """Check for an open three pattern with or without a middle gap."""
+    line = get_line(board, x, y, dir, 3)
+    line_opposite = get_line(board, x, y, (-dir[0], -dir[1]), 3)
 
-    def get_line(
-        board: Board, x: int, y: int, dir: Tuple[int, int], length: int
-    ) -> str:
-        """Construct a line of cells in the given direction up to the specified length."""
-        return "".join(
-            [
-                board.get_value(x + dir[0] * i, y + dir[1] * i)
-                for i in range(1, length + 1)
-                if is_within_bounds(x, y, dir[0] * i, dir[1] * i)
-            ]
-        )
-
-    # Check if at least 2 cells ahead are within bounds
-    if not is_within_bounds(x, y, dir[0] * 2, dir[1] * 2):
-        return False
-
-    # Check the pattern in the opposite direction
+    # Case 1: .O$O., but not X.O$O.X and O$O.O
     if not (
-        board.get_value(x - dir[0], y - dir[1]) == player
-        and board.get_value(x - dir[0] * 2, y - dir[1] * 2) == EMPTY_SPACE
-    ):
-        return False
-
-    # Check patterns with 2 cells ahead
-    line = get_line(board, x, y, dir, 2)
-    if line == f"{player}.":
+        (line_opposite == f"{player}.{opponent}" and line == f"{player}.{opponent}")
+        or (line_opposite[0] == f"{player}" and line == f"{player}.{player}")
+    ) and (line_opposite[0:2] == f"{player}." and line[0:2] == f"{player}."):
         return True
 
-    # Check patterns with 3 cells ahead if possible
-    line = get_line(board, x, y, dir, 3)
-    if line == f"{player}.{player}":
+    if line_opposite[0:2] == f"{player}." and line == f".{player}.":
         return True
 
     return False
 
 
-def dfs(
-    board: Board,
-    x: int,
-    y: int,
-    dir: Tuple[int, int],
-    player: str,
-    count: int,
-    player_count=1,
+# def dfs(
+#     board: Board,
+#     x: int,
+#     y: int,
+#     dir: Tuple[int, int],
+#     player: str,
+#     count: int,
+#     player_count=1,
+# ) -> bool:
+#     """Perform a depth-first search to detect open three patterns."""
+#     nx, ny = x + dir[0], y + dir[1]
+#     opponent = PLAYER_1 if player == PLAYER_2 else PLAYER_2
+
+#     # Ensure (nx, ny) is within bounds
+#     if not is_within_bounds(x, y, dir[0], dir[1]):
+#         return False
+
+#     # Handle cases for count == 3 and count == 4
+#     if count == 3:
+#         return player_count == 3 and board.get_value(nx, ny) == EMPTY_SPACE
+
+#     if count == 4:
+#         return player_count == 3 and board.get_value(nx, ny) == EMPTY_SPACE
+
+#     # Stop if the next cell is occupied by the opponent
+#     if board.get_value(nx, ny) == opponent:
+#         return False
+
+#     # Recursive cases
+#     if board.get_value(nx, ny) == player:
+#         return dfs(board, nx, ny, dir, player, count + 1, player_count + 1)
+
+#     return dfs(board, nx, ny, dir, player, count + 1)
+
+
+def check_edge(
+    board: Board, x: int, y: int, dir: Tuple[int, int], player: str, opponent: str
 ) -> bool:
-    """Perform a depth-first search to detect open three patterns."""
-    nx, ny = x + dir[0], y + dir[1]
-    opponent = PLAYER_1 if player == PLAYER_2 else PLAYER_2
+    line = get_line(board, x, y, dir, 4)
+    line_opposite = get_line(board, x, y, (-dir[0], -dir[1]), 2)
 
-    # Ensure (nx, ny) is within bounds
-    if not is_within_bounds(x, y, dir[0], dir[1]):
-        return False
+    print(line, line[0:3], type(line[0:3]), dir)
+    # Case 1: .$OO., but not X.$OO.X, $OO.O
+    if not (
+        (line == f"{player}{player}.{opponent}" and line_opposite == f".{opponent}")
+        or line == f"{player}{player}.{player}"
+    ) and (line[0:3] == f"{player}{player}." and line_opposite[0] == "."):
+        return True
 
-    # Handle cases for count == 3 and count == 4
-    if count == 3:
-        return player_count == 3 and board.get_value(nx, ny) == EMPTY_SPACE
+    # Case 2: .$O.O., but not O.$O.O
+    if not (line[0:3] == f"{player}.{player}" and line_opposite == f".{player}") and (
+        line == f"{player}.{player}." and (line_opposite[0] == ".")
+    ):
+        return True
 
-    if count == 4:
-        return player_count == 3 and board.get_value(nx, ny) == EMPTY_SPACE
+    # Case 3: .$.OO.
+    if line == f".{player}{player}." and line_opposite[0] == ".":
+        return True
 
-    # Stop if the next cell is occupied by the opponent
-    if board.get_value(nx, ny) == opponent:
-        return False
-
-    # Recursive cases
-    if board.get_value(nx, ny) == player:
-        return dfs(board, nx, ny, dir, player, count + 1, player_count + 1)
-
-    return dfs(board, nx, ny, dir, player, count + 1)
+    return False
 
 
 def check_doublethree(board: Board, x: int, y: int, player: str) -> bool:
     """Check if placing a stone creates a double three."""
     print("doublethree checking")
-    openthree_count = 0
+    openthree = []
 
     for dir in DIRECTIONS:
         # Skip if the current direction or opposite direction is out of bounds
@@ -106,16 +123,20 @@ def check_doublethree(board: Board, x: int, y: int, player: str) -> bool:
         if board.get_value(x - dir[0], y - dir[1]) == opponent:
             continue
 
-        # Check for open three patterns
-        if check_middle(board, x, y, dir, player):
-            print(f"Open three detected using middle check in direction {dir}.")
-            openthree_count += 1
+        # Check for open three patterns at the edge
+        if check_edge(board, x, y, dir, player, opponent):
+            print(f"Open three detected using edge check in direction {dir}.")
+            openthree.append(("edge", dir))
             continue
 
-        if board.get_value(x - dir[0], y - dir[1]) == EMPTY_SPACE and dfs(
-            board, x, y, dir, player, 1
-        ):
-            print(f"Open three detected using DFS in direction {dir}.")
-            openthree_count += 1
-    print("fuch", openthree_count >= 2, flush=True)
-    return openthree_count >= 2
+        # Check for open three patterns in the middle (limit to unique directions)
+        if dir in UNIQUE_DIRECTIONS:
+            if check_middle(board, x, y, dir, player, opponent):
+                print(f"Open three detected using middle check in direction {dir}.")
+                openthree.append(("middle", dir))
+
+    # Debugging output (you can remove this later)
+    print(f"Open three count: {len(openthree)} (Details: {openthree})")
+
+    # Return whether a double three is detected
+    return len(openthree) >= 2
