@@ -63,6 +63,8 @@ watch(data, (rawData) => {
       return;
     }
 
+    console.log(res);
+
     boardData.value = res.board.map((row) =>
       row.map((col) => ({ stone: col })),
     );

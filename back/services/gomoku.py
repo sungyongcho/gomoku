@@ -1,6 +1,7 @@
 import time
 from typing import List
 
+from ai.minmax import minmax
 from constants import EMPTY_SPACE
 from rules.capture import capture_opponent
 from rules.doublethree import check_doublethree
@@ -11,41 +12,41 @@ class Gomoku:
     def __init__(self, board_size=19):
         self.board_size = board_size
         self.board = Board()
-        self.capture_goal = 0
+        self.goal = 0
         # self.history = []
         self.last_player = ""
         self.next_player = ""
-        self.last_player_capture = 0
-        self.next_player_capture = 0
+        self.last_player_score = 0
+        self.next_player_score = 0
         self.captured_stones = []
-        # # for testing - capture
-        # self.board.set_value(2, 1, "O")
-        # self.board.set_value(3, 1, "O")
-        # self.board.set_value(4, 1, "X")
-
-        # self.board.set_value(2, 2, "O")
-        # self.board.set_value(3, 3, "O")
-        # self.board.set_value(4, 4, "X")
-
-        # self.board.set_value(1, 2, "O")
-        # self.board.set_value(1, 3, "O")
-        # self.board.set_value(1, 4, "X")
-        # for testing - doublethree
-        # self.board.set_value(0, 1, "X")
-        # self.board.set_value(2, 1, "X")
-        # self.board.set_value(3, 1, "X")
 
     def set_game(
         self,
         board: List[List[str]],
-        goal: int,
         last_player: str,
         next_player: str,
+        scores: List[dict],
+        goal: int,
     ) -> None:
-        self.board.set_board(board)
-        self.capture_goal = goal
+        self.goal = goal * 2
         self.last_player = last_player
         self.next_player = next_player
+
+        # Convert scores list to a dictionary
+        scores_dict = {score["player"]: score["score"] for score in scores}
+
+        # Access the scores using last_player and next_player
+        self.last_player_score = scores_dict.get(last_player, 0) * 2
+        self.next_player_score = scores_dict.get(next_player, 0) * 2
+
+        self.board = Board(
+            board,
+            last_player,
+            next_player,
+            self.last_player_score,
+            self.next_player_score,
+            self.goal,
+        )
 
     def print_board(self) -> str:
         return self.board.convert_board_for_print()
@@ -55,8 +56,8 @@ class Gomoku:
 
     def get_scores(self):
         return [
-            {"player": self.last_player, "score": self.last_player_capture},
-            {"player": self.next_player, "score": self.next_player_capture},
+            {"player": self.last_player, "score": self.last_player_score},
+            {"player": self.next_player, "score": self.next_player_score},
         ]
 
     def get_captured_stones(self):
@@ -65,8 +66,8 @@ class Gomoku:
     def reset_board(self) -> None:
         self.board.reset_board()
         # self.history = []
-        self.last_player_capture = 0
-        self.next_player_capture = 0
+        self.last_player_score = 0
+        self.next_player_score = 0
 
     def update_board(self, x: int, y: int, player: str) -> bool:
         captured_stones = capture_opponent(self.board, x, y, player)
@@ -81,9 +82,9 @@ class Gomoku:
         for captured in captured_stones:
             self.board.set_value(captured["x"], captured["y"], EMPTY_SPACE)
             if captured["stone"] == self.next_player:
-                self.last_player_capture += 1
+                self.last_player_score += 1
             else:
-                self.next_player_capture += 1
+                self.next_player_score += 1
             # self.record_history(
             #     pair[0],
             #     pair[1],
@@ -91,7 +92,7 @@ class Gomoku:
             #     "capture",
             # )
         print(
-            f"Capture score - {self.last_player}: {self.last_player_capture}, {self.next_player}: {self.next_player_capture}"
+            f"Capture score - {self.last_player}: {self.last_player_score}, {self.next_player}: {self.next_player_score}"
         )
 
     def is_doublethree(self, board: Board, x: int, y: int, player: str) -> bool:
@@ -109,28 +110,41 @@ class Gomoku:
         return False
 
     def play_next(self):
-        start_time = time.time()  # Record the start time
-        self.place_stone(1, 1, "O")
-        end_time = time.time()  # Record the end time
-        elapsed_time_ms = (end_time - start_time) * 1000  # Convert to ms
-        print(f"Update processed in {elapsed_time_ms:.3f} ms")
+        """
+        Determine and play the next move for the AI using the Minimax algorithm.
+        """
+        start_time = time.time()
 
-        return {"coordinate": {"x": 1, "y": 1}, "stone": "O"}
+        # Call the Minimax function to get the best move
+        score, col, row = minmax(
+            board=self.board,
+            depth=3,  # Adjust depth for performance vs. accuracy
+            is_maximizing=True,
+            alpha=float("-inf"),
+            beta=float("inf"),
+            player=self.next_player,
+            opponent=self.last_player,
+        )
+
+        # If a valid move is found, place the stone
+        if col != -1 and row != -1:
+            if self.place_stone(col, row, self.next_player):
+                print(f"AI placed stone at ({col}, {row}) with score {score}")
+
+        end_time = time.time()
+        elapsed_time_ms = (end_time - start_time) * 1000
+        print(f"AI chose move ({col}, {row}) in {elapsed_time_ms:.3f} ms")
+
+        # Return the move details
+        return {"coordinate": {"col": col, "row": row}, "stone": self.next_player}
+
+        # testing
+        print(self.next_player, flush=True)
+        self.place_stone(1, 1, self.next_player)
+        return {"coordinate": {"x": 1, "y": 1}, "stone": self.next_player}
 
     # def record_history(self, x: int, y: int, player: str, type: str) -> None:
     #     self.history.append({"x": x, "y": y, "player": player, "type": type})
 
     # def print_history(self) -> None:
     #     print(self.history)
-
-
-# def play_next():
-#     start_time = time.time()  # Record the start time
-
-#     last_move = history[len(history) - 1]
-#     x, y = last_move["x"], last_move["y"]
-#     # place_stone(x + 1, y + 1, "O")
-#     end_time = time.time()  # Record the end time
-#     elapsed_time_ms = (end_time - start_time) * 1000  # Convert to ms
-#     print(f"Update processed in {elapsed_time_ms:.3f} ms")
-#     pass

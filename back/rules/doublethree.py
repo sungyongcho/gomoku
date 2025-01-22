@@ -9,15 +9,13 @@ def is_within_bounds(x: int, y: int, offset_x: int, offset_y: int) -> bool:
     return 0 <= x + offset_x < NUM_LINES and 0 <= y + offset_y < NUM_LINES
 
 
-def get_line(
-    board: Board, x: int, y: int, dir: Tuple[int, int], length: int
-) -> str | bool:
+def get_line(board: Board, x: int, y: int, dir: Tuple[int, int], length: int) -> str:
     """Construct a line of cells in the given direction up to the specified length."""
 
     result = []
     for i in range(1, length + 1):
         if not is_within_bounds(x, y, (dir[0] * i), (dir[1] * i)):
-            return False
+            return ""
         new_x = x + dir[0] * i
         new_y = y + dir[1] * i
         result.append(board.get_value(new_x, new_y))
@@ -30,6 +28,9 @@ def check_middle(
     """Check for an open three pattern with or without a middle gap."""
     line = get_line(board, x, y, dir, 3)
     line_opposite = get_line(board, x, y, (-dir[0], -dir[1]), 3)
+
+    if len(line) < 3 or len(line_opposite) < 3:
+        return False
 
     # Case 1: .O$O., but not X.O$O.X and O$O.O
     if not (
@@ -85,7 +86,9 @@ def check_edge(
     line = get_line(board, x, y, dir, 4)
     line_opposite = get_line(board, x, y, (-dir[0], -dir[1]), 2)
 
-    print(line, line[0:3], type(line[0:3]), dir)
+    if len(line) < 4 or len(line_opposite) < 2:
+        return False
+
     # Case 1: .$OO., but not X.$OO.X, $OO.O
     if not (
         (line == f"{player}{player}.{opponent}" and line_opposite == f".{opponent}")
@@ -108,7 +111,7 @@ def check_edge(
 
 def check_doublethree(board: Board, x: int, y: int, player: str) -> bool:
     """Check if placing a stone creates a double three."""
-    print("doublethree checking")
+    # print("doublethree checking")
     openthree = []
 
     for dir in DIRECTIONS:
@@ -125,18 +128,18 @@ def check_doublethree(board: Board, x: int, y: int, player: str) -> bool:
 
         # Check for open three patterns at the edge
         if check_edge(board, x, y, dir, player, opponent):
-            print(f"Open three detected using edge check in direction {dir}.")
+            # print(f"Open three detected using edge check in direction {dir}.")
             openthree.append(("edge", dir))
             continue
 
         # Check for open three patterns in the middle (limit to unique directions)
         if dir in UNIQUE_DIRECTIONS:
             if check_middle(board, x, y, dir, player, opponent):
-                print(f"Open three detected using middle check in direction {dir}.")
+                # print(f"Open three detected using middle check in direction {dir}.")
                 openthree.append(("middle", dir))
 
     # Debugging output (you can remove this later)
-    print(f"Open three count: {len(openthree)} (Details: {openthree})")
+    # print(f"Open three count: {len(openthree)} (Details: {openthree})")
 
     # Return whether a double three is detected
     return len(openthree) >= 2

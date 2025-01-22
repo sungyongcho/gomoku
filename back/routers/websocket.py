@@ -86,22 +86,26 @@ async def debug_endpoint(websocket: WebSocket):
                     )
                     continue
                 # human player first
-                x, y, last_player, next_player, goal, board = (
+                x, y, last_player, next_player, goal, board, scores = (
                     data["lastPlay"]["coordinate"]["x"],
                     data["lastPlay"]["coordinate"]["y"],
                     data["lastPlay"]["stone"],
                     data["nextPlayer"],
                     data["goal"],
                     data["board"],
+                    data["scores"],
                 )
-                # print(x, y, last_player, next_player, goal, board, flush=True)
-                game.set_game(board, goal, last_player, next_player)
+
+                # print(x, y, last_player, next_player, goal, board, scores, flush=True)
+                game.set_game(board, last_player, next_player, scores, goal)
                 print("before\n", game.print_board(), flush=True)
                 success = game.update_board(x, y, last_player)
                 print("after\n", game.print_board(), flush=True)
                 if success:
                     # TODO: when play_next() executes, the "next player" changes
                     lastPlay = game.play_next()
+
+                    print(lastPlay, flush=True)
                     await websocket.send_json(
                         {
                             "type": "move",
@@ -113,6 +117,7 @@ async def debug_endpoint(websocket: WebSocket):
                         }
                     )
                 else:
+                    print("ssup")
                     await websocket.send_json({"type": "error", "error": "doublethree"})
             # elif data["type"] == "reset":
             #     game.reset_board()
