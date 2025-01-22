@@ -29,7 +29,7 @@ class Board:
         next_player: str = "O",
         last_player_score: int = 0,
         next_player_score: int = 0,
-        goal: int = 5,
+        goal: int = 10,
     ) -> None:
         """Initialize the board."""
         self.position = board or [[EMPTY_SPACE] * NUM_LINES for _ in range(NUM_LINES)]

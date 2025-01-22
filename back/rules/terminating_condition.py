@@ -57,3 +57,17 @@ def board_is_functionally_full(board: Board) -> bool:
     ):
         return False
     return True
+
+
+def is_won_by_score(board: Board, player: str) -> bool:
+    """Check if the given player has won by reaching the score goal."""
+    # Determine the target score for the given player
+    if player == board.last_player:
+        target_score = board.last_player_score
+    elif player == board.next_player:
+        target_score = board.next_player_score
+    else:
+        return False  # Invalid player
+
+    # Check if the target score meets the goal
+    return target_score >= board.goal

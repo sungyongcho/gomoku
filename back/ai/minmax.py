@@ -3,7 +3,11 @@ from typing import List, Tuple
 from constants import EMPTY_SPACE
 from rules.capture import capture_opponent
 from rules.doublethree import check_doublethree
-from rules.terminating_condition import board_is_functionally_full, has_five_in_a_row
+from rules.terminating_condition import (
+    board_is_functionally_full,
+    has_five_in_a_row,
+    is_won_by_score,
+)
 from services.board import Board
 
 SEARCH_RADIUS = 3
@@ -185,13 +189,20 @@ def generate_valid_moves(board: Board, player: str) -> List[Tuple[int, int]]:
 
 def is_terminal(board: Board, player: str, opponent: str) -> bool:
     """Check if the board is in a terminal state."""
+    # 1. Check if player has 5 in a row
     if has_five_in_a_row(board, player):
         return True
-    # 2. Check if 'opponent' has 5 in a row
+    # 2. Check if opponent has 5 in a row
     if has_five_in_a_row(board, opponent):
         return True
     # 3. Check if the board is completely filled
     if board_is_functionally_full(board):
+        return True
+    # 4. Check if the capture score is met for player
+    if is_won_by_score(board, player):
+        return True
+    # 5. Check if the capture score is met for opponent
+    if is_won_by_score(board, opponent):
         return True
 
     return False
