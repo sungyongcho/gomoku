@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from constants import EMPTY_SPACE
+from constants import EMPTY_SPACE, NUM_LINES
 from rules.capture import capture_opponent
 from rules.doublethree import check_doublethree
 from rules.terminating_condition import (
@@ -34,9 +34,22 @@ def minmax(
             x, y = move
             board.set_value(x, y, player)
             captured_stones = capture_opponent(board, x, y, player)
+            board.update_captured_stone(captured_stones)
+            # Store old score
+            if player == board.last_player:
+                old_score = board.last_player_score
+                board.last_player_score += len(captured_stones)
+            else:
+                old_score = board.next_player_score
+                board.next_player_score += len(captured_stones)
+
             eval, _, _ = minmax(board, depth - 1, False, alpha, beta, player, opponent)
-            board.set_value(x, y, ".")  # Undo move
+            board.set_value(x, y, EMPTY_SPACE)  # Undo move
             undo_captures(board, captured_stones)
+            if player == board.last_player:
+                board.last_player_score = old_score
+            else:
+                board.next_player_score = old_score
 
             if eval > max_eval:
                 max_eval = eval
@@ -52,9 +65,22 @@ def minmax(
             x, y = move
             board.set_value(x, y, opponent)
             captured_stones = capture_opponent(board, x, y, opponent)
+            board.update_captured_stone(captured_stones)
+            # Store old score
+            if player == board.last_player:
+                old_score = board.last_player_score
+                board.last_player_score += len(captured_stones)
+            else:
+                old_score = board.next_player_score
+                board.next_player_score += len(captured_stones)
+
             eval, _, _ = minmax(board, depth - 1, True, alpha, beta, player, opponent)
-            board.set_value(x, y, ".")  # Undo move
+            board.set_value(x, y, EMPTY_SPACE)  # Undo move
             undo_captures(board, captured_stones)
+            if player == board.last_player:
+                board.last_player_score = old_score
+            else:
+                board.next_player_score = old_score
 
             if eval < min_eval:
                 min_eval = eval
@@ -78,8 +104,8 @@ def evaluate_board(board: Board, player: str) -> int:
     score -= pattern_score(board, opponent)
 
     # (Optional) Factor in captures:
-    # score += (board.last_player_score * 10) if player == board.last_player else 0
-    # score -= (board.next_player_score * 10) if opponent == board.next_player else 0
+    score += (board.last_player_score * 10) if player == board.last_player else 0
+    score -= (board.next_player_score * 10) if opponent == board.next_player else 0
 
     return score
 
@@ -90,7 +116,7 @@ def pattern_score(board: Board, player: str) -> int:
     ignoring fully blocked lines. Expand for more detailed patterns.
     """
     points = 0
-    size = len(board.get_board())
+    size = NUM_LINES
 
     # Example scoring: +10 per three, +50 per four
     # You can refine with is_open / is_half_open checks
@@ -132,20 +158,20 @@ def generate_valid_moves(board: Board, player: str) -> List[Tuple[int, int]]:
     moves = []
     stone_positions = []
 
-    size = len(board.get_board())
-
     # 1. Find positions of all stones
-    for col in range(size):
-        for row in range(size):
+    for col in range(NUM_LINES):
+        for row in range(NUM_LINES):
             if board.get_value(col, row) != EMPTY_SPACE:
                 stone_positions.append((col, row))
 
     # 2. If no stones found, pick a small region around the center
     if not stone_positions:
-        center = size // 2
+        center = NUM_LINES // 2
         radius = 2  # or some small region near center
-        for col in range(max(0, center - radius), min(size, center + radius + 1)):
-            for row in range(max(0, center - radius), min(size, center + radius + 1)):
+        for col in range(max(0, center - radius), min(NUM_LINES, center + radius + 1)):
+            for row in range(
+                max(0, center - radius), min(NUM_LINES, center + radius + 1)
+            ):
                 if board.get_value(col, row) == EMPTY_SPACE:
                     # Check double-three
                     if not check_doublethree(board, col, row, player):
@@ -159,7 +185,7 @@ def generate_valid_moves(board: Board, player: str) -> List[Tuple[int, int]]:
             for dy in range(-SEARCH_RADIUS, SEARCH_RADIUS + 1):
                 col = scol + dx
                 row = srow + dy
-                if 0 <= col < size and 0 <= row < size:
+                if 0 <= col < NUM_LINES and 0 <= row < NUM_LINES:
                     if board.get_value(col, row) == EMPTY_SPACE:
                         if (col, row) not in considered:
                             if not check_doublethree(board, col, row, player):
@@ -211,4 +237,5 @@ def is_terminal(board: Board, player: str, opponent: str) -> bool:
 def undo_captures(board: Board, captured_stones: List[dict]) -> None:
     """Undo captures made during the Minimax simulation."""
     for stone in captured_stones:
+        print(stone)
         board.set_value(stone["x"], stone["y"], stone["stone"])

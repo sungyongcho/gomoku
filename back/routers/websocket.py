@@ -74,6 +74,7 @@ async def debug_endpoint(websocket: WebSocket):
         game = Gomoku()
         while True:
             data = await websocket.receive_json()
+            print(data, flush=True)
             if data["type"] == "move":
                 # ai first
                 if "lastPlay" not in data:
