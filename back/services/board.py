@@ -87,6 +87,10 @@ class Board:
             diag.append(self.get_value(col + i, row - i))
         return diag
 
+    def update_captured_stone(self, captured_stones: list) -> None:
+        for captured in captured_stones:
+            self.set_value(captured["x"], captured["y"], EMPTY_SPACE)
+
     def convert_board_for_print(self) -> str:
         """Converts the board to a human-readable string."""
         board_to_print = ""
