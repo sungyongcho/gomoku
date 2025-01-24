@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from constants import EMPTY_SPACE, NUM_LINES
+from constants import EMPTY_SPACE, NUM_LINES, PLAYER_1, PLAYER_2
 from rules.capture import capture_opponent
 from rules.doublethree import check_doublethree
 from rules.terminating_condition import (
@@ -97,71 +97,213 @@ def minmax(
 
 
 def evaluate_board(board: Board, player: str) -> int:
-    """
-    Evaluate the board for 'player' using simple pattern detection.
-    """
     opponent = board.next_player if player == board.last_player else board.last_player
-    score = 0
 
-    # Detect patterns for both player and opponent
-    score += pattern_score(board, player)
-    score -= pattern_score(board, opponent)
+    # Pattern scoring
+    base_score = pattern_score(board, player) - pattern_score(board, opponent)
 
-    # (Optional) Factor in captures:
-    score += (board.last_player_score * 10) if player == board.last_player else 0
-    score -= (board.next_player_score * 10) if opponent == board.next_player else 0
+    # Capture scoring
+    base_score += (board.last_player_score * 10) if player == board.last_player else 0
+    base_score -= (board.next_player_score * 10) if opponent == board.next_player else 0
 
-    return score
+    # Capture threat penalty
+    capture_threat_penalty = detect_capture_threats(board, player, opponent)
+
+    return base_score + capture_threat_penalty
+
+
+def detect_capture_threats(board: Board, player: str, opponent: str) -> int:
+    """
+    Returns a negative penalty if the opponent can capture 'player''s stones
+    on their next move.
+
+    Strategy:
+      1. Generate a small set of empty cells to consider (like a 2-3 cell radius).
+      2. For each cell, place 'opponent' stone, call capture_opponent.
+      3. If any stones from 'player' would be captured, apply a penalty.
+      4. Undo and move on.
+
+    Final penalty is e.g., -5 times the number of your stones that can be captured
+    by the opponent in a single move.
+    """
+    threat_penalty = 0
+
+    # Gather potential moves for the opponent
+    # We can reuse your "generate_valid_moves" or do a smaller, local approach
+    possible_moves = generate_threat_moves(board, opponent, radius=2)
+
+    for col, row in possible_moves:
+        # Temporarily place the opponent's stone
+        if board.get_value(col, row) == EMPTY_SPACE:
+            board.set_value(col, row, opponent)
+            captured_stones = capture_opponent(board, col, row, opponent)
+
+            # Undo
+            board.set_value(col, row, EMPTY_SPACE)
+
+            # Only restore if your code removes them immediately in capture_opponent
+            undo_captures(board, captured_stones)
+
+            # If any captured stone belongs to 'player', penalize
+            # e.g., -5 for each stone that would be captured
+            penalty_for_this_move = 0
+            for stone in captured_stones:
+                if stone["stone"] == player:
+                    penalty_for_this_move -= 5
+
+            threat_penalty += penalty_for_this_move
+
+    # Summation of all possible capture threats
+    return threat_penalty
+
+
+def generate_threat_moves(board: Board, player: str, radius=2) -> List[Tuple[int, int]]:
+    """
+    Return a limited set of empty cells near existing stones,
+    to check for potential capture threats.
+    """
+    size = len(board.get_board())
+    stone_positions = []
+    moves = set()
+
+    # Find all stones
+    for c in range(size):
+        for r in range(size):
+            if board.get_value(c, r) != EMPTY_SPACE:
+                stone_positions.append((c, r))
+
+    # If no stones, no threat
+    if not stone_positions:
+        return []
+
+    for sc, sr in stone_positions:
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                nc, nr = sc + dx, sr + dy
+                if 0 <= nc < size and 0 <= nr < size:
+                    if board.get_value(nc, nr) == EMPTY_SPACE:
+                        moves.add((nc, nr))
+
+    return list(moves)
 
 
 def pattern_score(board: Board, player: str) -> int:
-    """
-    Assign points for each 3-in-a-row, 4-in-a-row (open or half-open),
-    ignoring fully blocked lines. Expand for more detailed patterns.
-    """
     points = 0
     size = NUM_LINES
+    opponent = PLAYER_2 if player == PLAYER_1 else PLAYER_1
 
-    # Example scoring: +10 per three, +50 per four
-    # You can refine with is_open / is_half_open checks
+    # We'll do it for "three" and "four" patterns
+    three_pattern = player * 3
+    four_pattern = player * 4
+    five_pattern = player * 5
+
     for row in range(size):
-        line = "".join(board.get_row(row))
-        points += count_occurrences(line, player * 3) * 10
-        points += count_occurrences(line, player * 4) * 50
+        row_line = "".join(board.get_row(row))
+        points += (
+            count_occurrences_with_context(row_line, three_pattern, player, opponent)
+            * 10
+        )
+        points += (
+            count_occurrences_with_context(row_line, four_pattern, player, opponent)
+            * 50
+        )
+        points += (
+            count_occurrences_with_context(row_line, five_pattern, player, opponent)
+            * 100000
+        )
 
     for col in range(size):
-        line = "".join(board.get_column(col))
-        points += count_occurrences(line, player * 3) * 10
-        points += count_occurrences(line, player * 4) * 50
+        col_line = "".join(board.get_column(col))
+        points += (
+            count_occurrences_with_context(col_line, three_pattern, player, opponent)
+            * 10
+        )
+        points += (
+            count_occurrences_with_context(col_line, four_pattern, player, opponent)
+            * 50
+        )
+        points += (
+            count_occurrences_with_context(row_line, five_pattern, player, opponent)
+            * 100000
+        )
 
-    # Downward Diagonals
+    # Diagonals (downward and upward)
     for diag in board.get_all_downward_diagonals():
-        line = "".join(diag)
-        points += count_occurrences(line, player * 3) * 10
-        points += count_occurrences(line, player * 4) * 50
+        diag_line = "".join(diag)
+        points += (
+            count_occurrences_with_context(diag_line, three_pattern, player, opponent)
+            * 10
+        )
+        points += (
+            count_occurrences_with_context(diag_line, four_pattern, player, opponent)
+            * 50
+        )
+        points += (
+            count_occurrences_with_context(row_line, five_pattern, player, opponent)
+            * 100000
+        )
 
-    # Upward Diagonals
     for diag in board.get_all_upward_diagonals():
-        line = "".join(diag)
-        points += count_occurrences(line, player * 3) * 10
-        points += count_occurrences(line, player * 4) * 50
+        diag_line = "".join(diag)
+        points += (
+            count_occurrences_with_context(diag_line, three_pattern, player, opponent)
+            * 10
+        )
+        points += (
+            count_occurrences_with_context(diag_line, four_pattern, player, opponent)
+            * 50
+        )
+        points += (
+            count_occurrences_with_context(row_line, five_pattern, player, opponent)
+            * 100000
+        )
 
     return points
 
 
-def count_occurrences(line: str, pattern: str) -> int:
+def count_occurrences_with_context(
+    line: str, pattern: str, player: str, opponent: str
+) -> int:
     """
-    Return how many times 'pattern' occurs in 'line'.
+    For each occurrence of 'pattern' in 'line', check the surrounding context
+    to decide if it's open/half-open/blocked. Return a cumulative score.
+
+    Example scoring (tweak as you like):
+      - fully open => +3
+      - half open  => +2
+      - blocked    => +1 (or 0 if you want to ignore fully-blocked patterns)
     """
-    count = 0
+    total_score = 0
     start = 0
+
     while True:
         idx = line.find(pattern, start)
         if idx == -1:
             break
-        count += 1
-        start = idx + 1
-    return count
+
+        left_idx = idx - 1
+        right_idx = idx + len(pattern)
+
+        # Get left/right chars, treat out-of-bounds as 'opponent' or a block
+        left_char = line[left_idx] if 0 <= left_idx < len(line) else opponent
+        right_char = line[right_idx] if 0 <= right_idx < len(line) else opponent
+
+        # Decide if open, half-open, or blocked
+        if left_char == "." and right_char == ".":
+            # fully open
+            total_score += 3
+        elif (left_char == "." and right_char != "." and right_char != player) or (
+            right_char == "." and left_char != "." and left_char != player
+        ):
+            # half open => +2
+            total_score += 2
+        # else:
+        #     # fully blocked => +1 or 0
+        #     total_score += 1
+
+        start = idx + 1  # move past this occurrence
+
+    return total_score
 
 
 def generate_valid_moves(board: Board, player: str) -> List[Tuple[int, int]]:
