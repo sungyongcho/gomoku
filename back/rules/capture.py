@@ -40,5 +40,4 @@ def capture_opponent(board: Board, x, y, player):
                     "stone": board.get_value(x + (dir[0] * 2), y + (dir[1] * 2)),
                 }
             )
-    print(captured_stones)
     return captured_stones

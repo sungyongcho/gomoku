@@ -34,22 +34,24 @@ def minmax(
             x, y = move
             board.set_value(x, y, player)
             captured_stones = capture_opponent(board, x, y, player)
-            board.update_captured_stone(captured_stones)
-            # Store old score
-            if player == board.last_player:
-                old_score = board.last_player_score
-                board.last_player_score += len(captured_stones)
-            else:
-                old_score = board.next_player_score
-                board.next_player_score += len(captured_stones)
+            if len(captured_stones) > 0:
+                board.update_captured_stone(captured_stones)
+                # Store old score
+                if player == board.last_player:
+                    old_score = board.last_player_score
+                    board.last_player_score += len(captured_stones)
+                else:
+                    old_score = board.next_player_score
+                    board.next_player_score += len(captured_stones)
 
             eval, _, _ = minmax(board, depth - 1, False, alpha, beta, player, opponent)
             board.set_value(x, y, EMPTY_SPACE)  # Undo move
-            undo_captures(board, captured_stones)
-            if player == board.last_player:
-                board.last_player_score = old_score
-            else:
-                board.next_player_score = old_score
+            if len(captured_stones) > 0:
+                undo_captures(board, captured_stones)
+                if player == board.last_player:
+                    board.last_player_score = old_score
+                else:
+                    board.next_player_score = old_score
 
             if eval > max_eval:
                 max_eval = eval
@@ -65,22 +67,24 @@ def minmax(
             x, y = move
             board.set_value(x, y, opponent)
             captured_stones = capture_opponent(board, x, y, opponent)
-            board.update_captured_stone(captured_stones)
-            # Store old score
-            if player == board.last_player:
-                old_score = board.last_player_score
-                board.last_player_score += len(captured_stones)
-            else:
-                old_score = board.next_player_score
-                board.next_player_score += len(captured_stones)
+            if len(captured_stones) > 0:
+                board.update_captured_stone(captured_stones)
+                # Store old score
+                if player == board.last_player:
+                    old_score = board.last_player_score
+                    board.last_player_score += len(captured_stones)
+                else:
+                    old_score = board.next_player_score
+                    board.next_player_score += len(captured_stones)
 
             eval, _, _ = minmax(board, depth - 1, True, alpha, beta, player, opponent)
             board.set_value(x, y, EMPTY_SPACE)  # Undo move
-            undo_captures(board, captured_stones)
-            if player == board.last_player:
-                board.last_player_score = old_score
-            else:
-                board.next_player_score = old_score
+            if len(captured_stones) > 0:
+                undo_captures(board, captured_stones)
+                if player == board.last_player:
+                    board.last_player_score = old_score
+                else:
+                    board.next_player_score = old_score
 
             if eval < min_eval:
                 min_eval = eval
@@ -130,10 +134,17 @@ def pattern_score(board: Board, player: str) -> int:
         points += count_occurrences(line, player * 3) * 10
         points += count_occurrences(line, player * 4) * 50
 
-    # For diagonals, do similarly
-    # e.g., get_diagonal1, get_diagonal2 for each (col, row)
-    # be mindful of duplicates or only do it systematically
-    # This simplified approach might be enough for a baseline
+    # Downward Diagonals
+    for diag in board.get_all_downward_diagonals():
+        line = "".join(diag)
+        points += count_occurrences(line, player * 3) * 10
+        points += count_occurrences(line, player * 4) * 50
+
+    # Upward Diagonals
+    for diag in board.get_all_upward_diagonals():
+        line = "".join(diag)
+        points += count_occurrences(line, player * 3) * 10
+        points += count_occurrences(line, player * 4) * 50
 
     return points
 

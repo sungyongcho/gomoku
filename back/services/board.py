@@ -71,21 +71,81 @@ class Board:
         """Return a specific column."""
         return [row[col] for row in self.position]
 
-    def get_diagonal1(self, col: int, row: int) -> List[str]:
-        """Return the top-left to bottom-right diagonal passing through (col, row)."""
-        diag = []
+    def get_all_downward_diagonals(self) -> List[List[str]]:
+        """
+        Return a list of diagonals (each diagonal is a list of strings),
+        scanning from top-left to bottom-right.
+        """
+        diagonals = []
         size = len(self.position)
-        for i in range(-min(col, row), size - max(col, row)):
-            diag.append(self.get_value(col + i, row + i))
-        return diag
 
-    def get_diagonal2(self, col: int, row: int) -> List[str]:
-        """Return the bottom-left to top-right diagonal passing through (col, row)."""
-        diag = []
+        # Start from first row (row=0) for all columns
+        for start_col in range(size):
+            diag = []
+            col, row = start_col, 0
+            while col < size and row < size:
+                diag.append(self.get_value(col, row))
+                col += 1
+                row += 1
+            diagonals.append(diag)
+
+        # Then start from first column (col=0) for all rows except row=0
+        # to avoid duplicating the main diagonal
+        for start_row in range(1, size):
+            diag = []
+            col, row = 0, start_row
+            while col < size and row < size:
+                diag.append(self.get_value(col, row))
+                col += 1
+                row += 1
+            diagonals.append(diag)
+
+        return diagonals
+
+    def get_all_upward_diagonals(self) -> List[List[str]]:
+        """
+        Return a list of diagonals scanning from bottom-left to top-right.
+        """
+        diagonals = []
         size = len(self.position)
-        for i in range(-min(col, size - row - 1), min(size - col, row + 1)):
-            diag.append(self.get_value(col + i, row - i))
-        return diag
+
+        # Start from last row (row=size-1) for all columns
+        for start_col in range(size):
+            diag = []
+            col, row = start_col, size - 1
+            while col < size and row >= 0:
+                diag.append(self.get_value(col, row))
+                col += 1
+                row -= 1
+            diagonals.append(diag)
+
+        # Then start from first column for rows from bottom to top
+        for start_row in range(size - 2, -1, -1):
+            diag = []
+            col, row = 0, start_row
+            while col < size and row >= 0:
+                diag.append(self.get_value(col, row))
+                col += 1
+                row -= 1
+            diagonals.append(diag)
+
+        return diagonals
+
+    # def get_downward_diagonal(self, col: int, row: int) -> List[str]:
+    #     """Return the top-left to bottom-right diagonal passing through (col, row)."""
+    #     diag = []
+    #     size = len(self.position)
+    #     for i in range(-min(col, row), size - max(col, row)):
+    #         diag.append(self.get_value(col + i, row + i))
+    #     return diag
+
+    # def get_upward_diagonal(self, col: int, row: int) -> List[str]:
+    #     """Return the bottom-left to top-right diagonal passing through (col, row)."""
+    #     diag = []
+    #     size = len(self.position)
+    #     for i in range(-min(col, size - row - 1), min(size - col, row + 1)):
+    #         diag.append(self.get_value(col + i, row - i))
+    #     return diag
 
     def update_captured_stone(self, captured_stones: list) -> None:
         for captured in captured_stones:

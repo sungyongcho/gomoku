@@ -113,6 +113,7 @@ class Gomoku:
         """
         Determine and play the next move for the AI using the Minimax algorithm.
         """
+        print("after 2", self.print_board())
         start_time = time.time()
 
         # Call the Minimax function to get the best move
