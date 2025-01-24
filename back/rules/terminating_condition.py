@@ -3,6 +3,43 @@ from rules.doublethree import check_doublethree
 from services.board import Board
 
 
+def has_local_five_in_a_row(board: Board, x: int, y: int, player: str) -> bool:
+    """
+    Check if placing 'player' at (x, y) resulted in a 5-in-a-row around (x, y).
+    Only scans up to 4 stones in each direction from (x, y).
+    """
+    directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+    for dx, dy in directions:
+        # Count continuous stones in both directions (dx, dy) and (-dx, -dy).
+        count = 1  # Include (x, y) itself
+
+        # Forward direction
+        nx, ny = x + dx, y + dy
+        while (
+            0 <= nx < NUM_LINES
+            and 0 <= ny < NUM_LINES
+            and board.get_value(nx, ny) == player
+        ):
+            count += 1
+            nx += dx
+            ny += dy
+
+        # Backward direction
+        nx, ny = x - dx, y - dy
+        while (
+            0 <= nx < NUM_LINES
+            and 0 <= ny < NUM_LINES
+            and board.get_value(nx, ny) == player
+        ):
+            count += 1
+            nx -= dx
+            ny -= dy
+
+        if count >= 5:
+            return True
+    return False
+
+
 def has_five_in_a_row(board: Board, player: str) -> bool:
     """Return True if the player has 5 consecutive stones anywhere on the board."""
 

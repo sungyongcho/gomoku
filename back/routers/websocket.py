@@ -104,9 +104,16 @@ async def debug_endpoint(websocket: WebSocket):
                 print("after\n", game.print_board(), flush=True)
                 if success:
                     # TODO: when play_next() executes, the "next player" changes
-                    lastPlay = game.play_next()
+                    lastPlay = game.play_next_minmax()
 
                     print(lastPlay, flush=True)
+                    print(
+                        game.get_scores(),
+                        game.board.last_player_score,
+                        game.board.next_player_score,
+                        game.get_captured_stones(),
+                        flush=True,
+                    )
                     await websocket.send_json(
                         {
                             "type": "move",
@@ -117,6 +124,7 @@ async def debug_endpoint(websocket: WebSocket):
                             "capturedStones": game.get_captured_stones(),
                         }
                     )
+                    game.captured_stones.clear()
                 else:
                     print("ssup")
                     await websocket.send_json({"type": "error", "error": "doublethree"})
