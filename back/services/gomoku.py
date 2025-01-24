@@ -129,6 +129,10 @@ class Gomoku:
 
         # If a valid move is found, place the stone
         if col != -1 and row != -1:
+            captured_stones = capture_opponent(self.board, col, row, self.next_player)
+            if captured_stones:
+                self.captured_stones = captured_stones
+                self.remove_captured_stone(captured_stones)
             if self.place_stone(col, row, self.next_player):
                 print(f"AI placed stone at ({col}, {row}) with score {score}")
 
