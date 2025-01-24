@@ -56,8 +56,8 @@ class Gomoku:
 
     def get_scores(self):
         return [
-            {"player": self.last_player, "score": self.last_player_score},
-            {"player": self.next_player, "score": self.next_player_score},
+            {"player": self.last_player, "score": int(self.last_player_score / 2)},
+            {"player": self.next_player, "score": int(self.next_player_score / 2)},
         ]
 
     def get_captured_stones(self):
@@ -72,7 +72,7 @@ class Gomoku:
     def update_board(self, x: int, y: int, player: str) -> bool:
         captured_stones = capture_opponent(self.board, x, y, player)
         if captured_stones:
-            self.captured_stones = captured_stones
+            # self.captured_stones = captured_stones
             self.remove_captured_stone(captured_stones)
         elif self.is_doublethree(self.board, x, y, player):
             return False
@@ -81,10 +81,10 @@ class Gomoku:
     def remove_captured_stone(self, captured_stones: list) -> None:
         for captured in captured_stones:
             self.board.set_value(captured["x"], captured["y"], EMPTY_SPACE)
-            if captured["stone"] == self.next_player:
-                self.last_player_score += 1
-            else:
-                self.next_player_score += 1
+            # if captured["stone"] == self.next_player:
+            #     self.last_player_score += 1
+            # else:
+            #     self.next_player_score += 1
             # self.record_history(
             #     pair[0],
             #     pair[1],
