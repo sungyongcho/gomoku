@@ -6,6 +6,7 @@ from rules.doublethree import check_doublethree
 from rules.terminating_condition import (
     board_is_functionally_full,
     has_five_in_a_row,
+    has_local_five_in_a_row,
     is_won_by_score,
 )
 from services.board import Board
@@ -33,6 +34,12 @@ def minmax(
         for move in generate_valid_moves(board, player):
             x, y = move
             board.set_value(x, y, player)
+
+            # Immediate Win?
+            if has_local_five_in_a_row(board, x, y, player):
+                board.set_value(x, y, EMPTY_SPACE)
+                return (999999, x, y)
+
             captured_stones = capture_opponent(board, x, y, player)
             if len(captured_stones) > 0:
                 board.update_captured_stone(captured_stones)
@@ -66,6 +73,10 @@ def minmax(
         for move in generate_valid_moves(board, opponent):
             x, y = move
             board.set_value(x, y, opponent)
+            # If the MINIMIZING side has 5 in a row => from the maximizing perspective = -999999
+            if has_local_five_in_a_row(board, x, y, player):
+                board.set_value(x, y, EMPTY_SPACE)
+                return (-999999, x, y)
             captured_stones = capture_opponent(board, x, y, opponent)
             if len(captured_stones) > 0:
                 board.update_captured_stone(captured_stones)
@@ -201,11 +212,11 @@ def pattern_score(board: Board, player: str) -> int:
         row_line = "".join(board.get_row(row))
         points += (
             count_occurrences_with_context(row_line, three_pattern, player, opponent)
-            * 10
+            * 100
         )
         points += (
             count_occurrences_with_context(row_line, four_pattern, player, opponent)
-            * 50
+            * 1000
         )
         points += (
             count_occurrences_with_context(row_line, five_pattern, player, opponent)
@@ -216,11 +227,11 @@ def pattern_score(board: Board, player: str) -> int:
         col_line = "".join(board.get_column(col))
         points += (
             count_occurrences_with_context(col_line, three_pattern, player, opponent)
-            * 10
+            * 100
         )
         points += (
             count_occurrences_with_context(col_line, four_pattern, player, opponent)
-            * 50
+            * 1000
         )
         points += (
             count_occurrences_with_context(row_line, five_pattern, player, opponent)
@@ -232,11 +243,11 @@ def pattern_score(board: Board, player: str) -> int:
         diag_line = "".join(diag)
         points += (
             count_occurrences_with_context(diag_line, three_pattern, player, opponent)
-            * 10
+            * 100
         )
         points += (
             count_occurrences_with_context(diag_line, four_pattern, player, opponent)
-            * 50
+            * 1000
         )
         points += (
             count_occurrences_with_context(row_line, five_pattern, player, opponent)
@@ -247,11 +258,11 @@ def pattern_score(board: Board, player: str) -> int:
         diag_line = "".join(diag)
         points += (
             count_occurrences_with_context(diag_line, three_pattern, player, opponent)
-            * 10
+            * 100
         )
         points += (
             count_occurrences_with_context(diag_line, four_pattern, player, opponent)
-            * 50
+            * 1000
         )
         points += (
             count_occurrences_with_context(row_line, five_pattern, player, opponent)
@@ -390,5 +401,4 @@ def is_terminal(board: Board, player: str, opponent: str) -> bool:
 def undo_captures(board: Board, captured_stones: List[dict]) -> None:
     """Undo captures made during the Minimax simulation."""
     for stone in captured_stones:
-        print(stone)
         board.set_value(stone["x"], stone["y"], stone["stone"])
