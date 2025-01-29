@@ -38,6 +38,7 @@ def minmax(
             # Immediate Win?
             if has_local_five_in_a_row(board, x, y, player):
                 board.set_value(x, y, EMPTY_SPACE)
+                print("testing", x, y)
                 return (999999, x, y)
 
             captured_stones = capture_opponent(board, x, y, player)
@@ -234,7 +235,7 @@ def pattern_score(board: Board, player: str) -> int:
             * 1000
         )
         points += (
-            count_occurrences_with_context(row_line, five_pattern, player, opponent)
+            count_occurrences_with_context(col_line, five_pattern, player, opponent)
             * 100000
         )
 
@@ -250,7 +251,7 @@ def pattern_score(board: Board, player: str) -> int:
             * 1000
         )
         points += (
-            count_occurrences_with_context(row_line, five_pattern, player, opponent)
+            count_occurrences_with_context(diag_line, five_pattern, player, opponent)
             * 100000
         )
 
@@ -265,7 +266,7 @@ def pattern_score(board: Board, player: str) -> int:
             * 1000
         )
         points += (
-            count_occurrences_with_context(row_line, five_pattern, player, opponent)
+            count_occurrences_with_context(diag_line, five_pattern, player, opponent)
             * 100000
         )
 
