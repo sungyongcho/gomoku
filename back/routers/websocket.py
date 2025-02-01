@@ -98,7 +98,7 @@ async def debug_endpoint(websocket: WebSocket):
                 )
 
                 # print(x, y, last_player, next_player, goal, board, scores, flush=True)
-                game.set_game(board, last_player, next_player, scores, goal)
+                game.set_game(data)
                 print("before\n", game.print_board(), flush=True)
                 success = game.update_board(x, y, last_player)
                 print("after\n", game.print_board(), flush=True)

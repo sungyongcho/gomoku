@@ -1,110 +1,84 @@
-from constants import EMPTY_SPACE, NUM_LINES
+import numpy as np
+from constants import NUM_LINES
 from rules.doublethree import check_doublethree
 from services.board import Board
 
+EMPTY_SPACE = 0
 
-def has_local_five_in_a_row(board: Board, x: int, y: int, player: str) -> bool:
-    """
-    Check if placing 'player' at (x, y) resulted in a 5-in-a-row around (x, y).
-    Only scans up to 4 stones in each direction from (x, y).
-    """
+
+def has_local_five_in_a_row(board: Board, x: int, y: int, player: int) -> bool:
+    """Check if (x, y) forms 5-in-a-row using NumPy slicing."""
+    array = board.position
     directions = [(1, 0), (0, 1), (1, 1), (1, -1)]
+
     for dx, dy in directions:
-        # Count continuous stones in both directions (dx, dy) and (-dx, -dy).
-        count = 1  # Include (x, y) itself
+        coords_x = np.clip(np.arange(-4, 5) * dx + x, 0, NUM_LINES - 1)
+        coords_y = np.clip(np.arange(-4, 5) * dy + y, 0, NUM_LINES - 1)
 
-        # Forward direction
-        nx, ny = x + dx, y + dy
-        while (
-            0 <= nx < NUM_LINES
-            and 0 <= ny < NUM_LINES
-            and board.get_value(nx, ny) == player
+        line = array[coords_y, coords_x]  # Extract the line
+        if len(line) >= 5 and np.any(
+            np.convolve(line == player, np.ones(5, dtype=int), mode="valid") == 5
         ):
-            count += 1
-            nx += dx
-            ny += dy
-
-        # Backward direction
-        nx, ny = x - dx, y - dy
-        while (
-            0 <= nx < NUM_LINES
-            and 0 <= ny < NUM_LINES
-            and board.get_value(nx, ny) == player
-        ):
-            count += 1
-            nx -= dx
-            ny -= dy
-
-        if count >= 5:
             return True
+
     return False
 
 
-def has_five_in_a_row(board: Board, player: str) -> bool:
-    """Return True if the player has 5 consecutive stones anywhere on the board."""
+def has_five_in_a_row(board: Board, player: int) -> bool:
+    """Check if the player has 5 consecutive stones anywhere using NumPy."""
+    array = board.position  # Access the NumPy board directly
 
-    for row in range(NUM_LINES):
-        for col in range(NUM_LINES):
-            if board.get_value(col, row) == player:
-                # 1) Check horizontal
-                if col + 4 < NUM_LINES:
-                    if all(board.get_value(col + i, row) == player for i in range(5)):
-                        return True
-                # 2) Check vertical
-                if row + 4 < NUM_LINES:
-                    if all(board.get_value(col, row + i) == player for i in range(5)):
-                        return True
-                # 3) Check diagonal1 (top-left to bottom-right)
-                if col + 4 < NUM_LINES and row + 4 < NUM_LINES:
-                    if all(
-                        board.get_value(col + i, row + i) == player for i in range(5)
-                    ):
-                        return True
-                # 4) Check diagonal2 (bottom-left to top-right)
-                if col + 4 < NUM_LINES and row - 4 >= 0:
-                    if all(
-                        board.get_value(col + i, row - i) == player for i in range(5)
-                    ):
-                        return True
+    # Convert to boolean mask (True where player stones exist)
+    mask = array == player
+
+    # Check rows (horizontal)
+    if np.any(np.convolve(mask.ravel(), np.ones(5, dtype=int), mode="valid") == 5):
+        return True
+
+    # Check columns (vertical)
+    if np.any(np.convolve(mask.T.ravel(), np.ones(5, dtype=int), mode="valid") == 5):
+        return True
+
+    # Check diagonals ↘
+    for offset in range(-NUM_LINES + 1, NUM_LINES):
+        diag = np.diagonal(mask, offset)
+        if len(diag) >= 5 and np.any(
+            np.convolve(diag, np.ones(5, dtype=int), mode="valid") == 5
+        ):
+            return True
+
+    # Check diagonals ↙ (flip vertically)
+    flipped = np.flipud(mask)
+    for offset in range(-NUM_LINES + 1, NUM_LINES):
+        diag = np.diagonal(flipped, offset)
+        if len(diag) >= 5 and np.any(
+            np.convolve(diag, np.ones(5, dtype=int), mode="valid") == 5
+        ):
+            return True
+
     return False
 
 
 def board_is_functionally_full(board: Board) -> bool:
-    """
-    Check if neither player has any legal move left:
-    - The board might be physically full (no '.'),
-    - OR all remaining empty spaces are forbidden by the double-three rule.
-    """
-
-    def any_valid_move(board: Board, player: str) -> bool:
-        """
-        Return True if 'player' has at least one legal move
-        (an empty cell that doesn't violate double-three).
-        """
-        for col in range(NUM_LINES):
-            for row in range(NUM_LINES):
-                if board.get_value(col, row) == EMPTY_SPACE:
-                    # Check if this move is allowed (no double-three)
-                    if not check_doublethree(board, col, row, player):
-                        return True
-        return False
-
-    if any_valid_move(board, board.last_player) or any_valid_move(
-        board, board.next_player
-    ):
-        return False
+    """Check if the board is full or all moves are forbidden."""
+    empty_positions = board.position == EMPTY_SPACE
+    if np.any(empty_positions):
+        for player in [board.last_player, board.next_player]:
+            if np.any(
+                [
+                    not check_doublethree(board, col, row, player)
+                    for col, row in zip(*np.where(empty_positions))
+                ]
+            ):
+                return False
     return True
 
 
-def is_won_by_score(board: Board, player: str) -> bool:
+def is_won_by_score(board: Board, player: int) -> bool:
     """Check if the given player has won by reaching the score goal."""
-    # Determine the target score for the given player
-    if player == board.last_player:
-        target_score = board.last_player_score
-    elif player == board.next_player:
-        target_score = board.next_player_score
-    else:
-        return False  # Invalid player
-
-    # Check if the target score meets the goal
+    target_score = (
+        board.last_player_score
+        if player == board.last_player
+        else board.next_player_score
+    )
     return target_score >= board.goal

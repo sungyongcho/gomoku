@@ -1,159 +1,91 @@
 from typing import List
 
-from constants import EMPTY_SPACE, NUM_LINES
+import numpy as np
+from constants import NUM_LINES
 
-
-class Column:
-    def __init__(self, column: List[str]) -> None:
-        """Initialize a column."""
-        self.column = column
-
-    def __getitem__(self, row: int) -> str:
-        """Get value at (col, row)."""
-        return self.column[row]
-
-    def __setitem__(self, row: int, value: str) -> None:
-        """Set value at (col, row)."""
-        self.column[row] = value
-
-    def __repr__(self) -> str:
-        """String representation of the column."""
-        return repr(self.column)
+PLAYER_1 = 1
+PLAYER_2 = 2
+EMPTY_SPACE = 0
 
 
 class Board:
     def __init__(
         self,
-        board: List[List[str]] = None,
-        last_player: str = "X",  # this is not correct, just for the example
-        next_player: str = "O",
-        last_player_score: int = 0,
-        next_player_score: int = 0,
-        goal: int = 10,
+        board_data: dict,
     ) -> None:
-        """Initialize the board."""
-        self.position = board or [[EMPTY_SPACE] * NUM_LINES for _ in range(NUM_LINES)]
-        self.last_player = last_player
-        self.next_player = next_player
-        self.last_player_score = last_player_score
-        self.next_player_score = next_player_score
-        self.goal = goal
+        """Initialize the board from a provided game state dictionary."""
+        self.goal = board_data["goal"]
+        self.last_player = (
+            PLAYER_1 if board_data["lastPlay"]["stone"] == "X" else PLAYER_2
+        )
+        self.next_player = PLAYER_1 if board_data["nextPlayer"] == "X" else PLAYER_2
+        self.last_player_score = next(
+            s["score"] for s in board_data["scores"] if s["player"] == "X"
+        )
+        self.next_player_score = next(
+            s["score"] for s in board_data["scores"] if s["player"] == "O"
+        )
 
-    def __getitem__(self, col: int) -> Column:
-        """Get a column to support [][] access."""
-        return Column([row[col] for row in self.position])
+        # Convert board from list of strings to NumPy array
+        self.position = np.array(
+            [
+                [
+                    EMPTY_SPACE
+                    if cell == "."
+                    else (PLAYER_1 if cell == "X" else PLAYER_2)
+                    for cell in row
+                ]
+                for row in board_data["board"]
+            ],
+            dtype=np.uint8,
+        )
 
-    def set_board(self, board: List[List[str]]) -> None:
-        """Set the entire board."""
-        self.position = board
+    def __getitem__(self, indices: tuple[int, int]) -> int:
+        """Get the value at a specific column and row."""
+        return self.position[indices]
 
-    def get_board(self) -> List[List[str]]:
+    def __setitem__(self, indices: tuple[int, int], value: int) -> None:
+        """Set the value at a specific column and row."""
+        self.position[indices] = value
+
+    def get_board(self) -> np.ndarray:
         """Get the current board state."""
         return self.position
 
     def reset_board(self) -> None:
         """Resets the board to an empty state."""
-        self.position = [[EMPTY_SPACE] * NUM_LINES for _ in range(NUM_LINES)]
+        self.position.fill(EMPTY_SPACE)
 
-    def get_value(self, col: int, row: int) -> str:
+    def get_value(self, col: int, row: int) -> int:
         """Get the value at a specific column and row."""
-        return self.position[row][col]
+        return self.position[row, col]
 
-    def set_value(self, col: int, row: int, value: str) -> None:
+    def set_value(self, col: int, row: int, value: int) -> None:
         """Set the value at a specific column and row."""
-        self.position[row][col] = value
+        self.position[row, col] = value
 
-    def get_row(self, row: int) -> List[str]:
+    def get_row(self, row: int) -> np.ndarray:
         """Return a specific row."""
-        return self.position[row]
+        return self.position[row, :]
 
-    def get_column(self, col: int) -> List[str]:
+    def get_column(self, col: int) -> np.ndarray:
         """Return a specific column."""
-        return [row[col] for row in self.position]
+        return self.position[:, col]
 
-    def get_all_downward_diagonals(self) -> List[List[str]]:
-        """
-        Return a list of diagonals (each diagonal is a list of strings),
-        scanning from top-left to bottom-right.
-        """
-        diagonals = []
-        size = len(self.position)
+    def get_all_downward_diagonals(self) -> List[np.ndarray]:
+        """Return all downward (\) diagonals as NumPy arrays."""
+        return [self.position.diagonal(i) for i in range(-NUM_LINES + 1, NUM_LINES)]
 
-        # Start from first row (row=0) for all columns
-        for start_col in range(size):
-            diag = []
-            col, row = start_col, 0
-            while col < size and row < size:
-                diag.append(self.get_value(col, row))
-                col += 1
-                row += 1
-            diagonals.append(diag)
+    def get_all_upward_diagonals(self) -> List[np.ndarray]:
+        """Return all upward (/) diagonals as NumPy arrays."""
+        flipped_board = np.fliplr(self.position)
+        return [flipped_board.diagonal(i) for i in range(-NUM_LINES + 1, NUM_LINES)]
 
-        # Then start from first column (col=0) for all rows except row=0
-        # to avoid duplicating the main diagonal
-        for start_row in range(1, size):
-            diag = []
-            col, row = 0, start_row
-            while col < size and row < size:
-                diag.append(self.get_value(col, row))
-                col += 1
-                row += 1
-            diagonals.append(diag)
-
-        return diagonals
-
-    def get_all_upward_diagonals(self) -> List[List[str]]:
-        """
-        Return a list of diagonals scanning from bottom-left to top-right.
-        """
-        diagonals = []
-        size = len(self.position)
-
-        # Start from last row (row=size-1) for all columns
-        for start_col in range(size):
-            diag = []
-            col, row = start_col, size - 1
-            while col < size and row >= 0:
-                diag.append(self.get_value(col, row))
-                col += 1
-                row -= 1
-            diagonals.append(diag)
-
-        # Then start from first column for rows from bottom to top
-        for start_row in range(size - 2, -1, -1):
-            diag = []
-            col, row = 0, start_row
-            while col < size and row >= 0:
-                diag.append(self.get_value(col, row))
-                col += 1
-                row -= 1
-            diagonals.append(diag)
-
-        return diagonals
-
-    # def get_downward_diagonal(self, col: int, row: int) -> List[str]:
-    #     """Return the top-left to bottom-right diagonal passing through (col, row)."""
-    #     diag = []
-    #     size = len(self.position)
-    #     for i in range(-min(col, row), size - max(col, row)):
-    #         diag.append(self.get_value(col + i, row + i))
-    #     return diag
-
-    # def get_upward_diagonal(self, col: int, row: int) -> List[str]:
-    #     """Return the bottom-left to top-right diagonal passing through (col, row)."""
-    #     diag = []
-    #     size = len(self.position)
-    #     for i in range(-min(col, size - row - 1), min(size - col, row + 1)):
-    #         diag.append(self.get_value(col + i, row - i))
-    #     return diag
-
-    def update_captured_stone(self, captured_stones: list) -> None:
+    def update_captured_stone(self, captured_stones: List[dict]) -> None:
+        """Removes captured stones from the board."""
         for captured in captured_stones:
-            self.set_value(captured["x"], captured["y"], EMPTY_SPACE)
+            self.position[captured["y"], captured["x"]] = EMPTY_SPACE
 
     def convert_board_for_print(self) -> str:
         """Converts the board to a human-readable string."""
-        board_to_print = ""
-        for row in self.position:
-            board_to_print += "".join(cell for cell in row) + "\n"
-        return board_to_print
+        return "\n".join(" ".join(map(str, row)) for row in self.position)
