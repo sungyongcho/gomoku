@@ -11,7 +11,7 @@ from services.board import Board
 class Gomoku:
     def __init__(self, board_size=19):
         self.board_size = board_size
-        self.board = Board()
+        self.board = None
         self.goal = 0
         # self.history = []
         self.last_player = ""
@@ -20,33 +20,36 @@ class Gomoku:
         self.next_player_score = 0
         self.captured_stones = []
 
-    def set_game(
-        self,
-        board: List[List[str]],
-        last_player: str,
-        next_player: str,
-        scores: List[dict],
-        goal: int,
-    ) -> None:
-        self.goal = goal * 2
-        self.last_player = last_player
-        self.next_player = next_player
+    # def set_game(
+    #     self,
+    #     board: List[List[str]],
+    #     last_player: str,
+    #     next_player: str,
+    #     scores: List[dict],
+    #     goal: int,
+    # ) -> None:
+    #     self.goal = goal * 2
+    #     self.last_player = last_player
+    #     self.next_player = next_player
 
-        # Convert scores list to a dictionary
-        scores_dict = {score["player"]: score["score"] for score in scores}
+    #     # Convert scores list to a dictionary
+    #     scores_dict = {score["player"]: score["score"] for score in scores}
 
-        # Access the scores using last_player and next_player
-        self.last_player_score = scores_dict.get(last_player, 0) * 2
-        self.next_player_score = scores_dict.get(next_player, 0) * 2
+    #     # Access the scores using last_player and next_player
+    #     self.last_player_score = scores_dict.get(last_player, 0) * 2
+    #     self.next_player_score = scores_dict.get(next_player, 0) * 2
 
-        self.board = Board(
-            board,
-            last_player,
-            next_player,
-            self.last_player_score,
-            self.next_player_score,
-            self.goal,
-        )
+    #     self.board = Board(
+    #         board,
+    #         last_player,
+    #         next_player,
+    #         self.last_player_score,
+    #         self.next_player_score,
+    #         self.goal,
+    #     )
+
+    def set_game(self, board_data: dict) -> None:
+        self.board = Board(board_data)
 
     def print_board(self) -> str:
         return self.board.convert_board_for_print()
@@ -122,13 +125,15 @@ class Gomoku:
             is_maximizing=True,
             alpha=float("-inf"),
             beta=float("inf"),
-            player=self.next_player,
-            opponent=self.last_player,
+            player=self.board.next_player,
+            opponent=self.board.last_player,
         )
 
         # If a valid move is found, place the stone
         if col != -1 and row != -1:
-            captured_stones = capture_opponent(self.board, col, row, self.next_player)
+            captured_stones = capture_opponent(
+                self.board, col, row, self.board.next_player
+            )
             if captured_stones:
                 self.captured_stones = captured_stones
                 self.remove_captured_stone(captured_stones)
