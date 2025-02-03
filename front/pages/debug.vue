@@ -23,7 +23,7 @@ const onPutStone = ({ x, y }: { x: number; y: number }) => {
 };
 const lastHistory = computed(() => histories.value.at(-1));
 const { status, data, send, open, close } = useWebSocket(
-  "ws://localhost:8000/ws/debug",
+  "ws://localhost:8005/ws/debug",
 );
 
 const onSendData = () => {
