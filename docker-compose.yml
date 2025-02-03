@@ -17,6 +17,13 @@ services:
     volumes:
       - ./front:/usr/src/app
       - node_modules:/usr/src/app/node_modules
+  cpp_server:
+    build:
+      context: ./cpp
+    volumes:
+      - ./cpp:/app  # Bind-mount source code for hot reload
+    ports:
+      - "8005:8005"
 
 volumes:
   node_modules:
