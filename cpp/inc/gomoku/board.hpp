@@ -3,28 +3,37 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
+#include <algorithm>
 #include <iostream>
 
+// Define constants
 #define PLAYER_1 1
 #define PLAYER_2 2
 #define EMPTY_SPACE 0
-#define NUM_LINES 15  // Define NUM_LINES as per your board size
+#define BOARD_SIZE 19  // Standard Gomoku board size
 
 class Board {
 public:
+    // Constructor: initialize the board from a 2D char array (e.g. from JSON)
     Board(const std::vector<std::vector<char> >& board_data,
           int goal, const std::string& last_stone, const std::string& next_stone,
           int last_score, int next_score);
 
+    // Accessors and mutators
     int get_value(int col, int row) const;
     void set_value(int col, int row, int value);
     void reset_board();
-    std::vector<int> get_row(int row) const;
-    std::vector<int> get_column(int col) const;
-    std::vector<std::vector<int> > get_all_downward_diagonals() const;
-    std::vector<std::vector<int> > get_all_upward_diagonals() const;
-    void update_captured_stone(const std::vector<std::pair<int, int> >& captured_stones);
+
+    // These functions now use caching. They return a reference to the cached vector.
+    const std::vector<std::vector<int> >& get_all_downward_diagonals();
+    const std::vector<std::vector<int> >& get_all_upward_diagonals();
+
+    // Other utility functions
     std::string convert_board_for_print() const;
+
+    // When the board changes, call this to mark the cache as dirty.
+    void mark_cache_dirty();
 
 private:
     int goal;
@@ -32,7 +41,19 @@ private:
     int next_player;
     int last_player_score;
     int next_player_score;
-    std::vector<std::vector<int> > position;
+    // Store board as a 1D vector for speed.
+    std::vector<int> position;
+
+    // Cached diagonals
+    std::vector<std::vector<int> > cached_downward_diagonals;
+    std::vector<std::vector<int> > cached_upward_diagonals;
+    bool cache_valid;
+
+    // Convert 2D coordinates into a 1D index.
+    inline int index(int col, int row) const { return row * BOARD_SIZE + col; }
+
+    // Recompute diagonals and update cache.
+    void compute_diagonals();
 };
 
 #endif
