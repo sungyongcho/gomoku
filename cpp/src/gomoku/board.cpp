@@ -1,4 +1,4 @@
-#include "board.hpp"
+#include "Board.hpp"
 
 Board::Board(const std::vector<std::vector<char> >& board_data,
              int goal, const std::string& last_stone, const std::string& next_stone,
