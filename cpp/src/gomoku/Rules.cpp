@@ -72,6 +72,18 @@ std::vector<std::pair<int, int> > Rules::capture_opponent(Board &board, int x, i
 		}
 	}
 
-
 	return captured_stones;
+}
+
+void Rules::remove_captured_stone(Board &board, std::vector<std::pair<int, int> > &captured_stones)
+{
+	std::vector<std::pair<int, int> >::iterator it;
+
+	for (it = captured_stones.begin(); it != captured_stones.end(); it++)
+	{
+		std::cout << it->first << "," << it->second << std::endl;
+
+		board.set_value(it->first, it->second, EMPTY_SPACE);
+		// std::cout << it->first << std::endl;
+	}
 }
