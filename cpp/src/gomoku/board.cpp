@@ -102,3 +102,43 @@ const std::vector<std::vector<int> >& Board::get_all_upward_diagonals() {
     }
     return cached_upward_diagonals;
 }
+
+
+// Convert internal vector<int> board back to 2D char array representation
+std::vector<std::vector<char> > Board::to_char_board() const {
+    // Create a 2D char board initialized with '.'
+    std::vector<std::vector<char> > char_board(BOARD_SIZE, std::vector<char>(BOARD_SIZE, '.'));
+
+    // Loop through the board and convert the integer values to char
+    for (int row = 0; row < BOARD_SIZE; ++row) {
+        for (int col = 0; col < BOARD_SIZE; ++col) {
+            int value = position[index(col, row)];
+            if (value == PLAYER_1) {
+                char_board[row][col] = 'X';
+            } else if (value == PLAYER_2) {
+                char_board[row][col] = 'O';
+            } else {
+                char_board[row][col] = '.';
+            }
+        }
+    }
+
+    return char_board;
+}
+
+// Convert the board to a JSON array (modifies the passed rapidjson::Value reference)
+void Board::to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType& allocator) const {
+    json_board.SetArray(); // Ensure it's an array type
+
+    std::vector<std::vector<char> > char_board = this->to_char_board();
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        rapidjson::Value json_row(rapidjson::kArrayType);
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            rapidjson::Value cell;
+            char temp_str[2] = {char_board[i][j], '\0'}; // Char to string
+            cell.SetString(temp_str, allocator);
+            json_row.PushBack(cell, allocator);
+        }
+        json_board.PushBack(json_row, allocator);
+    }
+}
