@@ -15,5 +15,8 @@ int callback_debug(struct lws *wsi, enum lws_callback_reasons reason,
 Board* parse_json(struct lws *wsi, const rapidjson::Document &doc);
 
 void success_response(struct lws *wsi, Board &board);
+void send_json_response(struct lws *wsi, const std::string &response);
+
+std::vector<std::vector<char> > parse_board_from_json(const rapidjson::Document &doc);
 
 #endif

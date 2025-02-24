@@ -142,3 +142,12 @@ void Board::to_json_board(rapidjson::Value &json_board, rapidjson::Document::All
         json_board.PushBack(json_row, allocator);
     }
 }
+
+
+std::pair<int, int> Board::get_current_score(){
+	std::pair<int, int> ret;
+
+	ret.first = this->last_player_score;
+	ret.second = this->next_player_score;
+	return ret;
+}
