@@ -28,6 +28,7 @@ public:
 	int get_value(int col, int row) const;
 	void set_value(int col, int row, int value);
 	void reset_board();
+	std::pair<int, int> get_current_score();
 	// Convert internal vector<int> board back to 2D char array representation
 	std::vector<std::vector<char> > to_char_board() const;
 	void to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType& allocator) const;

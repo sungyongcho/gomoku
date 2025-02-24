@@ -6,20 +6,40 @@
 #include <vector>
 #include <cstring>
 
+void send_json_response(struct lws *wsi, const std::string &response)
+{
+	size_t resp_len = response.size();
+	size_t buf_size = LWS_PRE + resp_len;
+	unsigned char *buf = new unsigned char[buf_size];
+	unsigned char *p = &buf[LWS_PRE];
+	memcpy(p, response.c_str(), resp_len);
+	lws_write(wsi, p, resp_len, LWS_WRITE_TEXT);
+	delete[] buf;
+}
+
+std::vector<std::vector<char> > parse_board_from_json(const rapidjson::Document &doc)
+{
+	std::vector<std::vector<char> > board_data;
+
+	for (rapidjson::SizeType i = 0; i < doc["board"].Size(); i++)
+	{
+		std::vector<char> row;
+		for (rapidjson::SizeType j = 0; j < doc["board"][i].Size(); j++)
+		{
+			const char *cellStr = doc["board"][i][j].GetString();
+			row.push_back(cellStr[0]);
+		}
+		board_data.push_back(row);
+	}
+	return board_data;
+}
+
 Board *parse_json(struct lws *wsi, const rapidjson::Document &doc)
 {
 	if (!doc.HasMember("lastPlay"))
 	{
 		std::cerr << "AI first (no lastPlay found)" << std::endl;
-		std::string response = "{\"type\":\"error\",\"status\":\"tba\"}";
-		size_t resp_len = response.size();
-		size_t buf_size = LWS_PRE + resp_len;
-		unsigned char *buf = new unsigned char[buf_size];
-		unsigned char *p = &buf[LWS_PRE];
-		memcpy(p, response.c_str(), resp_len);
-		lws_write(wsi, p, resp_len, LWS_WRITE_TEXT);
-		delete[] buf;
-		return NULL;
+		send_json_response(wsi, "{\"type\":\"error\",\"error\":\"doublethree\"}");
 	}
 
 	// Extract required fields
@@ -40,17 +60,9 @@ Board *parse_json(struct lws *wsi, const rapidjson::Document &doc)
 		std::cerr << "Error: Missing or invalid 'board' field." << std::endl;
 		return NULL;
 	}
-	std::vector<std::vector<char> > board_data;
-	for (rapidjson::SizeType i = 0; i < doc["board"].Size(); i++)
-	{
-		std::vector<char> row;
-		for (rapidjson::SizeType j = 0; j < doc["board"][i].Size(); j++)
-		{
-			const char *cellStr = doc["board"][i][j].GetString();
-			row.push_back(cellStr[0]);
-		}
-		board_data.push_back(row);
-	}
+
+	std::vector<std::vector<char> > board_data = parse_board_from_json(doc);
+
 
 	// Extract scores
 	if (!doc.HasMember("scores") || !doc["scores"].IsArray())
@@ -65,13 +77,9 @@ Board *parse_json(struct lws *wsi, const rapidjson::Document &doc)
 		std::string player = doc["scores"][i]["player"].GetString();
 		int score = doc["scores"][i]["score"].GetInt();
 		if (player == "X")
-		{
 			last_player_score = score;
-		}
 		else if (player == "O")
-		{
 			next_player_score = score;
-		}
 	}
 
 	// Create a new Board instance
@@ -80,12 +88,6 @@ Board *parse_json(struct lws *wsi, const rapidjson::Document &doc)
 
 	std::cout << "Parsed Board State:\n"
 			  << pBoard->convert_board_for_print() << std::endl;
-
-	// (Optional) Debug prints of nearby board values
-	std::cout << pBoard->get_value(x, y) << std::endl;
-	std::cout << pBoard->get_value(x - 1, y) << std::endl;
-	std::cout << pBoard->get_value(x - 2, y) << std::endl;
-	std::cout << pBoard->get_value(x - 3, y) << std::endl;
 
 	// Process captures
 	std::vector<std::pair<int, int> > captured =
@@ -109,17 +111,8 @@ Board *parse_json(struct lws *wsi, const rapidjson::Document &doc)
 	if (Rules::double_three_detected(*pBoard, x, y, (last_player == "X") ? PLAYER_1 : PLAYER_2))
 	{
 		std::cout << "doublethree detected" << std::endl;
-		// await websocket.send_json({"type": "error", "error": "doublethree"})
-		std::string response = "{\"type\":\"error\",\"error\":\"doublethree\"}";
-		size_t resp_len = response.size();
-		size_t buf_size = LWS_PRE + resp_len;
-		unsigned char *buf = new unsigned char[buf_size];
-		unsigned char *p = &buf[LWS_PRE];
-		memcpy(p, response.c_str(), resp_len);
-		lws_write(wsi, p, resp_len, LWS_WRITE_TEXT);
-		delete[] buf;
+		send_json_response(wsi, "{\"type\":\"error\",\"error\":\"doublethree\"}");
 		return NULL;
-
 	}
 	return pBoard;
 }
@@ -145,18 +138,7 @@ void success_response(struct lws *wsi, Board &board)
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 	response.Accept(writer);
 	std::string json_response = buffer.GetString();
-
-	std::cout << json_response << std::endl;
-
-	// Dynamically allocate a buffer sized to LWS_PRE plus the JSON response length
-	size_t json_length = json_response.size();
-	size_t buf_size = LWS_PRE + json_length;
-	unsigned char *buf = new unsigned char[buf_size];
-	unsigned char *p = &buf[LWS_PRE];
-
-	memcpy(p, json_response.c_str(), json_length);
-	lws_write(wsi, p, json_length, LWS_WRITE_TEXT);
-	delete[] buf;
+	send_json_response(wsi, json_response);
 }
 
 int callback_debug(struct lws *wsi, enum lws_callback_reasons reason,
