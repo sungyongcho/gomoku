@@ -1,12 +1,22 @@
 FROM debian:latest
 
-RUN apt-get update && apt-get install -y \
-    g++ cmake make libwebsockets-dev rapidjson-dev entr \
-    && rm -rf /var/lib/apt/lists/*
+# Copy dependencies and the install script
+COPY dependencies.txt /tmp/dependencies.txt
+COPY install-dependencies.sh /tmp/install-dependencies.sh
+
+# Make the script executable
+RUN chmod +x /tmp/install-dependencies.sh
+
+# Run the installation script
+RUN /tmp/install-dependencies.sh && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
 
 EXPOSE 8005
 
-CMD find src inc -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "Makefile" \) | entr -n -r /bin/sh -c "make re && ./server"
+# Compile the project before runtime for faster startup
+RUN make re
+
+CMD find src inc -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "Makefile" \) | \
+    entr -n -r /bin/sh -c "./server"
