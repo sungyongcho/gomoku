@@ -6,117 +6,6 @@
 #include <vector>
 #include <cstring>
 
-void send_json_response(struct lws *wsi, const std::string &response)
-{
-	size_t resp_len = response.size();
-	size_t buf_size = LWS_PRE + resp_len;
-	unsigned char *buf = new unsigned char[buf_size];
-	unsigned char *p = &buf[LWS_PRE];
-	memcpy(p, response.c_str(), resp_len);
-	lws_write(wsi, p, resp_len, LWS_WRITE_TEXT);
-	delete[] buf;
-}
-
-std::vector<std::vector<char> > parse_board_from_json(const rapidjson::Document &doc)
-{
-	std::vector<std::vector<char> > board_data;
-
-	for (rapidjson::SizeType i = 0; i < doc["board"].Size(); i++)
-	{
-		std::vector<char> row;
-		for (rapidjson::SizeType j = 0; j < doc["board"][i].Size(); j++)
-		{
-			const char *cellStr = doc["board"][i][j].GetString();
-			row.push_back(cellStr[0]);
-		}
-		board_data.push_back(row);
-	}
-	return board_data;
-}
-
-Board *parse_json(struct lws *wsi, const rapidjson::Document &doc)
-{
-	if (!doc.HasMember("lastPlay"))
-	{
-		std::cerr << "AI first (no lastPlay found)" << std::endl;
-		send_json_response(wsi, "{\"type\":\"error\",\"error\":\"doublethree\"}");
-	}
-
-	// Extract required fields
-	int x = doc["lastPlay"]["coordinate"]["x"].GetInt();
-	int y = doc["lastPlay"]["coordinate"]["y"].GetInt();
-	std::string last_player = doc["lastPlay"]["stone"].GetString();
-	std::string next_player = doc["nextPlayer"].GetString();
-	int goal = doc["goal"].GetInt();
-
-	std::cout << "Move received:" << std::endl;
-	std::cout << "  Last Play: (" << x << ", " << y << ") by " << last_player << std::endl;
-	std::cout << "  Next Player: " << next_player << std::endl;
-	std::cout << "  Goal: " << goal << std::endl;
-
-	// Convert board from JSON array to a 2D vector of char
-	if (!doc.HasMember("board") || !doc["board"].IsArray())
-	{
-		std::cerr << "Error: Missing or invalid 'board' field." << std::endl;
-		return NULL;
-	}
-
-	std::vector<std::vector<char> > board_data = parse_board_from_json(doc);
-
-
-	// Extract scores
-	if (!doc.HasMember("scores") || !doc["scores"].IsArray())
-	{
-		std::cerr << "Error: Missing or invalid 'scores' field." << std::endl;
-		return NULL;
-	}
-	int last_player_score = 0;
-	int next_player_score = 0;
-	for (rapidjson::SizeType i = 0; i < doc["scores"].Size(); i++)
-	{
-		std::string player = doc["scores"][i]["player"].GetString();
-		int score = doc["scores"][i]["score"].GetInt();
-		if (player == "X")
-			last_player_score = score;
-		else if (player == "O")
-			next_player_score = score;
-	}
-
-	// Create a new Board instance
-	Board *pBoard = new Board(board_data, goal, last_player, next_player,
-							  last_player_score, next_player_score);
-
-	std::cout << "Parsed Board State:\n"
-			  << pBoard->convert_board_for_print() << std::endl;
-
-	// Process captures
-	std::vector<std::pair<int, int> > captured =
-		Rules::capture_opponent(*pBoard, x, y, (last_player == "X") ? PLAYER_1 : PLAYER_2);
-	if (!captured.empty())
-	{
-		std::cout << "Captured stones:" << std::endl;
-		for (std::vector<std::pair<int, int> >::iterator it = captured.begin();
-			 it != captured.end(); ++it)
-		{
-			std::cout << " - (" << it->first << ", " << it->second << ")" << std::endl;
-		}
-		std::cout << std::flush;
-		Rules::remove_captured_stone(*pBoard, captured);
-	}
-	else
-	{
-		std::cout << "No captures made." << std::endl;
-	}
-
-	if (Rules::double_three_detected(*pBoard, x, y, (last_player == "X") ? PLAYER_1 : PLAYER_2))
-	{
-		std::cout << "doublethree detected" << std::endl;
-		send_json_response(wsi, "{\"type\":\"error\",\"error\":\"doublethree\"}");
-		return NULL;
-	}
-	return pBoard;
-}
-
 void success_response(struct lws *wsi, Board &board)
 {
 	rapidjson::Document response;
@@ -141,6 +30,39 @@ void success_response(struct lws *wsi, Board &board)
 	send_json_response(wsi, json_response);
 }
 
+std::string construct_error_response(ParseResult result, const std::string &details)
+{
+	std::ostringstream oss;
+	oss << "{\"type\":\"error\",\"error\":\"";
+
+	switch (result)
+	{
+	case ERROR_NO_LAST_PLAY:
+		oss << "No lastPlay found";
+		break;
+	case ERROR_INVALID_BOARD:
+		oss << "Invalid board field";
+		break;
+	case ERROR_INVALID_SCORES:
+		oss << "Invalid scores field";
+		break;
+	case ERROR_DOUBLE_THREE:
+		oss << "doublethree";
+		break;
+	default:
+		oss << "Unknown error";
+		break;
+	}
+
+	if (!details.empty())
+	{
+		oss << ": " << details;
+	}
+
+	oss << "\"}";
+	return oss.str();
+}
+
 int callback_debug(struct lws *wsi, enum lws_callback_reasons reason,
 				   void *user, void *in, size_t len)
 {
@@ -159,29 +81,42 @@ int callback_debug(struct lws *wsi, enum lws_callback_reasons reason,
 		rapidjson::Document doc;
 		if (doc.Parse(received_msg.c_str()).HasParseError())
 		{
-			std::cerr << "JSON Parse Error!" << std::endl;
+			std::string error_response = construct_error_response(ERROR_UNKNOWN, "JSON Parse Error");
+			send_json_response(wsi, error_response);
 			return -1;
 		}
+
 		if (!doc.HasMember("type") || !doc["type"].IsString())
 		{
-			std::cerr << "Error: Missing or invalid 'type' field." << std::endl;
+			std::string error_response = construct_error_response(ERROR_UNKNOWN, "Invalid 'type' field");
+			send_json_response(wsi, error_response);
 			return -1;
 		}
+
 		std::string type = doc["type"].GetString();
 		if (type == "move")
 		{
-			Board *pBoard = parse_json(wsi, doc);
-			if (!pBoard)
+			Board *pBoard = NULL;
+			std::string error;
+			ParseResult result = parse_json(doc, pBoard, error);
+
+			if (result != PARSE_OK)
 			{
+				std::string error_response = construct_error_response(result, error);
+				std::cout << error_response << std::endl;
+				std::cout << "-------------"<< std::endl;
+				send_json_response(wsi, error_response);
 				return -1;
 			}
+
 			success_response(wsi, *pBoard);
 			delete pBoard;
 			return 0;
 		}
 		else
 		{
-			std::cerr << "Unknown type: " << type << std::endl;
+			std::string error_response = construct_error_response(ERROR_UNKNOWN, "Unknown type");
+			send_json_response(wsi, error_response);
 			return -1;
 		}
 		break;
