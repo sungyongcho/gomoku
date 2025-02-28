@@ -16,6 +16,12 @@
 #define EMPTY_SPACE 0
 #define BOARD_SIZE 19 // Standard Gomoku board size
 
+// for bitwise
+#define TOTAL_CELLS (BOARD_SIZE * BOARD_SIZE) // 361 cells
+#define UINT64_BITS 64
+#define ARRAY_SIZE ((TOTAL_CELLS + UINT64_BITS - 1) / UINT64_BITS) // 6 elements
+
+
 class Board
 {
 public:
@@ -49,6 +55,16 @@ private:
 	int next_player;
 	int last_player_score;
 	int next_player_score;
+
+	uint64_t last_player_board[ARRAY_SIZE];
+	uint64_t next_player_board[ARRAY_SIZE];
+
+
+	int getIndex(int col, int row) const;
+	int get(uint64_t (&player_board)[ARRAY_SIZE], int col, int row);
+	void set_board(int col, int row, bool is_last);
+
+
 	// Store board as a 1D vector for speed.
 	std::vector<int> position;
 
