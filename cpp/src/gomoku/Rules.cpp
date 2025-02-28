@@ -88,6 +88,16 @@ void Rules::remove_captured_stone(Board &board, std::vector<std::pair<int, int> 
 	}
 }
 
+// New helper that fills 'captured' with captured stones and returns whether any were found.
+bool Rules::get_captured_stones(Board &board, int x, int y, const std::string &last_player,
+                                  std::vector<std::pair<int, int> >& captured)
+{
+    int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
+    captured = Rules::capture_opponent(board, x, y, currentPlayer);
+    return !captured.empty();
+}
+
+
 namespace
 {
 

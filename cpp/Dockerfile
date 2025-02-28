@@ -19,4 +19,5 @@ EXPOSE 8005
 RUN make re
 
 CMD find src inc -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "Makefile" \) | \
-    entr -n -r /bin/sh -c "./server"
+    entr -n -r /bin/sh -c "make re && ./server"
+
