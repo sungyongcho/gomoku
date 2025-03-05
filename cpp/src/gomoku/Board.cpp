@@ -34,7 +34,7 @@ Board::Board(const std::vector<std::vector<char> > &board_data,
 
 int Board::getIndex(int col, int row) const
 {
-	if (!(0 <= col && col < BOARD_SIZE && 0 <= row && row < BOARD_SIZE))
+	if (col < 0 || col >= BOARD_SIZE || row < 0 || row >= BOARD_SIZE)
 	{
 		std::cout << "Error: index wrong" << std::endl;
 		return -1;
@@ -43,6 +43,17 @@ int Board::getIndex(int col, int row) const
 }
 
 // bitmask
+
+uint64_t* Board::get_bitboard_by_player(int player)
+{
+    if (player == PLAYER_1)
+        return this->last_player_board;
+    else if (player == PLAYER_2)
+        return this->next_player_board;
+
+    throw std::invalid_argument("Invalid player value");
+}
+
 
 int Board::get(uint64_t (&player_board)[ARRAY_SIZE], int col, int row)
 {
@@ -71,6 +82,57 @@ void Board::set_board(int col, int row, bool is_last)
 		this->last_player_board[arrayIndex] |= ((uint64_t)1 << bitPos);
 	else
 		this->next_player_board[arrayIndex] |= ((uint64_t)1 << bitPos);
+}
+
+// Set the cell (col, row) to a given player.
+inline void Board::set_value_bit(int col, int row, int player)
+{
+	int idx = getIndex(col, row);
+	if (idx < 0)
+		return;
+	int word = idx / UINT64_BITS;
+	int bit = idx % UINT64_BITS;
+	uint64_t mask = (uint64_t)1 << bit;
+	// Clear cell in both boards.
+	this->last_player_board[word] &= ~mask;
+	this->next_player_board[word] &= ~mask;
+	if (player == PLAYER_1)
+		this->last_player_board[word] |= mask;
+	else if (player == PLAYER_2)
+		this->next_player_board[word] |= mask;
+}
+
+// Get the value at (col, row).
+inline int Board::get_value_bit(int col, int row) const
+{
+	int idx = getIndex(col, row);
+	if (idx < 0)
+		return EMPTY_SPACE;
+	int word = idx / UINT64_BITS;
+	int bit = idx % UINT64_BITS;
+	uint64_t mask = (uint64_t)1 << bit;
+	if (this->last_player_board[word] & mask)
+		return PLAYER_1;
+	if (this->next_player_board[word] & mask)
+		return PLAYER_2;
+	return EMPTY_SPACE;
+}
+void Board::print_board_bit() const
+{
+	for (int r = 0; r < BOARD_SIZE; r++)
+	{
+		for (int c = 0; c < BOARD_SIZE; c++)
+		{
+			int v = get_value(c, r);
+			if (v == PLAYER_1)
+				std::cout << "X ";
+			else if (v == PLAYER_2)
+				std::cout << "O ";
+			else
+				std::cout << ". ";
+		}
+		std::cout << std::endl;
+	}
 }
 
 // bitmask

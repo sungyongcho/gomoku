@@ -25,6 +25,55 @@ const int DIRECTIONS[8][2] = {
 	{-1, -1} // NORTHWEST
 };
 
+// Bitmask-based capture check that stores captured stone coordinates.
+// It checks for the pattern: opponent stone at (x+dx, y+dy) and (x+2*dx, y+2*dy),
+// with currentPlayer’s stone at (x+3*dx, y+3*dy). If the pattern is found,
+// it removes the captured stones from the opponent's bitboard and adds their coordinates
+// to the captured vector.
+bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlayer, int dx, int dy,
+									 std::vector<std::pair<int, int> > &captured)
+{
+	int opponent = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
+
+	// Use the bitboard arrays directly.
+	uint64_t *P = board.get_bitboard_by_player(currentPlayer); // e.g., returns board.board1 if PLAYER_1
+	uint64_t *O = board.get_bitboard_by_player(opponent);
+
+	// Compute indices for the three cells in the capture pattern.
+	int idx1 = board.getIndex(x + dx, y + dy);
+	int idx2 = board.getIndex(x + 2 * dx, y + 2 * dy);
+	int idx3 = board.getIndex(x + 3 * dx, y + 3 * dy);
+
+	// If any index is out-of-bounds, the pattern cannot occur.
+	if (idx1 < 0 || idx2 < 0 || idx3 < 0)
+		return false;
+
+	int w1 = idx1 / UINT64_BITS, b1 = idx1 % UINT64_BITS;
+	int w2 = idx2 / UINT64_BITS, b2 = idx2 % UINT64_BITS;
+	int w3 = idx3 / UINT64_BITS, b3 = idx3 % UINT64_BITS;
+
+	uint64_t mask1 = (uint64_t)1 << b1;
+	uint64_t mask2 = (uint64_t)1 << b2;
+	uint64_t mask3 = (uint64_t)1 << b3;
+
+	// Check the pattern:
+	// Cells at idx1 and idx2 must contain opponent stones,
+	// and the cell at idx3 must contain the current player's stone.
+	bool pattern = (O[w1] & mask1) && (O[w2] & mask2) && (P[w3] & mask3);
+
+	if (pattern)
+	{
+		// Remove the captured opponent stones.
+		O[w1] &= ~mask1;
+		O[w2] &= ~mask2;
+		// Store captured stone coordinates.
+		captured.push_back(std::make_pair(x + dx, y + dy));
+		captured.push_back(std::make_pair(x + 2 * dx, y + 2 * dy));
+		return true;
+	}
+	return false;
+}
+
 // Recursive function to check capture condition
 bool dfs_capture(Board &board, int x, int y, int player, int dx, int dy, int count)
 {
@@ -90,13 +139,28 @@ void Rules::remove_captured_stone(Board &board, std::vector<std::pair<int, int> 
 
 // New helper that fills 'captured' with captured stones and returns whether any were found.
 bool Rules::get_captured_stones(Board &board, int x, int y, const std::string &last_player,
-                                  std::vector<std::pair<int, int> >& captured)
+								std::vector<std::pair<int, int> > &captured)
 {
-    int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
-    captured = Rules::capture_opponent(board, x, y, currentPlayer);
-    return !captured.empty();
+	int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
+	captured = Rules::capture_opponent(board, x, y, currentPlayer);
+	return !captured.empty();
 }
 
+bool Rules::get_captured_stones_bit(Board &board, int x, int y, const std::string &last_player,
+									std::vector<std::pair<int, int> > &captured)
+{
+	int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
+	bool check = false;
+	// Loop over the 8 directions.
+	for (size_t i = 0; i < 8; ++i)
+	{
+		// Use the direction offsets directly.
+		// If a capture is found in this direction, mark check true.
+		if (bitmask_check_and_apply_capture(board, x, y, currentPlayer, DIRECTIONS[i][0], DIRECTIONS[i][1], captured))
+			check = true;
+	}
+	return check;
+}
 
 namespace
 {

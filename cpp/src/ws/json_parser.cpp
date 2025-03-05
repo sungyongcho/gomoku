@@ -114,10 +114,19 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 		return ERROR_INVALID_SCORES;
 	}
 
+	for (size_t r = 0; r < board_data.size(); ++r)
+	{
+		for (size_t c = 0; c < board_data[r].size(); ++c)
+		{
+			std::cout << board_data[r][c];
+		}
+		std::cout << std::endl;
+	}
 	pBoard = new Board(board_data, goal, last_player, next_player,
 					   last_player_score, next_player_score);
 
 	std::cout << "Parsed Board State:\n"
+			  << "hi"
 			  << pBoard->convert_board_for_print() << std::endl;
 
 	// Obtain captured stones, if any.
