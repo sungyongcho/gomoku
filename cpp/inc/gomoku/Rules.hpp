@@ -13,6 +13,8 @@ public:
 	static bool double_three_detected(Board &board, int x, int y, int player);
 	static bool get_captured_stones(Board &board, int x, int y, const std::string &last_player,
 									std::vector<std::pair<int, int> > &captured);
+	static bool get_captured_stones_bit(Board &board, int x, int y, const std::string &last_player,
+									std::vector<std::pair<int, int> > &captured);
 };
 
 #endif

@@ -9,6 +9,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
+#include <stdexcept>
 
 // Define constants
 #define PLAYER_1 1
@@ -49,6 +50,13 @@ public:
 	// When the board changes, call this to mark the cache as dirty.
 	void mark_cache_dirty();
 
+	uint64_t *get_bitboard_by_player(int player);
+	int getIndex(int col, int row) const;
+	inline void set_value_bit(int col, int row, int player);
+	inline int get_value_bit(int col, int row) const;
+	void print_board_bit() const;
+
+
 private:
 	int goal;
 	int last_player;
@@ -60,7 +68,6 @@ private:
 	uint64_t next_player_board[ARRAY_SIZE];
 
 
-	int getIndex(int col, int row) const;
 	int get(uint64_t (&player_board)[ARRAY_SIZE], int col, int row);
 	void set_board(int col, int row, bool is_last);
 
