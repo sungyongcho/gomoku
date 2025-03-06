@@ -131,7 +131,7 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 
 	// Obtain captured stones, if any.
 	std::vector<std::pair<int, int> > capturedStones;
-	bool stoneCaptured = Rules::get_captured_stones(*pBoard, x, y, last_player, capturedStones);
+	bool stoneCaptured = Rules::get_captured_stones_bit(*pBoard, x, y, last_player, capturedStones);
 
 	// If capture occurred, print and remove captured stones.
 	if (stoneCaptured)

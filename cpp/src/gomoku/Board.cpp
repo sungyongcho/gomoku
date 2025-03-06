@@ -16,12 +16,12 @@ Board::Board(const std::vector<std::vector<char> > &board_data,
 	{
 		for (size_t c = 0; c < board_data[r].size(); ++c)
 		{
-			if (board_data[r][c] == this->last_player)
+			if (board_data[r][c] == 'X')
 			{
 				position[getIndex(c, r)] = PLAYER_1;
 				set_board(c, r, true);
 			}
-			else if (board_data[r][c] == this->next_player)
+			else if (board_data[r][c] == 'O')
 			{
 				position[getIndex(c, r)] = PLAYER_2;
 				set_board(c, r, false);

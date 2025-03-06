@@ -67,6 +67,8 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
 		O[w1] &= ~mask1;
 		O[w2] &= ~mask2;
 		// Store captured stone coordinates.
+		// std::cout << x+dx << "," << y+dy << std::endl;
+		// std::cout << x+ 2 * dx << "," << y+ 2 * dy << std::endl;
 		captured.push_back(std::make_pair(x + dx, y + dy));
 		captured.push_back(std::make_pair(x + 2 * dx, y + 2 * dy));
 		return true;
