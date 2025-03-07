@@ -114,23 +114,16 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 		return ERROR_INVALID_SCORES;
 	}
 
-	for (size_t r = 0; r < board_data.size(); ++r)
-	{
-		for (size_t c = 0; c < board_data[r].size(); ++c)
-		{
-			std::cout << board_data[r][c];
-		}
-		std::cout << std::endl;
-	}
 	pBoard = new Board(board_data, goal, last_player, next_player,
 					   last_player_score, next_player_score);
 
 	std::cout << "Parsed Board State:\n"
-			  << "hi"
 			  << pBoard->convert_board_for_print() << std::endl;
 
 	// Obtain captured stones, if any.
 	std::vector<std::pair<int, int> > capturedStones;
+	std::cout << "before" << std::endl;
+	pBoard->print_board_bit();
 	bool stoneCaptured = Rules::get_captured_stones_bit(*pBoard, x, y, last_player, capturedStones);
 
 	// If capture occurred, print and remove captured stones.
@@ -144,7 +137,9 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 		}
 		std::cout << std::flush;
 
-		Rules::remove_captured_stone(*pBoard, capturedStones);
+		// Rules::remove_captured_stone(*pBoard, capturedStones);
+		std::cout << "after" << std::endl;
+		pBoard->print_board_bit();
 		return PARSE_OK;
 	}
 

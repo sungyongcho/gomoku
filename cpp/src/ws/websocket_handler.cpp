@@ -16,7 +16,7 @@ void success_response(struct lws *wsi, Board &board)
 	response.AddMember("status", "success", allocator);
 
 	rapidjson::Value json_board(rapidjson::kArrayType);
-	board.to_json_board(json_board, allocator);
+	board.bitboard_to_json_board(json_board, allocator);
 	response.AddMember("board", json_board, allocator);
 
 	response.AddMember("scores", "success", allocator);

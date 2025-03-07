@@ -14,6 +14,8 @@
 // Define constants
 #define PLAYER_1 1
 #define PLAYER_2 2
+#define PLAYER_X 'X'
+#define PLAYER_O 'O'
 #define EMPTY_SPACE 0
 #define BOARD_SIZE 19 // Standard Gomoku board size
 
@@ -55,6 +57,8 @@ public:
 	inline void set_value_bit(int col, int row, int player);
 	inline int get_value_bit(int col, int row) const;
 	void print_board_bit() const;
+	void bitboard_to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const;
+
 
 
 private:
@@ -67,9 +71,10 @@ private:
 	uint64_t last_player_board[ARRAY_SIZE];
 	uint64_t next_player_board[ARRAY_SIZE];
 
+	void reset_bitboard();
+	void initialize_board_from_data(const std::vector<std::vector<char> > &board_data);
 
 	int get(uint64_t (&player_board)[ARRAY_SIZE], int col, int row);
-	void set_board(int col, int row, bool is_last);
 
 
 	// Store board as a 1D vector for speed.
