@@ -59,7 +59,7 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
 	// Check the pattern:
 	// Cells at idx1 and idx2 must contain opponent stones,
 	// and the cell at idx3 must contain the current player's stone.
-	bool pattern = (O[w1] & mask1) && (O[w2] & mask2) && (P[w3] & mask3);
+    bool pattern = ((O[w1] & mask1) != 0) && ((O[w2] & mask2) != 0) && ((P[w3] & mask3) != 0);
 
 	if (pattern)
 	{
@@ -67,8 +67,8 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
 		O[w1] &= ~mask1;
 		O[w2] &= ~mask2;
 		// Store captured stone coordinates.
-		// std::cout << x+dx << "," << y+dy << std::endl;
-		// std::cout << x+ 2 * dx << "," << y+ 2 * dy << std::endl;
+		std::cout << x+dx << "," << y+dy << std::endl;
+		std::cout << x+ 2 * dx << "," << y+ 2 * dy << std::endl;
 		captured.push_back(std::make_pair(x + dx, y + dy));
 		captured.push_back(std::make_pair(x + 2 * dx, y + 2 * dy));
 		return true;
@@ -77,54 +77,54 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
 }
 
 // Recursive function to check capture condition
-bool dfs_capture(Board &board, int x, int y, int player, int dx, int dy, int count)
-{
-	int nx = x + dx;
-	int ny = y + dy;
+// bool dfs_capture(Board &board, int x, int y, int player, int dx, int dy, int count)
+// {
+// 	int nx = x + dx;
+// 	int ny = y + dy;
 
-	if (count == 3)
-	{
-		return board.get_value(nx, ny) == player;
-	}
+// 	if (count == 3)
+// 	{
+// 		return board.get_value(nx, ny) == player;
+// 	}
 
-	int opponent = (player == PLAYER_1) ? PLAYER_2 : PLAYER_1;
-	if (board.get_value(nx, ny) != opponent)
-	{
-		return false;
-	}
+// 	int opponent = (player == PLAYER_1) ? PLAYER_2 : PLAYER_1;
+// 	if (board.get_value(nx, ny) != opponent)
+// 	{
+// 		return false;
+// 	}
 
-	return dfs_capture(board, nx, ny, player, dx, dy, count + 1);
-}
+// 	return dfs_capture(board, nx, ny, player, dx, dy, count + 1);
+// }
 
 // Check for and capture opponent stones
-std::vector<std::pair<int, int> > Rules::capture_opponent(Board &board, int x, int y, int player)
-{
-	std::vector<std::pair<int, int> > captured_stones;
+// std::vector<std::pair<int, int> > Rules::capture_opponent(Board &board, int x, int y, int player)
+// {
+// 	std::vector<std::pair<int, int> > captured_stones;
 
-	// Use a traditional for loop instead of range-based for
-	for (size_t i = 0; i < 8; ++i)
-	{
-		int nx = x + DIRECTIONS[i][0] * 3;
-		int ny = y + DIRECTIONS[i][1] * 3;
-		std::cout << nx << ", " << ny << "board:" << board.get_value(nx, ny) << std::endl;
+// 	// Use a traditional for loop instead of range-based for
+// 	for (size_t i = 0; i < 8; ++i)
+// 	{
+// 		int nx = x + DIRECTIONS[i][0] * 3;
+// 		int ny = y + DIRECTIONS[i][1] * 3;
+// 		std::cout << nx << ", " << ny << "board:" << board.get_value(nx, ny) << std::endl;
 
-		if (nx < 0 || nx >= BOARD_SIZE || ny < 0 || ny >= BOARD_SIZE)
-		{
-			continue;
-		}
+// 		if (nx < 0 || nx >= BOARD_SIZE || ny < 0 || ny >= BOARD_SIZE)
+// 		{
+// 			continue;
+// 		}
 
-		if (dfs_capture(board, x, y, player, DIRECTIONS[i][0], DIRECTIONS[i][1], 1))
-		{
-			captured_stones.push_back(std::make_pair(x + DIRECTIONS[i][0], y + DIRECTIONS[i][1]));
-			captured_stones.push_back(std::make_pair(x + DIRECTIONS[i][0] * 2, y + DIRECTIONS[i][1] * 2));
+// 		if (dfs_capture(board, x, y, player, DIRECTIONS[i][0], DIRECTIONS[i][1], 1))
+// 		{
+// 			captured_stones.push_back(std::make_pair(x + DIRECTIONS[i][0], y + DIRECTIONS[i][1]));
+// 			captured_stones.push_back(std::make_pair(x + DIRECTIONS[i][0] * 2, y + DIRECTIONS[i][1] * 2));
 
-			board.set_value(x + DIRECTIONS[i][0], y + DIRECTIONS[i][1], EMPTY_SPACE);
-			board.set_value(x + DIRECTIONS[i][0] * 2, y + DIRECTIONS[i][1] * 2, EMPTY_SPACE);
-		}
-	}
+// 			board.set_value(x + DIRECTIONS[i][0], y + DIRECTIONS[i][1], EMPTY_SPACE);
+// 			board.set_value(x + DIRECTIONS[i][0] * 2, y + DIRECTIONS[i][1] * 2, EMPTY_SPACE);
+// 		}
+// 	}
 
-	return captured_stones;
-}
+// 	return captured_stones;
+// }
 
 void Rules::remove_captured_stone(Board &board, std::vector<std::pair<int, int> > &captured_stones)
 {
@@ -140,13 +140,13 @@ void Rules::remove_captured_stone(Board &board, std::vector<std::pair<int, int> 
 }
 
 // New helper that fills 'captured' with captured stones and returns whether any were found.
-bool Rules::get_captured_stones(Board &board, int x, int y, const std::string &last_player,
-								std::vector<std::pair<int, int> > &captured)
-{
-	int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
-	captured = Rules::capture_opponent(board, x, y, currentPlayer);
-	return !captured.empty();
-}
+// bool Rules::get_captured_stones(Board &board, int x, int y, const std::string &last_player,
+// 								std::vector<std::pair<int, int> > &captured)
+// {
+// 	int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
+// 	captured = Rules::capture_opponent(board, x, y, currentPlayer);
+// 	return !captured.empty();
+// }
 
 bool Rules::get_captured_stones_bit(Board &board, int x, int y, const std::string &last_player,
 									std::vector<std::pair<int, int> > &captured)
@@ -161,6 +161,11 @@ bool Rules::get_captured_stones_bit(Board &board, int x, int y, const std::strin
 		if (bitmask_check_and_apply_capture(board, x, y, currentPlayer, DIRECTIONS[i][0], DIRECTIONS[i][1], captured))
 			check = true;
 	}
+	// for (std::vector<std::pair<int, int> >::iterator it = captured.begin();
+	// 	 it != captured.end(); ++it)
+	// {
+	// 	std::cout << " - (" << it->first << ", " << it->second << ")" << std::endl;
+	// }
 	return check;
 }
 

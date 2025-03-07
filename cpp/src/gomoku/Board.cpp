@@ -11,26 +11,11 @@ Board::Board(const std::vector<std::vector<char> > &board_data,
 	  position(BOARD_SIZE * BOARD_SIZE, EMPTY_SPACE),
 	  cache_valid(false)
 {
-	// Initialize board (convert each char to an integer value)
-	for (size_t r = 0; r < board_data.size(); ++r)
-	{
-		for (size_t c = 0; c < board_data[r].size(); ++c)
-		{
-			if (board_data[r][c] == 'X')
-			{
-				position[getIndex(c, r)] = PLAYER_1;
-				set_board(c, r, true);
-			}
-			else if (board_data[r][c] == 'O')
-			{
-				position[getIndex(c, r)] = PLAYER_2;
-				set_board(c, r, false);
-			}
-			else
-				position[getIndex(c, r)] = EMPTY_SPACE;
-		}
-	}
+	this->reset_bitboard();
+	this->initialize_board_from_data(board_data);
 }
+
+
 
 int Board::getIndex(int col, int row) const
 {
@@ -42,7 +27,42 @@ int Board::getIndex(int col, int row) const
 	return row * BOARD_SIZE + col;
 }
 
+void Board::initialize_board_from_data(const std::vector<std::vector<char> > &board_data)
+{
+    for (size_t r = 0; r < board_data.size(); ++r)
+    {
+        for (size_t c = 0; c < board_data[r].size(); ++c)
+        {
+            int idx = getIndex(c, r);
+            if (idx < 0)
+                continue;
+            if (board_data[r][c] == PLAYER_X)
+            {
+                position[idx] = PLAYER_1;
+                set_value_bit(c, r, PLAYER_1);
+            }
+            else if (board_data[r][c] == PLAYER_O)
+            {
+                position[idx] = PLAYER_2;
+                set_value_bit(c, r, PLAYER_2);
+            }
+            else
+            {
+                position[idx] = EMPTY_SPACE;
+            }
+        }
+    }
+}
+
+
 // bitmask
+
+void Board::reset_bitboard()
+{
+    //Using memset (make sure ARRAY_SIZE * sizeof(uint64_t) is used)
+    memset(this->last_player_board, 0, ARRAY_SIZE * sizeof(uint64_t));
+    memset(this->next_player_board, 0, ARRAY_SIZE * sizeof(uint64_t));
+}
 
 uint64_t* Board::get_bitboard_by_player(int player)
 {
@@ -67,21 +87,6 @@ int Board::get(uint64_t (&player_board)[ARRAY_SIZE], int col, int row)
 	int bitPos = index % UINT64_BITS;
 
 	return (player_board[arrayIndex] >> bitPos) & 1;
-}
-
-void Board::set_board(int col, int row, bool is_last)
-{
-	int index = getIndex(col, row);
-	if (index < 0)
-		return;
-
-	int arrayIndex = index / UINT64_BITS;
-	int bitPos = index % UINT64_BITS;
-
-	if (is_last)
-		this->last_player_board[arrayIndex] |= ((uint64_t)1 << bitPos);
-	else
-		this->next_player_board[arrayIndex] |= ((uint64_t)1 << bitPos);
 }
 
 // Set the cell (col, row) to a given player.
@@ -117,13 +122,14 @@ inline int Board::get_value_bit(int col, int row) const
 		return PLAYER_2;
 	return EMPTY_SPACE;
 }
+
 void Board::print_board_bit() const
 {
 	for (int r = 0; r < BOARD_SIZE; r++)
 	{
 		for (int c = 0; c < BOARD_SIZE; c++)
 		{
-			int v = get_value(c, r);
+			int v = get_value_bit(c, r);
 			if (v == PLAYER_1)
 				std::cout << "X ";
 			else if (v == PLAYER_2)
@@ -280,6 +286,32 @@ void Board::to_json_board(rapidjson::Value &json_board, rapidjson::Document::All
 		}
 		json_board.PushBack(json_row, allocator);
 	}
+}
+
+void Board::bitboard_to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const
+{
+    json_board.SetArray(); // Ensure it's an array type
+
+    for (int r = 0; r < BOARD_SIZE; ++r)
+    {
+        rapidjson::Value json_row(rapidjson::kArrayType);
+        for (int c = 0; c < BOARD_SIZE; ++c)
+        {
+            rapidjson::Value cell;
+            char temp_str[2];
+            int value = get_value_bit(c, r);
+            if (value == PLAYER_1)
+                temp_str[0] = PLAYER_X;  // 'X'
+            else if (value == PLAYER_2)
+                temp_str[0] = PLAYER_O;  // 'O'
+            else
+                temp_str[0] = '.';       // empty
+            temp_str[1] = '\0';
+            cell.SetString(temp_str, allocator);
+            json_row.PushBack(cell, allocator);
+        }
+        json_board.PushBack(json_row, allocator);
+    }
 }
 
 std::pair<int, int> Board::get_current_score()
