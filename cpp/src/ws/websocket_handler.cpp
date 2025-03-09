@@ -100,13 +100,14 @@ int callback_debug(struct lws *wsi, enum lws_callback_reasons reason,
 			std::string error;
 			ParseResult result = parse_json(doc, pBoard, error);
 
-
-
 			if (result != PARSE_OK)
 			{
 				//TODO: revert back to doublethree and send back
 				std::string error_response = construct_error_response(result, error);
+				std::cout << error_response << std::endl;
 				send_json_response(wsi, error_response);
+				if (result == ERROR_DOUBLE_THREE)
+					return 0;
 				return -1;
 			}
 

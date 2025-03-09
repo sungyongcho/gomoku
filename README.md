@@ -131,3 +131,6 @@ response_error.json (backend 착수 에러)
 
    - A턴 이고, 착수를 한 후에 완벽한 5목이상이 만들어지면 승리.
    - A턴이고, 착수를 한 후에 불완전한 (breakable) 5목이상이면 게임 계속 진행.
+
+## 3/7/2025
+- (front) revert to not placing for doublethree neeeds to be implemented.
