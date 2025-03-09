@@ -55,7 +55,7 @@ public:
 	uint64_t *get_bitboard_by_player(int player);
 	int getIndex(int col, int row) const;
 	inline void set_value_bit(int col, int row, int player);
-	inline int get_value_bit(int col, int row) const;
+	int get_value_bit(int col, int row) const;
 	void print_board_bit() const;
 	void bitboard_to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const;
 

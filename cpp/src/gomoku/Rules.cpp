@@ -59,7 +59,7 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
 	// Check the pattern:
 	// Cells at idx1 and idx2 must contain opponent stones,
 	// and the cell at idx3 must contain the current player's stone.
-    bool pattern = ((O[w1] & mask1) != 0) && ((O[w2] & mask2) != 0) && ((P[w3] & mask3) != 0);
+	bool pattern = ((O[w1] & mask1) != 0) && ((O[w2] & mask2) != 0) && ((P[w3] & mask3) != 0);
 
 	if (pattern)
 	{
@@ -67,86 +67,12 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
 		O[w1] &= ~mask1;
 		O[w2] &= ~mask2;
 		// Store captured stone coordinates.
-		std::cout << x+dx << "," << y+dy << std::endl;
-		std::cout << x+ 2 * dx << "," << y+ 2 * dy << std::endl;
 		captured.push_back(std::make_pair(x + dx, y + dy));
 		captured.push_back(std::make_pair(x + 2 * dx, y + 2 * dy));
 		return true;
 	}
 	return false;
 }
-
-// Recursive function to check capture condition
-// bool dfs_capture(Board &board, int x, int y, int player, int dx, int dy, int count)
-// {
-// 	int nx = x + dx;
-// 	int ny = y + dy;
-
-// 	if (count == 3)
-// 	{
-// 		return board.get_value(nx, ny) == player;
-// 	}
-
-// 	int opponent = (player == PLAYER_1) ? PLAYER_2 : PLAYER_1;
-// 	if (board.get_value(nx, ny) != opponent)
-// 	{
-// 		return false;
-// 	}
-
-// 	return dfs_capture(board, nx, ny, player, dx, dy, count + 1);
-// }
-
-// Check for and capture opponent stones
-// std::vector<std::pair<int, int> > Rules::capture_opponent(Board &board, int x, int y, int player)
-// {
-// 	std::vector<std::pair<int, int> > captured_stones;
-
-// 	// Use a traditional for loop instead of range-based for
-// 	for (size_t i = 0; i < 8; ++i)
-// 	{
-// 		int nx = x + DIRECTIONS[i][0] * 3;
-// 		int ny = y + DIRECTIONS[i][1] * 3;
-// 		std::cout << nx << ", " << ny << "board:" << board.get_value(nx, ny) << std::endl;
-
-// 		if (nx < 0 || nx >= BOARD_SIZE || ny < 0 || ny >= BOARD_SIZE)
-// 		{
-// 			continue;
-// 		}
-
-// 		if (dfs_capture(board, x, y, player, DIRECTIONS[i][0], DIRECTIONS[i][1], 1))
-// 		{
-// 			captured_stones.push_back(std::make_pair(x + DIRECTIONS[i][0], y + DIRECTIONS[i][1]));
-// 			captured_stones.push_back(std::make_pair(x + DIRECTIONS[i][0] * 2, y + DIRECTIONS[i][1] * 2));
-
-// 			board.set_value(x + DIRECTIONS[i][0], y + DIRECTIONS[i][1], EMPTY_SPACE);
-// 			board.set_value(x + DIRECTIONS[i][0] * 2, y + DIRECTIONS[i][1] * 2, EMPTY_SPACE);
-// 		}
-// 	}
-
-// 	return captured_stones;
-// }
-
-void Rules::remove_captured_stone(Board &board, std::vector<std::pair<int, int> > &captured_stones)
-{
-	std::vector<std::pair<int, int> >::iterator it;
-
-	for (it = captured_stones.begin(); it != captured_stones.end(); it++)
-	{
-		std::cout << it->first << "," << it->second << std::endl;
-
-		board.set_value(it->first, it->second, EMPTY_SPACE);
-		// std::cout << it->first << std::endl;
-	}
-}
-
-// New helper that fills 'captured' with captured stones and returns whether any were found.
-// bool Rules::get_captured_stones(Board &board, int x, int y, const std::string &last_player,
-// 								std::vector<std::pair<int, int> > &captured)
-// {
-// 	int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
-// 	captured = Rules::capture_opponent(board, x, y, currentPlayer);
-// 	return !captured.empty();
-// }
 
 bool Rules::get_captured_stones_bit(Board &board, int x, int y, const std::string &last_player,
 									std::vector<std::pair<int, int> > &captured)
@@ -161,11 +87,6 @@ bool Rules::get_captured_stones_bit(Board &board, int x, int y, const std::strin
 		if (bitmask_check_and_apply_capture(board, x, y, currentPlayer, DIRECTIONS[i][0], DIRECTIONS[i][1], captured))
 			check = true;
 	}
-	// for (std::vector<std::pair<int, int> >::iterator it = captured.begin();
-	// 	 it != captured.end(); ++it)
-	// {
-	// 	std::cout << " - (" << it->first << ", " << it->second << ")" << std::endl;
-	// }
 	return check;
 }
 
@@ -260,7 +181,8 @@ namespace
 		return (index >= 0 && index < 4);
 	}
 }
-// New method: returns true if placing a stone at (x,y) for 'player' creates a double-three.
+
+// returns true if placing a stone at (x,y) for 'player' creates a double-three.
 bool Rules::double_three_detected(Board &board, int x, int y, int player)
 {
 	int opponent = (player == PLAYER_1) ? PLAYER_2 : PLAYER_1;
@@ -283,6 +205,116 @@ bool Rules::double_three_detected(Board &board, int x, int y, int player)
 			if (check_middle(board, x, y, dx, dy, player, opponent))
 				++count;
 		}
+	}
+	return (count >= 2);
+}
+
+unsigned int extract_line_as_bits(Board &board, int x, int y, int dx, int dy, int length)
+{
+	unsigned int pattern = 0;
+	// Loop from 1 to 'length'
+	for (int i = 1; i <= length; ++i)
+	{
+		// Update coordinates incrementally.
+		x += dx;
+		y += dy;
+		// Check if within bounds.
+		if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE)
+			return 0xFFFFFFFF;				  // Special out-of-bounds indicator.
+		int cell = board.get_value_bit(x, y); // Returns 0, 1, or 2.
+		// Pack the cell value into the pattern (using 2 bits per cell).
+		pattern = (pattern << 2) | (cell & 0x3);
+		// cell & 0x3 ensures that only the lower 2 bits of 'cell' are kept.
+		// The mask 0x3 is binary 11 (i.e., 0b11), so any value in 'cell' will be reduced to its
+		// two least-significant bits, effectively restricting the result to one of four possible values (0-3).
+		// In our usage, we expect cell values to be 0 (empty), 1 (PLAYER_1), or 2 (PLAYER_2).
+		//
+		// For example, if cell = 5 (binary 101):
+		//      101 (binary for 5)
+		//   &  011 (binary for 0x3)
+		//   ---------
+		//      001 (binary for 1)
+		// Thus, 5 & 0x3 yields 1, ensuring that any extraneous higher bits are ignored.
+	}
+	return pattern;
+}
+
+#include <iostream>
+
+// Helper function: given a packed pattern (2 bits per cell) and the length,
+// prints the line in a human-readable format.
+void print_line_pattern(unsigned int pattern, int length)
+{
+	if (pattern == 0xFFFFFFFF)
+	{
+		std::cout << "Out-of-bounds" << std::endl;
+		return;
+	}
+	// For each cell, extract the corresponding 2 bits.
+	std::cout << "pattern: [";
+
+	for (int i = 0; i < length; ++i)
+	{
+		// Calculate shift amount: the first cell is in the high bits.
+		int shift = 2 * (length - i - 1);
+		int cell = (pattern >> shift) & 0x3;
+		char symbol;
+		switch (cell)
+		{
+		case 0:
+			symbol = '.';
+			break;
+		case 1:
+			symbol = '1';
+			break;
+		case 2:
+			symbol = '2';
+			break;
+		default:
+			symbol = '?';
+			break;
+		}
+		std::cout << symbol << " ";
+	}
+	std::cout << "]" << std::endl;
+}
+
+const unsigned int cond_1a = (PLAYER_1 << 6) | (PLAYER_1 << 4) | (EMPTY_SPACE << 2) | PLAYER_2; // 01 00 10, if PLAYER_1=1 and PLAYER_2=2.
+const unsigned int cond_1a_opp = (EMPTY_SPACE << 2) | PLAYER_2;									// 01 00 10, if PLAYER_1=1 and PLAYER_2=2.
+
+bool check_edge_bit(Board &board, int x, int y, int dx, int dy, int player, int opponent)
+{
+	unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 4);
+	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 2);
+	if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
+		return false; // out-of-bounds
+	(void)player;
+	(void)opponent;
+	return true;
+}
+
+// returns true if placing a stone at (x,y) for 'player' creates a double-three (bitwise).
+bool Rules::double_three_detected_bit(Board &board, int x, int y, int player)
+{
+	int opponent = (player == PLAYER_1) ? PLAYER_2 : PLAYER_1;
+	int count = 0;
+	for (int i = 0; i < 8; ++i)
+	{
+		int dx = DIRECTIONS[i][0], dy = DIRECTIONS[i][1];
+		if (!is_within_bounds(x, y, dx, dy) || !is_within_bounds(x, y, -dx, -dy))
+			continue;
+		if (board.get_value_bit(x - dx, y - dy) == opponent)
+			continue;
+
+		unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 3);
+		unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 3);
+		if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
+			continue; // out-of-bounds
+
+		std::cout << "Forward:" << std::endl;
+		print_line_pattern(forward, 3);
+		std::cout << "Backward:" << std::endl;
+		print_line_pattern(backward, 3);
 	}
 	return (count >= 2);
 }

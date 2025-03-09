@@ -137,10 +137,20 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 		}
 		std::cout << std::flush;
 
-		// Rules::remove_captured_stone(*pBoard, capturedStones);
 		std::cout << "after" << std::endl;
 		pBoard->print_board_bit();
 		return PARSE_OK;
+	}
+
+	bool doubleThreeBit = Rules::double_three_detected_bit(*pBoard, x, y,
+													(last_player == "X") ? PLAYER_1 : PLAYER_2);
+	if (doubleThreeBit)
+	{
+		std::cout << "testing" << std::endl;
+		error = "doublethree";
+		delete pBoard;
+		pBoard = NULL;
+		return ERROR_DOUBLE_THREE;
 	}
 
 	// Only check double three if no capture occurred.
