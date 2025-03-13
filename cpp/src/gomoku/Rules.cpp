@@ -1,5 +1,5 @@
-
 #include "Rules.hpp"
+#include <iostream>
 
 enum Direction
 {
@@ -174,12 +174,11 @@ namespace
 
 		return false;
 	}
-
-	// For double three checking, only count one set per unique direction (e.g. indices 0–3).
-	bool is_unique_direction(int index)
+	bool is_unique_direction_removeit(int index)
 	{
 		return (index >= 0 && index < 4);
 	}
+
 }
 
 // returns true if placing a stone at (x,y) for 'player' creates a double-three.
@@ -200,7 +199,7 @@ bool Rules::double_three_detected(Board &board, int x, int y, int player)
 			++count;
 			continue;
 		}
-		if (is_unique_direction(i))
+		if (is_unique_direction_removeit(i))
 		{
 			if (check_middle(board, x, y, dx, dy, player, opponent))
 				++count;
@@ -239,24 +238,21 @@ unsigned int extract_line_as_bits(Board &board, int x, int y, int dx, int dy, in
 	return pattern;
 }
 
-#include <iostream>
-
 // Helper function: given a packed pattern (2 bits per cell) and the length,
 // prints the line in a human-readable format.
-void print_line_pattern(unsigned int pattern, int length)
+void print_line_pattern_reverse(unsigned int pattern, int length)
 {
 	if (pattern == 0xFFFFFFFF)
 	{
 		std::cout << "Out-of-bounds" << std::endl;
 		return;
 	}
-	// For each cell, extract the corresponding 2 bits.
-	std::cout << "pattern: [";
+	std::cout << "pattern (reversed): [";
 
 	for (int i = 0; i < length; ++i)
 	{
-		// Calculate shift amount: the first cell is in the high bits.
-		int shift = 2 * (length - i - 1);
+		// Now, cell0 comes from the lowest bits.
+		int shift = 2 * i;
 		int cell = (pattern >> shift) & 0x3;
 		char symbol;
 		switch (cell)
@@ -279,8 +275,89 @@ void print_line_pattern(unsigned int pattern, int length)
 	std::cout << "]" << std::endl;
 }
 
-const unsigned int cond_1a = (PLAYER_1 << 6) | (PLAYER_1 << 4) | (EMPTY_SPACE << 2) | PLAYER_2; // 01 00 10, if PLAYER_1=1 and PLAYER_2=2.
-const unsigned int cond_1a_opp = (EMPTY_SPACE << 2) | PLAYER_2;									// 01 00 10, if PLAYER_1=1 and PLAYER_2=2.
+// Helper functions to pack cell values into an unsigned int.
+// Each cell uses 2 bits.
+
+bool is_unique_direction(int index)
+{
+	return (index >= 0 && index < 4);
+}
+
+inline unsigned int pack_cells_4(unsigned int a, unsigned int b, unsigned int c, unsigned int d)
+{
+	return (a << 6) | (b << 4) | (c << 2) | d;
+}
+
+inline unsigned int pack_cells_3(unsigned int a, unsigned int b, unsigned int c)
+{
+	return (a << 4) | (b << 2) | c;
+}
+
+inline unsigned int pack_cells_2(unsigned int a, unsigned int b)
+{
+	return (a << 2) | b;
+}
+
+inline unsigned int pack_cells_1(unsigned int a)
+{
+	return a; // a occupies 2 bits.
+}
+
+bool check_edge_bit_case_1(unsigned int forward, unsigned int backward, int player, int opponent)
+{
+	unsigned int cond_1a_fwd = pack_cells_4(player, player, EMPTY_SPACE, opponent);
+	unsigned int cond_1a_bkwd = pack_cells_2(EMPTY_SPACE, opponent);
+
+	unsigned int cond_1b_fwd = pack_cells_4(player, player, EMPTY_SPACE, player);
+
+	// Fallback expected pattern using only the first 3 forward cells
+	// and the first backward cell.
+	unsigned int cond1_fwd = pack_cells_3(player, player, EMPTY_SPACE);
+	unsigned int cond1_bkwd = pack_cells_1(EMPTY_SPACE);
+
+	unsigned int forward_three_cells = (forward >> 2) & 0x3F;
+	unsigned int backward_one_cell = (backward >> 6) & 0x03;
+
+	bool cond_1a = (cond_1a_fwd == forward) && (cond_1a_bkwd == backward);
+	bool cond_1b = (cond_1b_fwd == forward);
+
+	if (!(cond_1a || cond_1b) && (cond1_fwd == forward_three_cells) && (cond1_bkwd == backward_one_cell))
+		return true;
+
+	return false;
+}
+
+bool check_edge_bit_case_2(unsigned int forward, unsigned int backward, int player)
+{
+	unsigned int cond_2a_fwd = pack_cells_3(player, EMPTY_SPACE, player);
+	unsigned int cond_2a_bkwd = pack_cells_2(EMPTY_SPACE, player);
+
+	unsigned int cond2_fwd = pack_cells_4(player, EMPTY_SPACE, player, EMPTY_SPACE);
+	unsigned int cond2_bkwd = pack_cells_1(EMPTY_SPACE);
+
+	unsigned int forward_three_cells = (forward >> 2) & 0x3F;
+	unsigned int backward_one_cell = (backward >> 6) & 0x03;
+
+	bool cond_2a = (cond_2a_fwd == forward_three_cells) && (cond_2a_bkwd == backward);
+
+	if (!(cond_2a) && (cond2_fwd == forward) && (cond2_bkwd == backward_one_cell))
+		return true;
+
+	return false;
+}
+
+bool check_edge_bit_case_3(unsigned int forward, unsigned int backward, int player)
+{
+	unsigned int cond3_fwd = pack_cells_4(EMPTY_SPACE, player, player, EMPTY_SPACE);
+	unsigned int cond3_bkwd = pack_cells_1(EMPTY_SPACE);
+
+	unsigned int backward_one_cell = (backward >> 6) & 0x03;
+
+	if ((cond3_fwd == forward) && (cond3_bkwd == backward_one_cell))
+		return true;
+
+	return false;
+}
 
 bool check_edge_bit(Board &board, int x, int y, int dx, int dy, int player, int opponent)
 {
@@ -288,9 +365,86 @@ bool check_edge_bit(Board &board, int x, int y, int dx, int dy, int player, int 
 	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 2);
 	if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
 		return false; // out-of-bounds
-	(void)player;
-	(void)opponent;
-	return true;
+
+	if (check_edge_bit_case_1(forward, backward, player, opponent))
+		return true;
+
+	if (check_edge_bit_case_2(forward, backward, player))
+		return true;
+
+	if (check_edge_bit_case_3(forward, backward, player))
+		return true;
+
+	return false;
+}
+
+bool check_middle_bit_case_1(unsigned int forward, unsigned int backward, int player, int opponent)
+{
+	unsigned int cond1a_fwd = pack_cells_3(player, EMPTY_SPACE, opponent);
+	unsigned int cond1a_bkwd = pack_cells_3(player, EMPTY_SPACE, opponent);
+
+	unsigned int cond1b_fwd = pack_cells_3(player, EMPTY_SPACE, player);
+	unsigned int cond1b_bkwd = pack_cells_1(player);
+
+	unsigned int cond1c_fwd = pack_cells_2(player, EMPTY_SPACE);
+	unsigned int cond1c_bkwd = pack_cells_2(player, EMPTY_SPACE);
+
+	unsigned int forward_three_cells = (forward >> 2) & 0x3F;
+	unsigned int backward_three_cells = (forward >> 2) & 0x3F;
+
+	unsigned int forward_two_cells = (forward >> 4) & 0x0F;
+	unsigned int backward_two_cells = (backward >> 4) & 0x0F;
+
+	unsigned int backward_one_cell = (backward >> 6) & 0x03;
+
+	unsigned int cond1a = (cond1a_fwd == forward_three_cells) && (cond1a_bkwd == backward_three_cells);
+	unsigned int cond1b = (cond1b_fwd == forward_three_cells) && (cond1b_bkwd == backward_one_cell);
+	unsigned int cond1c = (cond1c_fwd == forward_two_cells) && (cond1c_bkwd == backward_two_cells);
+
+	std::cout << "----fwd------" << std::endl;
+	print_line_pattern_reverse(cond1c_fwd, 4);
+	print_line_pattern_reverse(forward_three_cells, 4);
+	std::cout << "----fwd-----" << std::endl;
+	std::cout << "----bwd-----" << std::endl;
+	print_line_pattern_reverse(cond1c_bkwd, 4);
+	print_line_pattern_reverse(backward, 4);
+
+	std::cout << "----bwd-----" << std::endl;
+	if (!(cond1a || cond1b) && cond1c)
+		return true;
+
+	return false;
+}
+
+bool check_middle_bit_case_2(unsigned int forward, unsigned int backward, int player)
+{
+	unsigned int cond2_fwd = pack_cells_3(EMPTY_SPACE, player, EMPTY_SPACE);
+	unsigned int cond2_bkwd = pack_cells_2(player, EMPTY_SPACE);
+
+	unsigned int backward_two_cells = (backward >> 4) & 0x0F;
+	unsigned int forward_three_cells = (forward >> 2) & 0x3F;
+
+
+	if ((cond2_fwd == forward_three_cells) && (cond2_bkwd == backward_two_cells))
+		return true;
+
+	return false;
+}
+
+bool check_middle_bit(Board &board, int x, int y, int dx, int dy, int player, int opponent)
+{
+	unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 3);
+	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 3);
+	if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
+		return false; // out-of-bounds
+
+	if (check_middle_bit_case_1(forward, backward, player, opponent))
+		return true;
+
+	if (check_middle_bit_case_2(forward, backward, player))
+		return true;
+
+	return false;
 }
 
 // returns true if placing a stone at (x,y) for 'player' creates a double-three (bitwise).
@@ -305,16 +459,20 @@ bool Rules::double_three_detected_bit(Board &board, int x, int y, int player)
 			continue;
 		if (board.get_value_bit(x - dx, y - dy) == opponent)
 			continue;
-
-		unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 3);
-		unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 3);
-		if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
-			continue; // out-of-bounds
-
-		std::cout << "Forward:" << std::endl;
-		print_line_pattern(forward, 3);
-		std::cout << "Backward:" << std::endl;
-		print_line_pattern(backward, 3);
+		if (check_edge_bit(board, x, y, dx, dy, player, opponent))
+		{
+			++count;
+			std::cout << "edge count:" << count << std::endl;
+			continue;
+		}
+		if (is_unique_direction(i))
+		{
+			if (check_middle_bit(board, x, y, dx, dy, player, opponent))
+			{
+				++count;
+				std::cout << "middle count:" << count << std::endl;
+			}
+		}
 	}
 	return (count >= 2);
 }
