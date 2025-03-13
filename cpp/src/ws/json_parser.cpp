@@ -153,17 +153,17 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 		return ERROR_DOUBLE_THREE;
 	}
 
-	// Only check double three if no capture occurred.
-	bool doubleThree = Rules::double_three_detected(*pBoard, x, y,
-													(last_player == "X") ? PLAYER_1 : PLAYER_2);
+	// // Only check double three if no capture occurred.
+	// bool doubleThree = Rules::double_three_detected(*pBoard, x, y,
+	// 												(last_player == "X") ? PLAYER_1 : PLAYER_2);
 
-	if (doubleThree)
-	{
-		error = "doublethree";
-		delete pBoard;
-		pBoard = NULL;
-		return ERROR_DOUBLE_THREE;
-	}
+	// if (doubleThree)
+	// {
+	// 	error = "doublethree";
+	// 	delete pBoard;
+	// 	pBoard = NULL;
+	// 	return ERROR_DOUBLE_THREE;
+	// }
 
 	return PARSE_OK;
 }
