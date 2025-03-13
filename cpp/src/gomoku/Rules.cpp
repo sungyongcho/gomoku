@@ -329,17 +329,17 @@ inline unsigned int pack_cells_4(unsigned int a, unsigned int b, unsigned int c,
 
 inline unsigned int pack_cells_3(unsigned int a, unsigned int b, unsigned int c)
 {
-	return (a << 6) | (b << 4) | (c << 2);
+	return (a << 4) | (b << 2) | c;
 }
 
 inline unsigned int pack_cells_2(unsigned int a, unsigned int b)
 {
-	return (a << 6) | (b << 4);
+	return (a << 2) | b;
 }
 
 inline unsigned int pack_cells_1(unsigned int a)
 {
-	return (a << 6); // a occupies 2 bits.
+	return a; // a occupies 2 bits.
 }
 
 bool check_edge_bit_case_1(unsigned int forward, unsigned int backward, int player, int opponent)
@@ -354,8 +354,8 @@ bool check_edge_bit_case_1(unsigned int forward, unsigned int backward, int play
 	unsigned int cond1_fwd = pack_cells_3(player, player, EMPTY_SPACE);
 	unsigned int cond1_bkwd = pack_cells_1(EMPTY_SPACE);
 
-	unsigned int forward_three_cells = forward & 0xFC;
-	unsigned int backward_one_cell = backward & 0xC0;
+	unsigned int forward_three_cells = (forward >> 2) & 0x3F;
+	unsigned int backward_one_cell = (backward >> 2) & 0x03;
 
 	bool cond_1a = (cond_1a_fwd == forward) && (cond_1a_bkwd == backward);
 	bool cond_1b = (cond_1b_fwd == forward);
@@ -374,8 +374,8 @@ bool check_edge_bit_case_2(unsigned int forward, unsigned int backward, int play
 	unsigned int cond2_fwd = pack_cells_4(player, EMPTY_SPACE, player, EMPTY_SPACE);
 	unsigned int cond2_bkwd = pack_cells_1(EMPTY_SPACE);
 
-	unsigned int forward_three_cells = forward & 0xFC;
-	unsigned int backward_one_cell = backward & 0xC0;
+	unsigned int forward_three_cells = (forward >> 2) & 0x3F;
+	unsigned int backward_one_cell = (backward >> 2) & 0x03;
 
 	bool cond_2a = (cond_2a_fwd == forward_three_cells) && (cond_2a_bkwd == backward);
 
@@ -390,7 +390,7 @@ bool check_edge_bit_case_3(unsigned int forward, unsigned int backward, int play
 	unsigned int cond3_fwd = pack_cells_4(EMPTY_SPACE, player, player, EMPTY_SPACE);
 	unsigned int cond3_bkwd = pack_cells_1(EMPTY_SPACE);
 
-	unsigned int backward_one_cell = backward & 0xC0;
+	unsigned int backward_one_cell = (backward >> 2) & 0x03;
 
 	if ((cond3_fwd == forward) && (cond3_bkwd == backward_one_cell))
 		return true;
@@ -400,11 +400,10 @@ bool check_edge_bit_case_3(unsigned int forward, unsigned int backward, int play
 
 bool check_edge_bit(Board &board, int x, int y, int dx, int dy, int player, int opponent)
 {
+	// make sure to understand 4, 2 cells are getting acqured and partial
+	// functions inside will shift values.
 	unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 4);
 	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 2);
-
-	// because extracting only 2 cells so shifting 2 cells left to align
-	backward = (backward << 4) & 0xF0;
 
 	if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
 		return false; // out-of-bounds
@@ -432,26 +431,18 @@ bool check_middle_bit_case_1(unsigned int forward, unsigned int backward, int pl
 	unsigned int cond1c_fwd = pack_cells_2(player, EMPTY_SPACE);
 	unsigned int cond1c_bkwd = pack_cells_2(player, EMPTY_SPACE);
 
-	unsigned int forward_three_cells = forward & 0xFC;
-	unsigned int backward_three_cells = backward & 0xFC;
+	unsigned int forward_three_cells = forward & 0x3F;
+	unsigned int backward_three_cells = backward & 0x3F;
 
-	unsigned int forward_two_cells = forward & 0xF0;
-	unsigned int backward_two_cells = backward & 0xF0;
+	unsigned int forward_two_cells = (forward >> 2) & 0x0F;
+	unsigned int backward_two_cells = (backward >> 2) & 0x0F;
 
-	unsigned int backward_one_cell = backward & 0xC0;
+	unsigned int backward_one_cell = (backward >> 4) & 0x03;
 
 	unsigned int cond1a = (cond1a_fwd == forward_three_cells) && (cond1a_bkwd == backward_three_cells);
 	unsigned int cond1b = (cond1b_fwd == forward_three_cells) && (cond1b_bkwd == backward_one_cell);
 	unsigned int cond1c = (cond1c_fwd == forward_two_cells) && (cond1c_bkwd == backward_two_cells);
 
-	// std::cout << "----fwd------" << std::endl;
-	// print_line_pattern_reverse(cond1c_fwd, 4);
-	// print_line_pattern_reverse(forward_three_cells, 4);
-	// std::cout << "----fwd-----" << std::endl;
-	// std::cout << "----bwd-----" << std::endl;
-	// print_line_pattern_reverse(cond1c_bkwd, 4);
-	// print_line_pattern_reverse(backward, 4);
-	// std::cout << "----bwd-----" << std::endl;
 	if (!(cond1a || cond1b) && cond1c)
 		return true;
 
@@ -463,8 +454,8 @@ bool check_middle_bit_case_2(unsigned int forward, unsigned int backward, int pl
 	unsigned int cond2_fwd = pack_cells_3(EMPTY_SPACE, player, EMPTY_SPACE);
 	unsigned int cond2_bkwd = pack_cells_2(player, EMPTY_SPACE);
 
-	unsigned int backward_two_cells = (backward >> 4) & 0x0F;
-	unsigned int forward_three_cells = (forward >> 2) & 0x3F;
+	unsigned int backward_two_cells = (backward >> 2) & 0x0F;
+	unsigned int forward_three_cells = forward & 0x3F;
 
 	if ((cond2_fwd == forward_three_cells) && (cond2_bkwd == backward_two_cells))
 		return true;
@@ -474,18 +465,10 @@ bool check_middle_bit_case_2(unsigned int forward, unsigned int backward, int pl
 
 bool check_middle_bit(Board &board, int x, int y, int dx, int dy, int player, int opponent)
 {
+	// make sure to understand only '3' cells are getting acqured and partial
+	// functions inside will shift values.
 	unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 3);
 	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 3);
-
-	forward = (forward << 2) & 0xFC;
-	backward = (backward << 2) & 0xFC;
-
-	std::cout << "----fwd------" << std::endl;
-	print_line_pattern(forward, 4);
-	std::cout << "----fwd-----" << std::endl;
-	std::cout << "----bwd-----" << std::endl;
-	print_line_pattern(backward, 4);
-	std::cout << "----bwd-----" << std::endl;
 
 	if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
 		return false; // out-of-bounds
