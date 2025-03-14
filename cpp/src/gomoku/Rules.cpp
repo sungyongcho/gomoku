@@ -25,78 +25,37 @@ const int DIRECTIONS[8][2] = {
 	{-1, -1} // NORTHWEST
 };
 
-// Helper function: given a packed pattern (2 bits per cell) and the length,
-// prints the line in a human-readable format.
+const unsigned int OUT_OF_BOUNDS_PATTERN = 0xFFFFFFFF;
+
+// Helper: Print a bit-packed line pattern (reversed if needed)
+void print_line_pattern_impl(unsigned int pattern, int length, bool reversed)
+{
+    if (pattern == OUT_OF_BOUNDS_PATTERN)
+    {
+        std::cout << "Out-of-bounds" << std::endl;
+        return;
+    }
+    std::cout << (reversed ? "pattern (reversed): " : "pattern: ") << "[";
+    for (int i = 0; i < length; ++i)
+    {
+        int shift = reversed ? 2 * i : 2 * (length - i - 1);
+        int cell = (pattern >> shift) & 0x3;
+        char symbol = (cell == 0) ? '.' : (cell == 1) ? '1' : (cell == 2) ? '2' : '?';
+        std::cout << symbol << " ";
+    }
+    std::cout << "]" << std::endl;
+}
+
 void print_line_pattern_reverse(unsigned int pattern, int length)
 {
-	if (pattern == 0xFFFFFFFF)
-	{
-		std::cout << "Out-of-bounds" << std::endl;
-		return;
-	}
-	std::cout << "pattern (reversed): [";
-
-	for (int i = 0; i < length; ++i)
-	{
-		// Now, cell0 comes from the lowest bits.
-		int shift = 2 * i;
-		int cell = (pattern >> shift) & 0x3;
-		char symbol;
-		switch (cell)
-		{
-		case 0:
-			symbol = '.';
-			break;
-		case 1:
-			symbol = '1';
-			break;
-		case 2:
-			symbol = '2';
-			break;
-		default:
-			symbol = '?';
-			break;
-		}
-		std::cout << symbol << " ";
-	}
-	std::cout << "]" << std::endl;
+    print_line_pattern_impl(pattern, length, true);
 }
 
 void print_line_pattern(unsigned int pattern, int length)
 {
-	if (pattern == 0xFFFFFFFF)
-	{
-		std::cout << "Out-of-bounds" << std::endl;
-		return;
-	}
-	// For each cell, extract the corresponding 2 bits.
-	std::cout << "pattern: [";
-
-	for (int i = 0; i < length; ++i)
-	{
-		// Calculate shift amount: the first cell is in the high bits.
-		int shift = 2 * (length - i - 1);
-		int cell = (pattern >> shift) & 0x3;
-		char symbol;
-		switch (cell)
-		{
-		case 0:
-			symbol = '.';
-			break;
-		case 1:
-			symbol = '1';
-			break;
-		case 2:
-			symbol = '2';
-			break;
-		default:
-			symbol = '?';
-			break;
-		}
-		std::cout << symbol << " ";
-	}
-	std::cout << "]" << std::endl;
+    print_line_pattern_impl(pattern, length, false);
 }
+
 
 // Bitmask-based capture check that stores captured stone coordinates.
 // It checks for the pattern: opponent stone at (x+dx, y+dy) and (x+2*dx, y+2*dy),
@@ -107,17 +66,12 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
 									 std::vector<std::pair<int, int> > &captured)
 {
 	int opponent = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
-
-	// Use the bitboard arrays directly.
-	uint64_t *P = board.getBitboardByPlayer(currentPlayer); // e.g., returns board.board1 if PLAYER_1
+	uint64_t *P = board.getBitboardByPlayer(currentPlayer);
 	uint64_t *O = board.getBitboardByPlayer(opponent);
 
-	// Compute indices for the three cells in the capture pattern.
 	int idx1 = board.getIndex(x + dx, y + dy);
 	int idx2 = board.getIndex(x + 2 * dx, y + 2 * dy);
 	int idx3 = board.getIndex(x + 3 * dx, y + 3 * dy);
-
-	// If any index is out-of-bounds, the pattern cannot occur.
 	if (idx1 < 0 || idx2 < 0 || idx3 < 0)
 		return false;
 
@@ -151,19 +105,18 @@ bool Rules::getCapturedStones(Board &board, int x, int y, const std::string &las
 									std::vector<std::pair<int, int> > &captured)
 {
 	int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
-	bool check = false;
+	bool foundCapture = false;
 	// Loop over the 8 directions.
 	for (size_t i = 0; i < 8; ++i)
 	{
 		// Use the direction offsets directly.
 		// If a capture is found in this direction, mark check true.
 		if (bitmask_check_and_apply_capture(board, x, y, currentPlayer, DIRECTIONS[i][0], DIRECTIONS[i][1], captured))
-			check = true;
+			foundCapture = true;
 	}
-	return check;
+	return foundCapture;
 }
 
-// Check if (x+offset_x, y+offset_y) is within board bounds.
 bool is_within_bounds(int x, int y, int offset_x, int offset_y)
 {
 	int new_x = x + offset_x;
@@ -185,7 +138,7 @@ unsigned int extract_line_as_bits(Board &board, int x, int y, int dx, int dy, in
 		y += dy;
 		// Check if within bounds.
 		if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE)
-			return 0xFFFFFFFF;				// Special out-of-bounds indicator.
+			return OUT_OF_BOUNDS_PATTERN;				// Special out-of-bounds indicator.
 		int cell = board.getValueBit(x, y); // Returns 0, 1, or 2.
 		// Pack the cell value into the pattern (using 2 bits per cell).
 		pattern = (pattern << 2) | (cell & 0x3);
@@ -204,14 +157,11 @@ unsigned int extract_line_as_bits(Board &board, int x, int y, int dx, int dy, in
 	return pattern;
 }
 
-// Helper functions to pack cell values into an unsigned int.
-// Each cell uses 2 bits.
 
-bool is_unique_direction(int index)
-{
-	return (index >= 0 && index < 4);
-}
-
+/**
+ * Helper functions to pack cell values into an unsigned int.
+ * Each cell uses 2 bits.
+ */
 inline unsigned int pack_cells_4(unsigned int a, unsigned int b, unsigned int c, unsigned int d)
 {
 	return (a << 6) | (b << 4) | (c << 2) | d;
@@ -229,7 +179,7 @@ inline unsigned int pack_cells_2(unsigned int a, unsigned int b)
 
 inline unsigned int pack_cells_1(unsigned int a)
 {
-	return a; // a occupies 2 bits.
+	return a;
 }
 
 bool check_edge_bit_case_1(unsigned int forward, unsigned int backward, int player, int opponent)
@@ -295,7 +245,7 @@ bool check_edge_bit(Board &board, int x, int y, int dx, int dy, int player, int 
 	unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 4);
 	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 2);
 
-	if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
+	if (forward == OUT_OF_BOUNDS_PATTERN || backward == OUT_OF_BOUNDS_PATTERN)
 		return false; // out-of-bounds
 
 	if (check_edge_bit_case_1(forward, backward, player, opponent))
@@ -360,7 +310,7 @@ bool check_middle_bit(Board &board, int x, int y, int dx, int dy, int player, in
 	unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 3);
 	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 3);
 
-	if (forward == 0xFFFFFFFF || backward == 0xFFFFFFFF)
+	if (forward == OUT_OF_BOUNDS_PATTERN || backward == OUT_OF_BOUNDS_PATTERN)
 		return false; // out-of-bounds
 
 	if (check_middle_bit_case_1(forward, backward, player, opponent))
@@ -389,11 +339,8 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player)
 			++count;
 			continue;
 		}
-		if (is_unique_direction(i))
-		{
-			if (check_middle_bit(board, x, y, dx, dy, player, opponent))
-				++count;
-		}
+        if (i < 4 && check_middle_bit(board, x, y, dx, dy, player, opponent))
+            ++count;
 	}
 	return (count >= 2);
 }

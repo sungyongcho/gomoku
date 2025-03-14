@@ -16,4 +16,4 @@ private:
     struct lws_context_creation_info info;
 };
 
-#endif
+#endif // SERVER_HPP

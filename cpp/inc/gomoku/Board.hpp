@@ -55,4 +55,4 @@ public:
 	void BitboardToJsonBoardboard(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const;
 };
 
-#endif
+#endif // BOARD_HPP
