@@ -64,7 +64,7 @@ std::string constructErrorResponse(ParseResult result, const std::string &detail
 }
 
 int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason,
-				   void *user, void *in, size_t len)
+				  void *user, void *in, size_t len)
 {
 	(void)user;
 	switch (reason)
@@ -102,7 +102,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason,
 
 			if (result != PARSE_OK)
 			{
-				//TODO: revert back to doublethree and send back
+				// TODO: revert back to doublethree and send back
 				std::string error_response = constructErrorResponse(result, error);
 				std::cout << error_response << std::endl;
 				sendJsonResponse(wsi, error_response);
