@@ -13,4 +13,4 @@ public:
 	static bool detectDoublethreeBit(Board &board, int x, int y, int player);
 };
 
-#endif
+#endif // RULES_HPP

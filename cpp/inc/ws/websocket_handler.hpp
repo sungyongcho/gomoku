@@ -14,4 +14,4 @@ void responseSuccess(struct lws *wsi, Board &board);
 
 std::string constructErrorResponse(ParseResult result, const std::string &details);
 
-#endif
+#endif // WEBSOCKET_HANDLER_HPP
