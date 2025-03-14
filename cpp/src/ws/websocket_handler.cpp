@@ -6,7 +6,7 @@
 #include <vector>
 #include <cstring>
 
-void success_response(struct lws *wsi, Board &board)
+void responseSuccess(struct lws *wsi, Board &board)
 {
 	rapidjson::Document response;
 	response.SetObject();
@@ -16,7 +16,7 @@ void success_response(struct lws *wsi, Board &board)
 	response.AddMember("status", "success", allocator);
 
 	rapidjson::Value json_board(rapidjson::kArrayType);
-	board.bitboard_to_json_board(json_board, allocator);
+	board.BitboardToJsonBoardboard(json_board, allocator);
 	response.AddMember("board", json_board, allocator);
 
 	response.AddMember("scores", "success", allocator);
@@ -27,10 +27,10 @@ void success_response(struct lws *wsi, Board &board)
 	rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
 	response.Accept(writer);
 	std::string json_response = buffer.GetString();
-	send_json_response(wsi, json_response);
+	sendJsonResponse(wsi, json_response);
 }
 
-std::string construct_error_response(ParseResult result, const std::string &details)
+std::string constructErrorResponse(ParseResult result, const std::string &details)
 {
 	std::ostringstream oss;
 	oss << "{\"type\":\"error\",\"error\":\"";
@@ -63,7 +63,7 @@ std::string construct_error_response(ParseResult result, const std::string &deta
 	return oss.str();
 }
 
-int callback_debug(struct lws *wsi, enum lws_callback_reasons reason,
+int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason,
 				   void *user, void *in, size_t len)
 {
 	(void)user;
@@ -81,15 +81,15 @@ int callback_debug(struct lws *wsi, enum lws_callback_reasons reason,
 		rapidjson::Document doc;
 		if (doc.Parse(received_msg.c_str()).HasParseError())
 		{
-			std::string error_response = construct_error_response(ERROR_UNKNOWN, "JSON Parse Error");
-			send_json_response(wsi, error_response);
+			std::string error_response = constructErrorResponse(ERROR_UNKNOWN, "JSON Parse Error");
+			sendJsonResponse(wsi, error_response);
 			return -1;
 		}
 
 		if (!doc.HasMember("type") || !doc["type"].IsString())
 		{
-			std::string error_response = construct_error_response(ERROR_UNKNOWN, "Invalid 'type' field");
-			send_json_response(wsi, error_response);
+			std::string error_response = constructErrorResponse(ERROR_UNKNOWN, "Invalid 'type' field");
+			sendJsonResponse(wsi, error_response);
 			return -1;
 		}
 
@@ -98,27 +98,27 @@ int callback_debug(struct lws *wsi, enum lws_callback_reasons reason,
 		{
 			Board *pBoard = NULL;
 			std::string error;
-			ParseResult result = parse_json(doc, pBoard, error);
+			ParseResult result = parseJson(doc, pBoard, error);
 
 			if (result != PARSE_OK)
 			{
 				//TODO: revert back to doublethree and send back
-				std::string error_response = construct_error_response(result, error);
+				std::string error_response = constructErrorResponse(result, error);
 				std::cout << error_response << std::endl;
-				send_json_response(wsi, error_response);
+				sendJsonResponse(wsi, error_response);
 				if (result == ERROR_DOUBLE_THREE)
 					return 0;
 				return -1;
 			}
 
-			success_response(wsi, *pBoard);
+			responseSuccess(wsi, *pBoard);
 			delete pBoard;
 			return 0;
 		}
 		else
 		{
-			std::string error_response = construct_error_response(ERROR_UNKNOWN, "Unknown type");
-			send_json_response(wsi, error_response);
+			std::string error_response = constructErrorResponse(ERROR_UNKNOWN, "Unknown type");
+			sendJsonResponse(wsi, error_response);
 			return -1;
 		}
 		break;

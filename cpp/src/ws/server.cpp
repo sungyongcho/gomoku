@@ -2,7 +2,7 @@
 
 // Define WebSocket protocols (only WebSocket, no HTTP)
 static struct lws_protocols protocols[] = {
-    { "debug-protocol", callback_debug, 0, 0, 0, NULL, 0 },
+    { "debug-protocol", callbackDebug, 0, 0, 0, NULL, 0 },
     { NULL, NULL, 0, 0, 0, NULL, 0 }
 };
 

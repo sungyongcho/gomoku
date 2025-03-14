@@ -24,43 +24,8 @@
 #define UINT64_BITS 64
 #define ARRAY_SIZE ((TOTAL_CELLS + UINT64_BITS - 1) / UINT64_BITS) // 6 elements
 
-
 class Board
 {
-public:
-	// Constructor: initialize the board from a 2D char array (e.g. from JSON)
-	Board(const std::vector<std::vector<char> > &board_data,
-		  int goal, const std::string &last_stone, const std::string &next_stone,
-		  int last_score, int next_score);
-
-	// Accessors and mutators
-	int get_value(int col, int row) const;
-	void set_value(int col, int row, int value);
-	void reset_board();
-	std::pair<int, int> get_current_score();
-	// Convert internal vector<int> board back to 2D char array representation
-	std::vector<std::vector<char> > to_char_board() const;
-	void to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType& allocator) const;
-
-	// These functions now use caching. They return a reference to the cached vector.
-	const std::vector<std::vector<int> > &get_all_downward_diagonals();
-	const std::vector<std::vector<int> > &get_all_upward_diagonals();
-
-	// Other utility functions
-	std::string convert_board_for_print() const;
-
-	// When the board changes, call this to mark the cache as dirty.
-	void mark_cache_dirty();
-
-	uint64_t *get_bitboard_by_player(int player);
-	int getIndex(int col, int row) const;
-	inline void set_value_bit(int col, int row, int player);
-	int get_value_bit(int col, int row) const;
-	void print_board_bit() const;
-	void bitboard_to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const;
-
-
-
 private:
 	int goal;
 	int last_player;
@@ -71,25 +36,23 @@ private:
 	uint64_t last_player_board[ARRAY_SIZE];
 	uint64_t next_player_board[ARRAY_SIZE];
 
-	void reset_bitboard();
-	void initialize_board_from_data(const std::vector<std::vector<char> > &board_data);
+	void resetBitboard();
+	void initBitboardFromData(const std::vector<std::vector<char> > &board_data);
 
-	int get(uint64_t (&player_board)[ARRAY_SIZE], int col, int row);
+public:
+	Board(const std::vector<std::vector<char> > &board_data,
+		  int goal, const std::string &last_stone, const std::string &next_stone,
+		  int last_score, int next_score);
 
+	std::pair<int, int> getCurrentScore();
+	uint64_t *getBitboardByPlayer(int player);
+	int getIndex(int col, int row) const;
 
-	// Store board as a 1D vector for speed.
-	std::vector<int> position;
+	inline void setValueBit(int col, int row, int player);
+	int getValueBit(int col, int row) const;
 
-	// Cached diagonals
-	std::vector<std::vector<int> > cached_downward_diagonals;
-	std::vector<std::vector<int> > cached_upward_diagonals;
-	bool cache_valid;
-
-	// Convert 2D coordinates into a 1D index.
-	inline int index(int col, int row) const { return row * BOARD_SIZE + col; }
-
-	// Recompute diagonals and update cache.
-	void compute_diagonals();
+	void printBitboard() const;
+	void BitboardToJsonBoardboard(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const;
 };
 
 #endif
