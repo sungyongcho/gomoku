@@ -22,14 +22,13 @@ enum ParseResult
 	ERROR_UNKNOWN
 };
 
-bool extract_required_fields(const rapidjson::Document &doc, int &x, int &y,
+bool extractRequiredFields(const rapidjson::Document &doc, int &x, int &y,
 							 std::string &last_player, std::string &next_player, int &goal);
-bool parse_board(const rapidjson::Document &doc, std::vector<std::vector<char> > &board_data);
-bool parse_scores(const rapidjson::Document &doc, int &last_player_score, int &next_player_score);
-std::vector<std::vector<char> > parse_board_from_json(const rapidjson::Document &doc);
-void handle_captures(Board &board, int x, int y, const std::string &last_player);
+bool parseBoard(const rapidjson::Document &doc, std::vector<std::vector<char> > &board_data);
+bool parseScores(const rapidjson::Document &doc, int &last_player_score, int &next_player_score);
+std::vector<std::vector<char> > parseBoardFromJson(const rapidjson::Document &doc);
 
-void send_json_response(struct lws *wsi, const std::string &response);
-ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::string &error);
+void sendJsonResponse(struct lws *wsi, const std::string &response);
+ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error);
 
 #endif // JSON_PARSER_H

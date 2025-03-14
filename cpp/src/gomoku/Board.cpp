@@ -7,15 +7,11 @@ Board::Board(const std::vector<std::vector<char> > &board_data,
 	  last_player(last_stone == "X" ? PLAYER_1 : PLAYER_2),
 	  next_player(next_stone == "X" ? PLAYER_1 : PLAYER_2),
 	  last_player_score(last_score),
-	  next_player_score(next_score),
-	  position(BOARD_SIZE * BOARD_SIZE, EMPTY_SPACE),
-	  cache_valid(false)
+	  next_player_score(next_score)
 {
-	this->reset_bitboard();
-	this->initialize_board_from_data(board_data);
+	this->resetBitboard();
+	this->initBitboardFromData(board_data);
 }
-
-
 
 int Board::getIndex(int col, int row) const
 {
@@ -27,70 +23,45 @@ int Board::getIndex(int col, int row) const
 	return row * BOARD_SIZE + col;
 }
 
-void Board::initialize_board_from_data(const std::vector<std::vector<char> > &board_data)
+void Board::initBitboardFromData(const std::vector<std::vector<char> > &board_data)
 {
-    for (size_t r = 0; r < board_data.size(); ++r)
-    {
-        for (size_t c = 0; c < board_data[r].size(); ++c)
-        {
-            int idx = getIndex(c, r);
-            if (idx < 0)
-                continue;
-            if (board_data[r][c] == PLAYER_X)
-            {
-                position[idx] = PLAYER_1;
-                set_value_bit(c, r, PLAYER_1);
-            }
-            else if (board_data[r][c] == PLAYER_O)
-            {
-                position[idx] = PLAYER_2;
-                set_value_bit(c, r, PLAYER_2);
-            }
-            else
-            {
-                position[idx] = EMPTY_SPACE;
-            }
-        }
-    }
+	for (size_t r = 0; r < board_data.size(); ++r)
+	{
+		for (size_t c = 0; c < board_data[r].size(); ++c)
+		{
+			int idx = getIndex(c, r);
+			if (idx < 0)
+				continue;
+			if (board_data[r][c] == PLAYER_X)
+			{
+				setValueBit(c, r, PLAYER_1);
+			}
+			else if (board_data[r][c] == PLAYER_O)
+			{
+				setValueBit(c, r, PLAYER_2);
+			}
+		}
+	}
 }
 
-
-// bitmask
-
-void Board::reset_bitboard()
+void Board::resetBitboard()
 {
-    //Using memset (make sure ARRAY_SIZE * sizeof(uint64_t) is used)
-    memset(this->last_player_board, 0, ARRAY_SIZE * sizeof(uint64_t));
-    memset(this->next_player_board, 0, ARRAY_SIZE * sizeof(uint64_t));
+	// Using memset (make sure ARRAY_SIZE * sizeof(uint64_t) is used)
+	memset(this->last_player_board, 0, ARRAY_SIZE * sizeof(uint64_t));
+	memset(this->next_player_board, 0, ARRAY_SIZE * sizeof(uint64_t));
 }
 
-uint64_t* Board::get_bitboard_by_player(int player)
+uint64_t *Board::getBitboardByPlayer(int player)
 {
-    if (player == PLAYER_1)
-        return this->last_player_board;
-    else if (player == PLAYER_2)
-        return this->next_player_board;
-
-    throw std::invalid_argument("Invalid player value");
-}
-
-
-int Board::get(uint64_t (&player_board)[ARRAY_SIZE], int col, int row)
-{
-	// Calculate index directly
-	int index = getIndex(col, row);
-	if (index < 0)
-		return -1;
-
-	// Calculate array index and bit position
-	int arrayIndex = index / UINT64_BITS;
-	int bitPos = index % UINT64_BITS;
-
-	return (player_board[arrayIndex] >> bitPos) & 1;
+	if (player == PLAYER_1)
+		return this->last_player_board;
+	else if (player == PLAYER_2)
+		return this->next_player_board;
+	throw std::invalid_argument("Invalid player value");
 }
 
 // Set the cell (col, row) to a given player.
-inline void Board::set_value_bit(int col, int row, int player)
+inline void Board::setValueBit(int col, int row, int player)
 {
 	int idx = getIndex(col, row);
 	if (idx < 0)
@@ -108,7 +79,7 @@ inline void Board::set_value_bit(int col, int row, int player)
 }
 
 // Get the value at (col, row).
-inline int Board::get_value_bit(int col, int row) const
+inline int Board::getValueBit(int col, int row) const
 {
 	int idx = getIndex(col, row);
 	if (idx < 0)
@@ -123,13 +94,13 @@ inline int Board::get_value_bit(int col, int row) const
 	return EMPTY_SPACE;
 }
 
-void Board::print_board_bit() const
+void Board::printBitboard() const
 {
 	for (int r = 0; r < BOARD_SIZE; r++)
 	{
 		for (int c = 0; c < BOARD_SIZE; c++)
 		{
-			int v = get_value_bit(c, r);
+			int v = getValueBit(c, r);
 			if (v == PLAYER_1)
 				std::cout << "X ";
 			else if (v == PLAYER_2)
@@ -141,146 +112,25 @@ void Board::print_board_bit() const
 	}
 }
 
-// bitmask
-
-int Board::get_value(int col, int row) const
-{
-	return position[getIndex(col, row)];
-}
-
-void Board::set_value(int col, int row, int value)
-{
-	position[getIndex(col, row)] = value;
-	mark_cache_dirty();
-}
-
-void Board::reset_board()
-{
-	std::fill(position.begin(), position.end(), EMPTY_SPACE);
-	mark_cache_dirty();
-}
-
-std::string Board::convert_board_for_print() const
-{
-	std::ostringstream oss;
-	for (int r = 0; r < BOARD_SIZE; ++r)
-	{
-		for (int c = 0; c < BOARD_SIZE; ++c)
-		{
-			int val = position[getIndex(c, r)];
-			if (val == PLAYER_1)
-				oss << "X ";
-			else if (val == PLAYER_2)
-				oss << "O ";
-			else
-				oss << ". ";
-		}
-		oss << "\n";
-	}
-	return oss.str();
-}
-
-void Board::mark_cache_dirty()
-{
-	cache_valid = false;
-}
-
-void Board::compute_diagonals()
-{
-	cached_downward_diagonals.clear();
-	cached_upward_diagonals.clear();
-
-	// Compute downward diagonals (\)
-	for (int i = -BOARD_SIZE + 1; i < BOARD_SIZE; ++i)
-	{
-		std::vector<int> diag;
-		diag.reserve(BOARD_SIZE);
-		for (int row = 0; row < BOARD_SIZE; ++row)
-		{
-			int col = row + i;
-			if (col >= 0 && col < BOARD_SIZE)
-				diag.push_back(position[getIndex(col, row)]);
-		}
-		cached_downward_diagonals.push_back(diag);
-	}
-
-	// Compute upward diagonals (/)
-	for (int i = -BOARD_SIZE + 1; i < BOARD_SIZE; ++i)
-	{
-		std::vector<int> diag;
-		diag.reserve(BOARD_SIZE);
-		for (int row = 0; row < BOARD_SIZE; ++row)
-		{
-			int col = BOARD_SIZE - 1 - row + i;
-			if (col >= 0 && col < BOARD_SIZE)
-				diag.push_back(position[getIndex(col, row)]);
-		}
-		cached_upward_diagonals.push_back(diag);
-	}
-	cache_valid = true;
-}
-
-const std::vector<std::vector<int> > &Board::get_all_downward_diagonals()
-{
-	if (!cache_valid)
-	{
-		compute_diagonals();
-	}
-	return cached_downward_diagonals;
-}
-
-const std::vector<std::vector<int> > &Board::get_all_upward_diagonals()
-{
-	if (!cache_valid)
-	{
-		compute_diagonals();
-	}
-	return cached_upward_diagonals;
-}
-
-// Convert internal vector<int> board back to 2D char array representation
-std::vector<std::vector<char> > Board::to_char_board() const
-{
-	// Create a 2D char board initialized with '.'
-	std::vector<std::vector<char> > char_board(BOARD_SIZE, std::vector<char>(BOARD_SIZE, '.'));
-
-	// Loop through the board and convert the integer values to char
-	for (int row = 0; row < BOARD_SIZE; ++row)
-	{
-		for (int col = 0; col < BOARD_SIZE; ++col)
-		{
-			int value = position[getIndex(col, row)];
-			if (value == PLAYER_1)
-			{
-				char_board[row][col] = 'X';
-			}
-			else if (value == PLAYER_2)
-			{
-				char_board[row][col] = 'O';
-			}
-			else
-			{
-				char_board[row][col] = '.';
-			}
-		}
-	}
-
-	return char_board;
-}
-
-// Convert the board to a JSON array (modifies the passed rapidjson::Value reference)
-void Board::to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const
+void Board::BitboardToJsonBoardboard(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const
 {
 	json_board.SetArray(); // Ensure it's an array type
 
-	std::vector<std::vector<char> > char_board = this->to_char_board();
-	for (int i = 0; i < BOARD_SIZE; ++i)
+	for (int r = 0; r < BOARD_SIZE; ++r)
 	{
 		rapidjson::Value json_row(rapidjson::kArrayType);
-		for (int j = 0; j < BOARD_SIZE; ++j)
+		for (int c = 0; c < BOARD_SIZE; ++c)
 		{
 			rapidjson::Value cell;
-			char temp_str[2] = {char_board[i][j], '\0'}; // Char to string
+			char temp_str[2];
+			int value = getValueBit(c, r);
+			if (value == PLAYER_1)
+				temp_str[0] = PLAYER_X; // 'X'
+			else if (value == PLAYER_2)
+				temp_str[0] = PLAYER_O; // 'O'
+			else
+				temp_str[0] = '.'; // empty
+			temp_str[1] = '\0';
 			cell.SetString(temp_str, allocator);
 			json_row.PushBack(cell, allocator);
 		}
@@ -288,33 +138,7 @@ void Board::to_json_board(rapidjson::Value &json_board, rapidjson::Document::All
 	}
 }
 
-void Board::bitboard_to_json_board(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const
-{
-    json_board.SetArray(); // Ensure it's an array type
-
-    for (int r = 0; r < BOARD_SIZE; ++r)
-    {
-        rapidjson::Value json_row(rapidjson::kArrayType);
-        for (int c = 0; c < BOARD_SIZE; ++c)
-        {
-            rapidjson::Value cell;
-            char temp_str[2];
-            int value = get_value_bit(c, r);
-            if (value == PLAYER_1)
-                temp_str[0] = PLAYER_X;  // 'X'
-            else if (value == PLAYER_2)
-                temp_str[0] = PLAYER_O;  // 'O'
-            else
-                temp_str[0] = '.';       // empty
-            temp_str[1] = '\0';
-            cell.SetString(temp_str, allocator);
-            json_row.PushBack(cell, allocator);
-        }
-        json_board.PushBack(json_row, allocator);
-    }
-}
-
-std::pair<int, int> Board::get_current_score()
+std::pair<int, int> Board::getCurrentScore()
 {
 	std::pair<int, int> ret;
 

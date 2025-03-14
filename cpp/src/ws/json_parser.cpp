@@ -1,6 +1,6 @@
 #include "json_parser.hpp"
 
-void send_json_response(struct lws *wsi, const std::string &response)
+void sendJsonResponse(struct lws *wsi, const std::string &response)
 {
 	size_t resp_len = response.size();
 	size_t buf_size = LWS_PRE + resp_len;
@@ -11,7 +11,7 @@ void send_json_response(struct lws *wsi, const std::string &response)
 	delete[] buf;
 }
 
-bool extract_required_fields(const rapidjson::Document &doc, int &x, int &y,
+bool extractRequiredFields(const rapidjson::Document &doc, int &x, int &y,
 							 std::string &last_player, std::string &next_player, int &goal)
 {
 	x = doc["lastPlay"]["coordinate"]["x"].GetInt();
@@ -28,7 +28,7 @@ bool extract_required_fields(const rapidjson::Document &doc, int &x, int &y,
 	return true;
 }
 
-std::vector<std::vector<char> > parse_board_from_json(const rapidjson::Document &doc)
+std::vector<std::vector<char> > parseBoardFromJson(const rapidjson::Document &doc)
 {
 	std::vector<std::vector<char> > board_data;
 
@@ -45,7 +45,7 @@ std::vector<std::vector<char> > parse_board_from_json(const rapidjson::Document 
 	return board_data;
 }
 
-bool parse_board(const rapidjson::Document &doc, std::vector<std::vector<char> > &board_data)
+bool parseBoard(const rapidjson::Document &doc, std::vector<std::vector<char> > &board_data)
 {
 	if (!doc.HasMember("board") || !doc["board"].IsArray())
 	{
@@ -53,11 +53,11 @@ bool parse_board(const rapidjson::Document &doc, std::vector<std::vector<char> >
 		return false;
 	}
 
-	board_data = parse_board_from_json(doc);
+	board_data = parseBoardFromJson(doc);
 	return true;
 }
 
-bool parse_scores(const rapidjson::Document &doc, int &last_player_score, int &next_player_score)
+bool parseScores(const rapidjson::Document &doc, int &last_player_score, int &next_player_score)
 {
 	if (!doc.HasMember("scores") || !doc["scores"].IsArray())
 	{
@@ -78,8 +78,8 @@ bool parse_scores(const rapidjson::Document &doc, int &last_player_score, int &n
 	return true;
 }
 
-// Main parse_json function using ParseResult enum
-ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::string &error)
+// Main parseJson function using ParseResult enum
+ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error)
 {
 	int x, y, goal;
 	std::string last_player, next_player;
@@ -96,19 +96,19 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 		return ERROR_NO_LAST_PLAY;
 	}
 
-	if (!extract_required_fields(doc, x, y, last_player, next_player, goal))
+	if (!extractRequiredFields(doc, x, y, last_player, next_player, goal))
 	{
 		error = "Missing required fields.";
 		return ERROR_UNKNOWN;
 	}
 
-	if (!parse_board(doc, board_data))
+	if (!parseBoard(doc, board_data))
 	{
 		error = "Invalid board field.";
 		return ERROR_INVALID_BOARD;
 	}
 
-	if (!parse_scores(doc, last_player_score, next_player_score))
+	if (!parseScores(doc, last_player_score, next_player_score))
 	{
 		error = "Invalid scores field.";
 		return ERROR_INVALID_SCORES;
@@ -118,13 +118,12 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 					   last_player_score, next_player_score);
 
 	std::cout << "Parsed Board State:\n"
-			  << pBoard->convert_board_for_print() << std::endl;
+			  << std::endl;
+	pBoard->printBitboard();
 
 	// Obtain captured stones, if any.
 	std::vector<std::pair<int, int> > capturedStones;
-	std::cout << "before" << std::endl;
-	pBoard->print_board_bit();
-	bool stoneCaptured = Rules::get_captured_stones_bit(*pBoard, x, y, last_player, capturedStones);
+	bool stoneCaptured = Rules::getCapturedStones(*pBoard, x, y, last_player, capturedStones);
 
 	// If capture occurred, print and remove captured stones.
 	if (stoneCaptured)
@@ -138,32 +137,19 @@ ParseResult parse_json(const rapidjson::Document &doc, Board *&pBoard, std::stri
 		std::cout << std::flush;
 
 		std::cout << "after" << std::endl;
-		pBoard->print_board_bit();
+		pBoard->printBitboard();
 		return PARSE_OK;
 	}
 
-	bool doubleThreeBit = Rules::double_three_detected_bit(*pBoard, x, y,
-													(last_player == "X") ? PLAYER_1 : PLAYER_2);
+	bool doubleThreeBit = Rules::detectDoublethreeBit(*pBoard, x, y,
+														   (last_player == "X") ? PLAYER_1 : PLAYER_2);
 	if (doubleThreeBit)
 	{
-		std::cout << "testing" << std::endl;
 		error = "doublethree";
 		delete pBoard;
 		pBoard = NULL;
 		return ERROR_DOUBLE_THREE;
 	}
-
-	// // Only check double three if no capture occurred.
-	// bool doubleThree = Rules::double_three_detected(*pBoard, x, y,
-	// 												(last_player == "X") ? PLAYER_1 : PLAYER_2);
-
-	// if (doubleThree)
-	// {
-	// 	error = "doublethree";
-	// 	delete pBoard;
-	// 	pBoard = NULL;
-	// 	return ERROR_DOUBLE_THREE;
-	// }
 
 	return PARSE_OK;
 }
