@@ -1,30 +1,6 @@
 #include "Rules.hpp"
 #include <iostream>
 
-enum Direction
-{
-	NORTH = 0,
-	NORTHEAST,
-	EAST,
-	SOUTHEAST,
-	SOUTH,
-	SOUTHWEST,
-	WEST,
-	NORTHWEST
-};
-
-// Direction vector mapping (x, y) offsets
-const int DIRECTIONS[8][2] = {
-	{0, -1}, // NORTH
-	{1, -1}, // NORTHEAST
-	{1, 0},	 // EAST
-	{1, 1},	 // SOUTHEAST
-	{0, 1},	 // SOUTH
-	{-1, 1}, // SOUTHWEST
-	{-1, 0}, // WEST
-	{-1, -1} // NORTHWEST
-};
-
 const unsigned int OUT_OF_BOUNDS_PATTERN = 0xFFFFFFFF;
 
 // Helper: Print a bit-packed line pattern (reversed if needed)
