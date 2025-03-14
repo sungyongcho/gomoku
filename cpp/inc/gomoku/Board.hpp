@@ -11,13 +11,7 @@
 #include <rapidjson/stringbuffer.h>
 #include <stdexcept>
 
-// Define constants
-#define PLAYER_1 1
-#define PLAYER_2 2
-#define PLAYER_X 'X'
-#define PLAYER_O 'O'
-#define EMPTY_SPACE 0
-#define BOARD_SIZE 19 // Standard Gomoku board size
+#include "Gomoku.hpp"
 
 // for bitwise
 #define TOTAL_CELLS (BOARD_SIZE * BOARD_SIZE) // 361 cells
