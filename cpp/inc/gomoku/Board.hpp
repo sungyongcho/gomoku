@@ -40,10 +40,14 @@ public:
 
 	std::pair<int, int> getCurrentScore();
 	uint64_t *getBitboardByPlayer(int player);
+
 	int getIndex(int col, int row) const;
 
-	inline void setValueBit(int col, int row, int player);
+	void setValueBit(int col, int row, int player);
 	int getValueBit(int col, int row) const;
+
+	int getLastPlayer();
+	int getNextPlayer();
 
 	void printBitboard() const;
 	void BitboardToJsonBoardboard(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const;

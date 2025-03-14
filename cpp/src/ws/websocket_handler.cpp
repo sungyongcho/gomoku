@@ -1,10 +1,12 @@
 #include "websocket_handler.hpp"
 #include "Board.hpp"
 #include "Rules.hpp"
+#include "minmax.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
 #include <cstring>
+#include <ctime> // Required for clock()
 
 void responseSuccess(struct lws *wsi, Board &board)
 {
@@ -111,6 +113,16 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason,
 				return -1;
 			}
 
+			std::clock_t start = std::clock(); // Start time
+
+			Move a = Minmax::getBestMove(*pBoard, pBoard->getNextPlayer(), 3);
+
+			std::clock_t end = std::clock(); // End time
+
+			double elapsed_ms = 1000.0 * (end - start) / CLOCKS_PER_SEC; // Convert to milliseconds
+
+			std::cout << "Execution time: " << elapsed_ms << " ms" << std::endl;
+			std::cout << a.x << ", " << a.y << std::endl;
 			responseSuccess(wsi, *pBoard);
 			delete pBoard;
 			return 0;

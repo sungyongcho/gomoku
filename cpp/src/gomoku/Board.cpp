@@ -61,7 +61,7 @@ uint64_t *Board::getBitboardByPlayer(int player)
 }
 
 // Set the cell (col, row) to a given player.
-inline void Board::setValueBit(int col, int row, int player)
+void Board::setValueBit(int col, int row, int player)
 {
 	int idx = getIndex(col, row);
 	if (idx < 0)
@@ -92,6 +92,16 @@ inline int Board::getValueBit(int col, int row) const
 	if (this->next_player_board[word] & mask)
 		return PLAYER_2;
 	return EMPTY_SPACE;
+}
+
+int Board::getNextPlayer()
+{
+	return this->next_player;
+}
+
+int Board::getLastPlayer()
+{
+	return this->last_player;
 }
 
 void Board::printBitboard() const
