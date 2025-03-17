@@ -16,10 +16,7 @@ Board::Board(const std::vector<std::vector<char> > &board_data,
 int Board::getIndex(int col, int row) const
 {
 	if (col < 0 || col >= BOARD_SIZE || row < 0 || row >= BOARD_SIZE)
-	{
-		std::cout << "Error: index wrong" << std::endl;
 		return -1;
-	}
 	return row * BOARD_SIZE + col;
 }
 
@@ -94,6 +91,50 @@ inline int Board::getValueBit(int col, int row) const
 	return EMPTY_SPACE;
 }
 
+unsigned int Board::getCellCount(unsigned int pattern) {
+    unsigned int count = 0;
+    while (pattern) {
+        pattern >>= 2;  // shift by 2 bits per cell
+        ++count;
+    }
+    return count;
+}
+
+unsigned int Board::extractLineAsBits(int x, int y, int dx, int dy, int length)
+{
+	unsigned int pattern = 0;
+	// Loop from 1 to 'length'
+	for (int i = 1; i <= length; ++i)
+	{
+		// Update coordinates incrementally.
+		x += dx;
+		y += dy;
+		// Check if within bounds.
+		if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE)
+		{
+			if (pattern != 0)
+				return pattern;
+			return OUT_OF_BOUNDS_PATTERN;				// Special out-of-bounds indicator.
+		}
+		int cell = this->getValueBit(x, y); // Returns 0, 1, or 2.
+		// Pack the cell value into the pattern (using 2 bits per cell).
+		pattern = (pattern << 2) | (cell & 0x3);
+		// cell & 0x3 ensures that only the lower 2 bits of 'cell' are kept.
+		// The mask 0x3 is binary 11 (i.e., 0b11), so any value in 'cell' will be reduced to its
+		// two least-significant bits, effectively restricting the result to one of four possible values (0-3).
+		// In our usage, we expect cell values to be 0 (empty), 1 (PLAYER_1), or 2 (PLAYER_2).
+		//
+		// For example, if cell = 5 (binary 101):
+		//      101 (binary for 5)
+		//   &  011 (binary for 0x3)
+		//   ---------
+		//      001 (binary for 1)
+		// Thus, 5 & 0x3 yields 1, ensuring that any extraneous higher bits are ignored.
+	}
+	return pattern;
+}
+
+
 int Board::getNextPlayer()
 {
 	return this->next_player;
@@ -155,4 +196,52 @@ std::pair<int, int> Board::getCurrentScore()
 	ret.first = this->last_player_score;
 	ret.second = this->next_player_score;
 	return ret;
+}
+
+std::string Board::convertIndexToCoordinates(int col, int row)
+{
+	if (col < 0 || col >= 19)
+	{
+		throw std::out_of_range("Column index must be between 0 and 18.");
+	}
+	if (row < 0 || row >= 19)
+	{
+		throw std::out_of_range("Row index must be between 0 and 18.");
+	}
+
+	char colChar = 'A' + col; // Convert 0-18 to 'A'-'S'
+
+	std::stringstream ss;
+	ss << (row + 1); // Convert 0-18 to 1-19 and convert to string
+
+	return std::string(1, colChar) + ss.str();
+}
+
+// Helper: Print a bit-packed line pattern (reversed if needed)
+void print_line_pattern_impl(unsigned int pattern, int length, bool reversed)
+{
+    if (pattern == OUT_OF_BOUNDS_PATTERN)
+    {
+        std::cout << "Out-of-bounds" << std::endl;
+        return;
+    }
+    std::cout << (reversed ? "pattern (reversed): " : "pattern: ") << "[";
+    for (int i = 0; i < length; ++i)
+    {
+        int shift = reversed ? 2 * i : 2 * (length - i - 1);
+        int cell = (pattern >> shift) & 0x3;
+        char symbol = (cell == 0) ? '.' : (cell == 1) ? '1' : (cell == 2) ? '2' : '?';
+        std::cout << symbol << " ";
+    }
+    std::cout << "]" << std::endl;
+}
+
+void Board::printLinePatternReverse(unsigned int pattern, int length)
+{
+    print_line_pattern_impl(pattern, length, true);
+}
+
+void Board::printLinePattern(unsigned int pattern, int length)
+{
+    print_line_pattern_impl(pattern, length, false);
 }

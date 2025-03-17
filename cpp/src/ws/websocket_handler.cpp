@@ -100,7 +100,9 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason,
 		{
 			Board *pBoard = NULL;
 			std::string error;
-			ParseResult result = parseJson(doc, pBoard, error);
+			int last_x;
+			int last_y;
+			ParseResult result = parseJson(doc, pBoard, error, &last_x, &last_y);
 
 			if (result != PARSE_OK)
 			{
@@ -113,16 +115,19 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason,
 				return -1;
 			}
 
-			std::clock_t start = std::clock(); // Start time
+			std::cout << "coordinates: " << Board::convertIndexToCoordinates(last_x, last_y) <<std::endl;
+			int check = Minmax::evaluatiePosition(pBoard, pBoard->getLastPlayer(), last_x, last_y);
+			(void)check;
+			// std::clock_t start = std::clock(); // Start time
 
-			Move a = Minmax::getBestMove(*pBoard, pBoard->getNextPlayer(), 3);
+			// Move a = Minmax::getBestMove(*pBoard, pBoard->getNextPlayer(), 3);
 
-			std::clock_t end = std::clock(); // End time
+			// std::clock_t end = std::clock(); // End time
 
-			double elapsed_ms = 1000.0 * (end - start) / CLOCKS_PER_SEC; // Convert to milliseconds
+			// double elapsed_ms = 1000.0 * (end - start) / CLOCKS_PER_SEC; // Convert to milliseconds
 
-			std::cout << "Execution time: " << elapsed_ms << " ms" << std::endl;
-			std::cout << a.x << ", " << a.y << std::endl;
+			// std::cout << "Execution time: " << elapsed_ms << " ms" << std::endl;
+			// std::cout << a.x << ", " << a.y << std::endl;
 			responseSuccess(wsi, *pBoard);
 			delete pBoard;
 			return 0;
