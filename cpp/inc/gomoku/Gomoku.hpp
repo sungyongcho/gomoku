@@ -6,6 +6,7 @@
 #define PLAYER_2 2
 #define PLAYER_X 'X'
 #define PLAYER_O 'O'
+#define OPPONENT(player) ((player) == PLAYER_1 ? PLAYER_2 : PLAYER_1)
 #define EMPTY_SPACE 0
 #define BOARD_SIZE 19 // Standard Gomoku board size
 
@@ -33,5 +34,6 @@ const int DIRECTIONS[8][2] = {
 	{-1, -1} // NORTHWEST
 };
 
+const unsigned int OUT_OF_BOUNDS_PATTERN = 0xFFFFFFFF;
 
 #endif // GOMOKU_HPP

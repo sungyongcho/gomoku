@@ -79,7 +79,9 @@ bool parseScores(const rapidjson::Document &doc, int &last_player_score, int &ne
 }
 
 // Main parseJson function using ParseResult enum
-ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error)
+ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error,
+	// temporary for storing the position
+	int *last_x, int *last_y)
 {
 	int x, y, goal;
 	std::string last_player, next_player;
@@ -101,6 +103,9 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
 		error = "Missing required fields.";
 		return ERROR_UNKNOWN;
 	}
+
+	*last_x = x;
+	*last_y = y;
 
 	if (!parseBoard(doc, board_data))
 	{

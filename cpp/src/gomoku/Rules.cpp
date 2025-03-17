@@ -1,37 +1,6 @@
 #include "Rules.hpp"
 #include <iostream>
 
-const unsigned int OUT_OF_BOUNDS_PATTERN = 0xFFFFFFFF;
-
-// Helper: Print a bit-packed line pattern (reversed if needed)
-void print_line_pattern_impl(unsigned int pattern, int length, bool reversed)
-{
-    if (pattern == OUT_OF_BOUNDS_PATTERN)
-    {
-        std::cout << "Out-of-bounds" << std::endl;
-        return;
-    }
-    std::cout << (reversed ? "pattern (reversed): " : "pattern: ") << "[";
-    for (int i = 0; i < length; ++i)
-    {
-        int shift = reversed ? 2 * i : 2 * (length - i - 1);
-        int cell = (pattern >> shift) & 0x3;
-        char symbol = (cell == 0) ? '.' : (cell == 1) ? '1' : (cell == 2) ? '2' : '?';
-        std::cout << symbol << " ";
-    }
-    std::cout << "]" << std::endl;
-}
-
-void print_line_pattern_reverse(unsigned int pattern, int length)
-{
-    print_line_pattern_impl(pattern, length, true);
-}
-
-void print_line_pattern(unsigned int pattern, int length)
-{
-    print_line_pattern_impl(pattern, length, false);
-}
-
 
 // Bitmask-based capture check that stores captured stone coordinates.
 // It checks for the pattern: opponent stone at (x+dx, y+dy) and (x+2*dx, y+2*dy),

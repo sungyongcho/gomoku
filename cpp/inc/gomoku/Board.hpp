@@ -46,11 +46,19 @@ public:
 	void setValueBit(int col, int row, int player);
 	int getValueBit(int col, int row) const;
 
+	static unsigned int getCellCount(unsigned int pattern);
+	unsigned int extractLineAsBits(int x, int y, int dx, int dy, int length);
+
 	int getLastPlayer();
 	int getNextPlayer();
 
 	void printBitboard() const;
 	void BitboardToJsonBoardboard(rapidjson::Value &json_board, rapidjson::Document::AllocatorType &allocator) const;
+
+	static std::string convertIndexToCoordinates(int col, int row);
+
+	static void printLinePattern(unsigned int pattern, int length);
+	static void printLinePatternReverse(unsigned int pattern, int length);
 };
 
 #endif // BOARD_HPP

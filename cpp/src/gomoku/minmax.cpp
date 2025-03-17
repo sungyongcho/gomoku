@@ -298,3 +298,25 @@ Move Minmax::getBestMove(Board &board, int player, int depth)
 	}
 	return bestMove;
 }
+
+int Minmax::evaluatiePosition(Board *&board, int player, int x, int y)
+{
+	int opponent = OPPONENT(player);
+
+	std::cout << "check: " << board->getValueBit(x, y) << std::endl;
+	std::cout << "player: " << player << " opponent: " << opponent << std::endl;
+
+	for (int i = 0; i < 4; ++i)
+	{
+		int fwd = i;
+		// int bkwd = i + 4;
+		// std::cout << "i: " << i
+		// 		  << "\nfwd: " << Board::convertIndexToCoordinates(x + DIRECTIONS[fwd][0], y + DIRECTIONS[fwd][1])
+		// 		  << "\nbkwd: " << Board::convertIndexToCoordinates(x + DIRECTIONS[bkwd][0], y + DIREC;
+		unsigned int fwd_pattern = board->extractLineAsBits(x,y,DIRECTIONS[fwd][0], DIRECTIONS[fwd][1], 4);
+		Board::printLinePattern(fwd_pattern, Board::getCellCount(fwd_pattern));
+
+	}
+
+	return 0;
+}

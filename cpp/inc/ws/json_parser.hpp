@@ -11,6 +11,7 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 #include <libwebsockets.h>
+#include <sstream>  // Required for std::stringstream
 
 enum ParseResult
 {
@@ -29,6 +30,6 @@ bool parseScores(const rapidjson::Document &doc, int &last_player_score, int &ne
 std::vector<std::vector<char> > parseBoardFromJson(const rapidjson::Document &doc);
 
 void sendJsonResponse(struct lws *wsi, const std::string &response);
-ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error);
+ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error, int *last_x, int *last_y);
 
 #endif // JSON_PARSER_H
