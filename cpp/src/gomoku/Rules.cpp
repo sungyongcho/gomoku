@@ -1,7 +1,6 @@
 #include "Rules.hpp"
 #include <iostream>
 
-
 // Bitmask-based capture check that stores captured stone coordinates.
 // It checks for the pattern: opponent stone at (x+dx, y+dy) and (x+2*dx, y+2*dy),
 // with currentPlayer’s stone at (x+3*dx, y+3*dy). If the pattern is found,
@@ -47,7 +46,7 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
 }
 
 bool Rules::getCapturedStones(Board &board, int x, int y, const std::string &last_player,
-									std::vector<std::pair<int, int> > &captured)
+							  std::vector<std::pair<int, int> > &captured)
 {
 	int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
 	bool foundCapture = false;
@@ -83,7 +82,7 @@ unsigned int extract_line_as_bits(Board &board, int x, int y, int dx, int dy, in
 		y += dy;
 		// Check if within bounds.
 		if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE)
-			return OUT_OF_BOUNDS_PATTERN;				// Special out-of-bounds indicator.
+			return OUT_OF_BOUNDS_PATTERN;	// Special out-of-bounds indicator.
 		int cell = board.getValueBit(x, y); // Returns 0, 1, or 2.
 		// Pack the cell value into the pattern (using 2 bits per cell).
 		pattern = (pattern << 2) | (cell & 0x3);
@@ -101,7 +100,6 @@ unsigned int extract_line_as_bits(Board &board, int x, int y, int dx, int dy, in
 	}
 	return pattern;
 }
-
 
 /**
  * Helper functions to pack cell values into an unsigned int.
@@ -187,10 +185,13 @@ bool check_edge_bit(Board &board, int x, int y, int dx, int dy, int player, int 
 {
 	// make sure to understand 4, 2 cells are getting acqured and partial
 	// functions inside will shift values.
-	unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 4);
-	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 2);
+	unsigned int forward = board.extractLineAsBits(x, y, dx, dy, 4);
+	unsigned int backward = board.extractLineAsBits(x, y, -dx, -dy, 2);
 
-	if (forward == OUT_OF_BOUNDS_PATTERN || backward == OUT_OF_BOUNDS_PATTERN)
+	if (forward == OUT_OF_BOUNDS_PATTERN ||
+		Board::getCellCount(forward) != 4 ||
+		backward == OUT_OF_BOUNDS_PATTERN ||
+		Board::getCellCount(backward) != 2)
 		return false; // out-of-bounds
 
 	if (check_edge_bit_case_1(forward, backward, player, opponent))
@@ -252,10 +253,13 @@ bool check_middle_bit(Board &board, int x, int y, int dx, int dy, int player, in
 {
 	// make sure to understand only '3' cells are getting acqured and partial
 	// functions inside will shift values.
-	unsigned int forward = extract_line_as_bits(board, x, y, dx, dy, 3);
-	unsigned int backward = extract_line_as_bits(board, x, y, -dx, -dy, 3);
+	unsigned int forward = board.extractLineAsBits(x, y, dx, dy, 3);
+	unsigned int backward = board.extractLineAsBits(x, y, -dx, -dy, 3);
 
-	if (forward == OUT_OF_BOUNDS_PATTERN || backward == OUT_OF_BOUNDS_PATTERN)
+	if (forward == OUT_OF_BOUNDS_PATTERN ||
+		Board::getCellCount(forward) != 3 ||
+		backward == OUT_OF_BOUNDS_PATTERN ||
+		Board::getCellCount(backward) != 3)
 		return false; // out-of-bounds
 
 	if (check_middle_bit_case_1(forward, backward, player, opponent))
@@ -284,8 +288,8 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player)
 			++count;
 			continue;
 		}
-        if (i < 4 && check_middle_bit(board, x, y, dx, dy, player, opponent))
-            ++count;
+		if (i < 4 && check_middle_bit(board, x, y, dx, dy, player, opponent))
+			++count;
 	}
 	return (count >= 2);
 }
