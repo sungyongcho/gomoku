@@ -100,6 +100,9 @@ unsigned int Board::getCellCount(unsigned int pattern) {
     return count;
 }
 
+/**
+ * make sure to understand the function stores then shift the function stored will be shifted to LEFT
+ */
 unsigned int Board::extractLineAsBits(int x, int y, int dx, int dy, int length)
 {
 	unsigned int pattern = 0;
@@ -236,7 +239,7 @@ void print_line_pattern_impl(unsigned int pattern, int length, bool reversed)
     std::cout << "]" << std::endl;
 }
 
-void Board::printLinePatternReverse(unsigned int pattern, int length)
+void printLinePatternReverse(unsigned int pattern, int length)
 {
     print_line_pattern_impl(pattern, length, true);
 }
