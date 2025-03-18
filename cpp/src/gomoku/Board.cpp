@@ -115,7 +115,7 @@ unsigned int Board::getCellCount(unsigned int pattern, int windowLength)
  */
 unsigned int Board::extractLineAsBits(int x, int y, int dx, int dy, int length)
 {
-	unsigned int pattern = OUT_OF_BOUNDS_PATTERN;
+	unsigned int pattern = 0;
 	// Loop from 1 to 'length'
 	for (int i = 1; i <= length; ++i)
 	{
@@ -125,8 +125,6 @@ unsigned int Board::extractLineAsBits(int x, int y, int dx, int dy, int length)
 		// Check if within bounds.
 		if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE)
 		{
-			if (pattern == OUT_OF_BOUNDS_PATTERN)
-				return pattern;
 			pattern = (pattern << 2) | (OUT_OF_BOUNDS & 0x3);
 		}
 		else
@@ -237,11 +235,6 @@ std::string Board::convertIndexToCoordinates(int col, int row)
 // Helper: Print a bit-packed line pattern (reversed if needed)
 void print_line_pattern_impl(unsigned int pattern, int length, bool reversed)
 {
-    if (pattern == OUT_OF_BOUNDS_PATTERN)
-    {
-        std::cout << "Out-of-bounds" << std::endl;
-        return;
-    }
     std::cout << (reversed ? "pattern (reversed): " : "pattern: ") << "[";
     for (int i = 0; i < length; ++i)
     {
