@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstring>
 #include "websocket_handler.hpp"
+#include "minimax.hpp"
 
 class Server {
 public:

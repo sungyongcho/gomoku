@@ -1,7 +1,7 @@
 #include "websocket_handler.hpp"
 #include "Board.hpp"
 #include "Rules.hpp"
-#include "minmax.hpp"
+#include "minimax.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -115,9 +115,10 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason,
 				return -1;
 			}
 
-			std::cout << "coordinates: " << Board::convertIndexToCoordinates(last_x, last_y) <<std::endl;
-			int check = Minmax::evaluatiePosition(pBoard, pBoard->getLastPlayer(), last_x, last_y);
-			(void)check;
+			std::cout << "coordinates: " << Board::convertIndexToCoordinates(last_x, last_y) << std::endl;
+			int check = Minimax::evaluatePosition(pBoard, pBoard->getLastPlayer(), last_x, last_y);
+
+			std::cout << "score: " << check << std::endl;
 			// std::clock_t start = std::clock(); // Start time
 
 			// Move a = Minmax::getBestMove(*pBoard, pBoard->getNextPlayer(), 3);

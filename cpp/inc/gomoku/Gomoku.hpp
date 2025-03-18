@@ -35,6 +35,4 @@ const int DIRECTIONS[8][2] = {
 	{-1, -1} // NORTHWEST
 };
 
-const unsigned int OUT_OF_BOUNDS_PATTERN = 0xFFFFFFFF;
-
 #endif // GOMOKU_HPP

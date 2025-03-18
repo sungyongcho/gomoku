@@ -155,9 +155,7 @@ bool check_edge_bit(Board &board, int x, int y, int dx, int dy, int player, int 
 	unsigned int forward = board.extractLineAsBits(x, y, dx, dy, 4);
 	unsigned int backward = board.extractLineAsBits(x, y, -dx, -dy, 2);
 
-	if (forward == OUT_OF_BOUNDS_PATTERN ||
-		Board::getCellCount(forward, 4) != 4 ||
-		backward == OUT_OF_BOUNDS_PATTERN ||
+	if (Board::getCellCount(forward, 4) != 4 ||
 		Board::getCellCount(backward, 2) != 2)
 		return false; // out-of-bounds
 
@@ -223,9 +221,7 @@ bool check_middle_bit(Board &board, int x, int y, int dx, int dy, int player, in
 	unsigned int forward = board.extractLineAsBits(x, y, dx, dy, 3);
 	unsigned int backward = board.extractLineAsBits(x, y, -dx, -dy, 3);
 
-	if (forward == OUT_OF_BOUNDS_PATTERN ||
-		Board::getCellCount(forward, 3) != 3 ||
-		backward == OUT_OF_BOUNDS_PATTERN ||
+	if (Board::getCellCount(forward, 3) != 3 ||
 		Board::getCellCount(backward, 3) != 3)
 		return false; // out-of-bounds
 
