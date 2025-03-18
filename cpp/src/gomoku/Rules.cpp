@@ -69,39 +69,6 @@ bool is_within_bounds(int x, int y, int offset_x, int offset_y)
 }
 
 /**
- * make sure to understand the function stores then shift the function stored will be shifted to LEFT
- */
-unsigned int extract_line_as_bits(Board &board, int x, int y, int dx, int dy, int length)
-{
-	unsigned int pattern = 0;
-	// Loop from 1 to 'length'
-	for (int i = 1; i <= length; ++i)
-	{
-		// Update coordinates incrementally.
-		x += dx;
-		y += dy;
-		// Check if within bounds.
-		if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE)
-			return OUT_OF_BOUNDS_PATTERN;	// Special out-of-bounds indicator.
-		int cell = board.getValueBit(x, y); // Returns 0, 1, or 2.
-		// Pack the cell value into the pattern (using 2 bits per cell).
-		pattern = (pattern << 2) | (cell & 0x3);
-		// cell & 0x3 ensures that only the lower 2 bits of 'cell' are kept.
-		// The mask 0x3 is binary 11 (i.e., 0b11), so any value in 'cell' will be reduced to its
-		// two least-significant bits, effectively restricting the result to one of four possible values (0-3).
-		// In our usage, we expect cell values to be 0 (empty), 1 (PLAYER_1), or 2 (PLAYER_2).
-		//
-		// For example, if cell = 5 (binary 101):
-		//      101 (binary for 5)
-		//   &  011 (binary for 0x3)
-		//   ---------
-		//      001 (binary for 1)
-		// Thus, 5 & 0x3 yields 1, ensuring that any extraneous higher bits are ignored.
-	}
-	return pattern;
-}
-
-/**
  * Helper functions to pack cell values into an unsigned int.
  * Each cell uses 2 bits.
  */
@@ -189,9 +156,9 @@ bool check_edge_bit(Board &board, int x, int y, int dx, int dy, int player, int 
 	unsigned int backward = board.extractLineAsBits(x, y, -dx, -dy, 2);
 
 	if (forward == OUT_OF_BOUNDS_PATTERN ||
-		Board::getCellCount(forward) != 4 ||
+		Board::getCellCount(forward, 4) != 4 ||
 		backward == OUT_OF_BOUNDS_PATTERN ||
-		Board::getCellCount(backward) != 2)
+		Board::getCellCount(backward, 2) != 2)
 		return false; // out-of-bounds
 
 	if (check_edge_bit_case_1(forward, backward, player, opponent))
@@ -257,9 +224,9 @@ bool check_middle_bit(Board &board, int x, int y, int dx, int dy, int player, in
 	unsigned int backward = board.extractLineAsBits(x, y, -dx, -dy, 3);
 
 	if (forward == OUT_OF_BOUNDS_PATTERN ||
-		Board::getCellCount(forward) != 3 ||
+		Board::getCellCount(forward, 3) != 3 ||
 		backward == OUT_OF_BOUNDS_PATTERN ||
-		Board::getCellCount(backward) != 3)
+		Board::getCellCount(backward, 3) != 3)
 		return false; // out-of-bounds
 
 	if (check_middle_bit_case_1(forward, backward, player, opponent))
@@ -279,7 +246,7 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player)
 	for (int i = 0; i < 8; ++i)
 	{
 		int dx = DIRECTIONS[i][0], dy = DIRECTIONS[i][1];
-		if (!is_within_bounds(x, y, dx, dy) || !is_within_bounds(x, y, -dx, -dy))
+		if (!is_within_bounds(x, y, dx, dy))
 			continue;
 		if (board.getValueBit(x - dx, y - dy) == opponent)
 			continue;
