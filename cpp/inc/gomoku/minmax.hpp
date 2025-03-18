@@ -16,6 +16,7 @@
 #define BLOCK_LINE_3 100
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
+#define CAPTURE_SCORE 5000
 
 // A simple move structure.
 struct Move

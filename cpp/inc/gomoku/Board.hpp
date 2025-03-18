@@ -46,7 +46,7 @@ public:
 	void setValueBit(int col, int row, int player);
 	int getValueBit(int col, int row) const;
 
-	static unsigned int getCellCount(unsigned int pattern);
+	static unsigned int getCellCount(unsigned int pattern, int windowLength);
 	unsigned int extractLineAsBits(int x, int y, int dx, int dy, int length);
 
 	int getLastPlayer();

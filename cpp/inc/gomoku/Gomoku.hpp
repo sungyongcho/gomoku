@@ -8,6 +8,7 @@
 #define PLAYER_O 'O'
 #define OPPONENT(player) ((player) == PLAYER_1 ? PLAYER_2 : PLAYER_1)
 #define EMPTY_SPACE 0
+#define OUT_OF_BOUNDS 3
 #define BOARD_SIZE 19 // Standard Gomoku board size
 
 enum Direction

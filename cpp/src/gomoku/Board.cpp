@@ -91,12 +91,22 @@ inline int Board::getValueBit(int col, int row) const
 	return EMPTY_SPACE;
 }
 
-unsigned int Board::getCellCount(unsigned int pattern) {
+// unsigned int Board::getCellCount(unsigned int pattern)
+// {
+// 	unsigned int count = 0;
+// 	while (pattern)
+// 	{
+// 		pattern >>= 2; // shift by 2 bits per cell
+// 		++count;
+// 	}
+// 	return count;
+// }
+
+unsigned int Board::getCellCount(unsigned int pattern, int windowLength)
+{
     unsigned int count = 0;
-    while (pattern) {
-        pattern >>= 2;  // shift by 2 bits per cell
+    for (int i = 0; i < windowLength && (((pattern >> (2 * (windowLength - 1 - i))) & 0x3) != 3); ++i)
         ++count;
-    }
     return count;
 }
 
@@ -105,7 +115,7 @@ unsigned int Board::getCellCount(unsigned int pattern) {
  */
 unsigned int Board::extractLineAsBits(int x, int y, int dx, int dy, int length)
 {
-	unsigned int pattern = 0;
+	unsigned int pattern = OUT_OF_BOUNDS_PATTERN;
 	// Loop from 1 to 'length'
 	for (int i = 1; i <= length; ++i)
 	{
@@ -115,28 +125,30 @@ unsigned int Board::extractLineAsBits(int x, int y, int dx, int dy, int length)
 		// Check if within bounds.
 		if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE)
 		{
-			if (pattern != 0)
+			if (pattern == OUT_OF_BOUNDS_PATTERN)
 				return pattern;
-			return OUT_OF_BOUNDS_PATTERN;				// Special out-of-bounds indicator.
+			pattern = (pattern << 2) | (OUT_OF_BOUNDS & 0x3);
 		}
-		int cell = this->getValueBit(x, y); // Returns 0, 1, or 2.
-		// Pack the cell value into the pattern (using 2 bits per cell).
-		pattern = (pattern << 2) | (cell & 0x3);
-		// cell & 0x3 ensures that only the lower 2 bits of 'cell' are kept.
-		// The mask 0x3 is binary 11 (i.e., 0b11), so any value in 'cell' will be reduced to its
-		// two least-significant bits, effectively restricting the result to one of four possible values (0-3).
-		// In our usage, we expect cell values to be 0 (empty), 1 (PLAYER_1), or 2 (PLAYER_2).
-		//
-		// For example, if cell = 5 (binary 101):
-		//      101 (binary for 5)
-		//   &  011 (binary for 0x3)
-		//   ---------
-		//      001 (binary for 1)
-		// Thus, 5 & 0x3 yields 1, ensuring that any extraneous higher bits are ignored.
+		else
+		{
+			int cell = this->getValueBit(x, y); // Returns 0, 1, or 2.
+			// Pack the cell value into the pattern (using 2 bits per cell).
+			pattern = (pattern << 2) | (cell & 0x3);
+			// cell & 0x3 ensures that only the lower 2 bits of 'cell' are kept.
+			// The mask 0x3 is binary 11 (i.e., 0b11), so any value in 'cell' will be reduced to its
+			// two least-significant bits, effectively restricting the result to one of four possible values (0-3).
+			// In our usage, we expect cell values to be 0 (empty), 1 (PLAYER_1), or 2 (PLAYER_2).
+			//
+			// For example, if cell = 5 (binary 101):
+			//      101 (binary for 5)
+			//   &  011 (binary for 0x3)
+			//   ---------
+			//      001 (binary for 1)
+			// Thus, 5 & 0x3 yields 1, ensuring that any extraneous higher bits are ignored.
+		}
 	}
 	return pattern;
 }
-
 
 int Board::getNextPlayer()
 {
@@ -156,9 +168,11 @@ void Board::printBitboard() const
 		{
 			int v = getValueBit(c, r);
 			if (v == PLAYER_1)
-				std::cout << "X ";
+				std::cout << "1 ";
 			else if (v == PLAYER_2)
-				std::cout << "O ";
+				std::cout << "2 ";
+			else if (v == OUT_OF_BOUNDS)
+				std::cout << "X ";
 			else
 				std::cout << ". ";
 		}
@@ -233,18 +247,22 @@ void print_line_pattern_impl(unsigned int pattern, int length, bool reversed)
     {
         int shift = reversed ? 2 * i : 2 * (length - i - 1);
         int cell = (pattern >> shift) & 0x3;
-        char symbol = (cell == 0) ? '.' : (cell == 1) ? '1' : (cell == 2) ? '2' : '?';
+        char symbol = (cell == 0) ? '.' :
+                      (cell == 1) ? '1' :
+                      (cell == 2) ? '2' :
+                      (cell == 3) ? 'X' : '?';
         std::cout << symbol << " ";
     }
     std::cout << "]" << std::endl;
 }
 
+
 void printLinePatternReverse(unsigned int pattern, int length)
 {
-    print_line_pattern_impl(pattern, length, true);
+	print_line_pattern_impl(pattern, length, true);
 }
 
 void Board::printLinePattern(unsigned int pattern, int length)
 {
-    print_line_pattern_impl(pattern, length, false);
+	print_line_pattern_impl(pattern, length, false);
 }
