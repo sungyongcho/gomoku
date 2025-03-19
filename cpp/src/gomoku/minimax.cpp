@@ -119,4 +119,78 @@ int evaluatePosition(Board *&board, int player, int x, int y) {
 
   return totalScore;
 }
+
+static const uint64_t rowMask = ((uint64_t)1 << BOARD_SIZE) - 1;
+
+// Horizontal shifts for a row.
+inline uint64_t shiftRowLeft(uint64_t row) { return (row << 1) & rowMask; }
+inline uint64_t shiftRowRight(uint64_t row) { return row >> 1; }
+
+// Compute neighbor mask for each row based on occupancy.
+void computeNeighborMask(const uint64_t occupancy[BOARD_SIZE], uint64_t neighbor[BOARD_SIZE]) {
+  for (int i = 0; i < BOARD_SIZE; i++) {
+    uint64_t row = occupancy[i];
+    uint64_t horz = shiftRowLeft(row) | shiftRowRight(row) | row;
+    uint64_t vert = 0;
+    if (i > 0) vert |= occupancy[i - 1];
+    if (i < BOARD_SIZE - 1) vert |= occupancy[i + 1];
+    uint64_t diag = 0;
+    if (i > 0) {
+      diag |= shiftRowLeft(occupancy[i - 1]);
+      diag |= shiftRowRight(occupancy[i - 1]);
+    }
+    if (i < BOARD_SIZE - 1) {
+      diag |= shiftRowLeft(occupancy[i + 1]);
+      diag |= shiftRowRight(occupancy[i + 1]);
+    }
+    neighbor[i] = horz | vert | diag;
+  }
+}
+
+// Generate candidate moves using row-based neighbor mask.
+std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board) {
+  std::vector<std::pair<int, int> > moves;
+  uint64_t occupancy[BOARD_SIZE];
+  uint64_t neighbor[BOARD_SIZE];
+
+  board->getOccupancy(occupancy);
+  computeNeighborMask(occupancy, neighbor);
+
+  for (int row = 0; row < BOARD_SIZE; row++) {
+    uint64_t candidates = neighbor[row] & (~occupancy[row]) & rowMask;
+    for (int col = 0; col < BOARD_SIZE; col++) {
+      if (candidates & (1ULL << col)) moves.push_back(std::make_pair(col, row));
+    }
+  }
+  return moves;
+}
+
+void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates) {
+  // Create a 2D display grid.
+  std::vector<std::vector<char> > display(BOARD_SIZE, std::vector<char>(BOARD_SIZE, '.'));
+  for (int y = 0; y < BOARD_SIZE; y++) {
+    for (int x = 0; x < BOARD_SIZE; x++) {
+      int val = board->getValueBit(x, y);
+      if (val == PLAYER_1)
+        display[y][x] = '1';
+      else if (val == PLAYER_2)
+        display[y][x] = '2';
+    }
+  }
+  // Mark candidate moves with 'C' (if the cell is empty).
+  for (size_t i = 0; i < candidates.size(); i++) {
+    int x = candidates[i].first, y = candidates[i].second;
+    if (board->getValueBit(x, y) == EMPTY_SPACE) display[y][x] = 'C';
+  }
+  // Print the board.
+  for (int y = 0; y < BOARD_SIZE; y++) {
+    for (int x = 0; x < BOARD_SIZE; x++) {
+      std::cout << display[y][x] << " ";
+    }
+    std::cout << "\n";
+  }
+
+  std::cout << std::flush;
+}
+
 }  // namespace Minimax

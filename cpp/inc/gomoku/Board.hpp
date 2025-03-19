@@ -38,6 +38,9 @@ class Board {
   void setValueBit(int col, int row, int player);
   int getValueBit(int col, int row) const;
 
+  // Fills the provided array with the occupancy (union of both players) for each row.
+  void getOccupancy(uint64_t occupancy[BOARD_SIZE]) const;
+
   static unsigned int getCellCount(unsigned int pattern, int windowLength);
   unsigned int extractLineAsBits(int x, int y, int dx, int dy, int length);
 
