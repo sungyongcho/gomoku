@@ -67,6 +67,12 @@ inline int Board::getValueBit(int col, int row) const {
   return EMPTY_SPACE;
 }
 
+void Board::getOccupancy(uint64_t occupancy[BOARD_SIZE]) const {
+  for (int i = 0; i < BOARD_SIZE; i++) {
+    occupancy[i] = last_player_board[i] | next_player_board[i];
+  }
+}
+
 unsigned int Board::getCellCount(unsigned int pattern, int windowLength) {
   unsigned int count = 0;
   for (int i = 0; i < windowLength && (((pattern >> (2 * (windowLength - 1 - i))) & 0x3) != 3); ++i)

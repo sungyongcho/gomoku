@@ -2,6 +2,7 @@
 #define MINMAX_HPP
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "Board.hpp"
@@ -57,6 +58,9 @@ unsigned int reversePattern(unsigned int pattern, int windowSize);
 // decode it into an array and return a heuristic score based on the contiguous run
 // (including the center), open ends, and capture opportunities.
 int evaluateCombinedPattern(int combinedPattern, int player);
+std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board);
+
+void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates);
 }  // namespace Minimax
 
 #endif  // MINMAX_HPP

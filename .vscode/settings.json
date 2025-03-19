@@ -96,5 +96,5 @@
     "editor.insertSpaces": true,
     "editor.detectIndentation": false
   },
-  "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, ColumnLimit: 100 }"
+  "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, ColumnLimit: 100, Standard: Cpp03 }"
 }
