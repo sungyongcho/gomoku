@@ -87,5 +87,14 @@
     "*.ipp": "cpp",
     "regex": "cpp",
     "fstream": "cpp"
-  }
+  },
+  "[cpp]": {
+    "editor.rulers": [100],
+    "editor.wordWrap": "off",
+    "editor.tabSize": 2,
+    "editor.formatOnSave": true,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false
+  },
+  "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, ColumnLimit: 100 }"
 }

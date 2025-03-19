@@ -3,16 +3,15 @@
 
 #include <vector>
 
-#include "Gomoku.hpp"
 #include "Board.hpp"
+#include "Gomoku.hpp"
 
-class Rules
-{
-public:
-	static bool getCapturedStones(Board &board, int x, int y, const std::string &last_player,
-								  std::vector<std::pair<int, int> > &captured);
+class Rules {
+ public:
+  static bool getCapturedStones(Board &board, int x, int y, const std::string &last_player,
+                                std::vector<std::pair<int, int> > &captured);
 
-	static bool detectDoublethreeBit(Board &board, int x, int y, int player);
+  static bool detectDoublethreeBit(Board &board, int x, int y, int player);
 };
 
-#endif // RULES_HPP
+#endif  // RULES_HPP
