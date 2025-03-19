@@ -193,4 +193,79 @@ void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, in
   std::cout << std::flush;
 }
 
+int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY) {
+  // Base case: depth 0, evaluate the board based on the last move.
+  if (depth == 0) {
+    return evaluatePosition(board, currentPlayer, lastX, lastY);
+  }
+
+  // Generate candidate moves.
+  std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
+  if (moves.empty()) {
+    return evaluatePosition(board, currentPlayer, lastX, lastY);
+  }
+
+  if (currentPlayer == PLAYER_1) {  // Maximizing player.
+    int maxEval = -std::numeric_limits<int>::max();
+    for (size_t i = 0; i < moves.size(); i++) {
+      Board *child = Board::cloneBoard(board);
+      child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
+      int eval = minimax(child, depth - 1, alpha, beta, PLAYER_2, moves[i].first, moves[i].second);
+      maxEval = std::max(maxEval, eval);
+      alpha = std::max(alpha, eval);
+      if (beta <= alpha) break;  // Beta cutoff.
+    }
+    return maxEval;
+  } else {  // Minimizing player.
+    int minEval = std::numeric_limits<int>::max();
+    for (size_t i = 0; i < moves.size(); i++) {
+      Board *child = Board::cloneBoard(board);
+      child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
+      int eval = minimax(child, depth - 1, alpha, beta, PLAYER_1, moves[i].first, moves[i].second);
+      minEval = std::min(minEval, eval);
+      beta = std::min(beta, eval);
+      if (beta <= alpha) break;  // Alpha cutoff.
+    }
+    return minEval;
+  }
+}
+
+std::pair<int, int> getBestMove(Board *board, int player, int depth) {
+  std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
+  std::pair<int, int> bestMove = std::make_pair(-1, -1);
+  if (moves.empty()) return bestMove;
+
+  int bestScore;
+  if (player == PLAYER_1) {  // Maximizer.
+    bestScore = -std::numeric_limits<int>::max();
+    for (size_t i = 0; i < moves.size(); i++) {
+      Board *child = Board::cloneBoard(board);
+      child->setValueBit(moves[i].first, moves[i].second, player);
+      int score =
+          minimax(child, depth - 1, -std::numeric_limits<int>::max(),
+                  std::numeric_limits<int>::max(), PLAYER_2, moves[i].first, moves[i].second);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = moves[i];
+      }
+    }
+  } else {  // Minimizer.
+    bestScore = std::numeric_limits<int>::max();
+    for (size_t i = 0; i < moves.size(); i++) {
+      Board *child = Board::cloneBoard(board);
+      child->setValueBit(moves[i].first, moves[i].second, player);
+      int score =
+          minimax(child, depth - 1, -std::numeric_limits<int>::max(),
+                  std::numeric_limits<int>::max(), PLAYER_1, moves[i].first, moves[i].second);
+      if (score < bestScore) {
+        bestScore = score;
+        bestMove = moves[i];
+      }
+    }
+  }
+  std::cout << "score: " << bestScore << std::endl;
+  std::cout << "bestMove: " << bestMove.first << ", " << bestMove.second << std::endl;
+  return bestMove;
+}
+
 }  // namespace Minimax

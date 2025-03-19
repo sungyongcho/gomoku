@@ -29,6 +29,7 @@ class Board {
   void initBitboardFromData(const std::vector<std::vector<char> > &board_data);
 
  public:
+  Board();
   Board(const std::vector<std::vector<char> > &board_data, int goal, const std::string &last_stone,
         const std::string &next_stone, int last_score, int next_score);
 
@@ -40,6 +41,7 @@ class Board {
 
   // Fills the provided array with the occupancy (union of both players) for each row.
   void getOccupancy(uint64_t occupancy[BOARD_SIZE]) const;
+  static Board *cloneBoard(const Board *board);
 
   static unsigned int getCellCount(unsigned int pattern, int windowLength);
   unsigned int extractLineAsBits(int x, int y, int dx, int dy, int length);

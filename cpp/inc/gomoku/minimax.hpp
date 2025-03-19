@@ -61,6 +61,8 @@ int evaluateCombinedPattern(int combinedPattern, int player);
 std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board);
 
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates);
+
+std::pair<int, int> getBestMove(Board *board, int player, int depth);
 }  // namespace Minimax
 
 #endif  // MINMAX_HPP
