@@ -1,10 +1,11 @@
 #ifndef MINMAX_HPP
 #define MINMAX_HPP
 
+#include <string>
+#include <vector>
+
 #include "Board.hpp"
 #include "Gomoku.hpp"
-#include <vector>
-#include <string>
 
 #define GOMOKU 10000000
 #define OPEN_LINE_4 100000
@@ -28,34 +29,34 @@
 //   which is the total number of unique patterns that can be represented.
 #define LOOKUP_TABLE_SIZE (1 << (2 * COMBINED_WINDOW_SIZE))
 
-namespace Minimax
-{
+namespace Minimax {
 
-	// Global lookup table for combined patterns.
-	extern int combinedPatternScoreTable[LOOKUP_TABLE_SIZE];
+// Global lookup table for combined patterns.
+extern int combinedPatternScoreTable[LOOKUP_TABLE_SIZE];
 
-	// Initializes the lookup table for combined patterns.
-	void initCombinedPatternScoreTable();
+// Initializes the lookup table for combined patterns.
+void initCombinedPatternScoreTable();
 
-	// Evaluates the board position at (x,y) for the given player.
-	// Returns a heuristic score computed by summing the scores from the four axes.
-	int evaluatePosition(Board *&board, int player, int x, int y);
+// Evaluates the board position at (x,y) for the given player.
+// Returns a heuristic score computed by summing the scores from the four axes.
+int evaluatePosition(Board *&board, int player, int x, int y);
 
-	// Helper: Evaluates one axis (direction dx,dy) at (x,y) by combining the forward
-	// and backward windows with the center move, then using the lookup table.
-	int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy);
+// Helper: Evaluates one axis (direction dx,dy) at (x,y) by combining the forward
+// and backward windows with the center move, then using the lookup table.
+int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy);
 
-	// Helper: Extracts a window of 'length' cells as a bit-packed integer,
-	// starting from (x,y) moving in direction (dx,dy). Out-of-bound cells are marked with OUT_OF_BOUNDS.
-	unsigned int extractLineAsBits(Board *board, int x, int y, int dx, int dy, int length);
+// Helper: Extracts a window of 'length' cells as a bit-packed integer,
+// starting from (x,y) moving in direction (dx,dy). Out-of-bound cells are marked with
+// OUT_OF_BOUNDS.
+unsigned int extractLineAsBits(Board *board, int x, int y, int dx, int dy, int length);
 
-	// Helper: Reverses a bit-packed pattern over 'windowSize' cells (each cell: 2 bits).
-	unsigned int reversePattern(unsigned int pattern, int windowSize);
+// Helper: Reverses a bit-packed pattern over 'windowSize' cells (each cell: 2 bits).
+unsigned int reversePattern(unsigned int pattern, int windowSize);
 
-	// Helper: Given a combined pattern (of COMBINED_WINDOW_SIZE cells),
-	// decode it into an array and return a heuristic score based on the contiguous run
-	// (including the center), open ends, and capture opportunities.
-	int evaluateCombinedPattern(int combinedPattern, int player);
-}
+// Helper: Given a combined pattern (of COMBINED_WINDOW_SIZE cells),
+// decode it into an array and return a heuristic score based on the contiguous run
+// (including the center), open ends, and capture opportunities.
+int evaluateCombinedPattern(int combinedPattern, int player);
+}  // namespace Minimax
 
-#endif // MINMAX_HPP
+#endif  // MINMAX_HPP
