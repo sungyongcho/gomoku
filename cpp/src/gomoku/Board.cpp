@@ -1,5 +1,15 @@
 #include "Board.hpp"
 
+Board::Board()
+    : goal(5),                // Default winning condition (e.g., 5 in a row)
+      last_player(PLAYER_1),  // Default starting player for last move
+      next_player(PLAYER_2),  // Default next player
+      last_player_score(0),
+      next_player_score(0) {
+  // Reset the bitboards to start with an empty board.
+  resetBitboard();
+}
+
 Board::Board(const std::vector<std::vector<char> > &board_data, int goal,
              const std::string &last_stone, const std::string &next_stone, int last_score,
              int next_score)
@@ -207,4 +217,19 @@ void printLinePatternReverse(unsigned int pattern, int length) {
 
 void Board::printLinePattern(unsigned int pattern, int length) {
   print_line_pattern_impl(pattern, length, false);
+}
+
+Board *Board::cloneBoard(const Board *board) {
+  Board *newBoard = new Board();
+
+  for (int i = 0; i < BOARD_SIZE; i++) {
+    newBoard->last_player_board[i] = board->last_player_board[i];
+    newBoard->next_player_board[i] = board->next_player_board[i];
+  }
+  newBoard->goal = board->goal;
+  newBoard->last_player = board->last_player;
+  newBoard->next_player = board->next_player;
+  newBoard->last_player_score = board->last_player_score;
+  newBoard->next_player_score = board->next_player_score;
+  return newBoard;
 }
