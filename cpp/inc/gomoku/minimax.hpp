@@ -1,12 +1,14 @@
 #ifndef MINMAX_HPP
 #define MINMAX_HPP
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "Board.hpp"
 #include "Gomoku.hpp"
+#include "Rules.hpp"
 
 #define GOMOKU 10000000
 #define OPEN_LINE_4 100000
@@ -63,6 +65,9 @@ std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board);
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates);
 
 std::pair<int, int> getBestMove(Board *board, int player, int depth);
+
+void simulateAIBattle(Board *pBoard, int searchDepth, int numTurns);
+
 }  // namespace Minimax
 
 #endif  // MINMAX_HPP

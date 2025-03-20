@@ -1,6 +1,7 @@
 #include "minimax.hpp"
 
 #include <cstdlib>
+#include <ctime>
 #include <limits>
 #include <sstream>
 
@@ -193,6 +194,65 @@ void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, in
   std::cout << std::flush;
 }
 
+struct MoveComparatorMax {
+  const Board *board;
+  int player;
+  MoveComparatorMax(const Board *b, int p) : board(b), player(p) {}
+
+  bool operator()(const std::pair<int, int> &m1, const std::pair<int, int> &m2) const {
+    // For move ordering, we can use a lightweight evaluation.
+    // Here, we call evaluatePosition on clones of the board.
+    Board *child1 = Board::cloneBoard(board);
+    child1->setValueBit(m1.first, m1.second, player);
+    int score1 = evaluatePosition(child1, player, m1.first, m1.second);
+    delete child1;
+
+    Board *child2 = Board::cloneBoard(board);
+    child2->setValueBit(m2.first, m2.second, player);
+    int score2 = evaluatePosition(child2, player, m2.first, m2.second);
+    delete child2;
+
+    return score1 > score2;  // For maximizer: higher score first.
+  }
+};
+
+struct MoveComparatorMin {
+  const Board *board;
+  int player;
+  MoveComparatorMin(const Board *b, int p) : board(b), player(p) {}
+
+  bool operator()(const std::pair<int, int> &m1, const std::pair<int, int> &m2) const {
+    Board *child1 = Board::cloneBoard(board);
+    child1->setValueBit(m1.first, m1.second, player);
+    int score1 = evaluatePosition(child1, player, m1.first, m1.second);
+    delete child1;
+
+    Board *child2 = Board::cloneBoard(board);
+    child2->setValueBit(m2.first, m2.second, player);
+    int score2 = evaluatePosition(child2, player, m2.first, m2.second);
+    delete child2;
+
+    return score1 < score2;  // For minimizer: lower score first.
+  }
+};
+
+// Filter candidate moves to remove moves that cause a double-three.
+// Assume detectDoublethree is implemented to return true if the move creates a double-three.
+std::vector<std::pair<int, int> > filterDoubleThreeMoves(
+    Board *board, const std::vector<std::pair<int, int> > &moves, int player) {
+  std::vector<std::pair<int, int> > filtered;
+  for (size_t i = 0; i < moves.size(); i++) {
+    Board *temp = Board::cloneBoard(board);
+    temp->setValueBit(moves[i].first, moves[i].second, player);
+    // If this move does not create a double-three, keep it.
+    if (!Rules::detectDoublethreeBit(*temp, moves[i].first, moves[i].second, player)) {
+      filtered.push_back(moves[i]);
+    }
+    delete temp;
+  }
+  return filtered;
+}
+
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY) {
   // Base case: depth 0, evaluate the board based on the last move.
   if (depth == 0) {
@@ -203,6 +263,18 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) {
     return evaluatePosition(board, currentPlayer, lastX, lastY);
+  }
+  moves = filterDoubleThreeMoves(board, moves, currentPlayer);
+
+  // --- Apply selective search: sort moves using quick evaluation.
+  if (currentPlayer == PLAYER_1) {  // Maximizer
+    std::sort(moves.begin(), moves.end(), MoveComparatorMax(board, currentPlayer));
+    const size_t TOP_N = 10;
+    if (moves.size() > TOP_N) moves.resize(TOP_N);
+  } else {
+    std::sort(moves.begin(), moves.end(), MoveComparatorMin(board, currentPlayer));
+    const size_t TOP_N = 10;
+    if (moves.size() > TOP_N) moves.resize(TOP_N);
   }
 
   if (currentPlayer == PLAYER_1) {  // Maximizing player.
@@ -234,6 +306,18 @@ std::pair<int, int> getBestMove(Board *board, int player, int depth) {
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
   if (moves.empty()) return bestMove;
+  moves = filterDoubleThreeMoves(board, moves, player);
+
+  // --- Apply selective search: sort moves using quick evaluation.
+  if (player == PLAYER_1) {  // Maximizer
+    std::sort(moves.begin(), moves.end(), MoveComparatorMax(board, player));
+    const size_t TOP_N = 10;
+    if (moves.size() > TOP_N) moves.resize(TOP_N);
+  } else {
+    std::sort(moves.begin(), moves.end(), MoveComparatorMin(board, player));
+    const size_t TOP_N = 10;
+    if (moves.size() > TOP_N) moves.resize(TOP_N);
+  }
 
   int bestScore;
   if (player == PLAYER_1) {  // Maximizer.
@@ -266,6 +350,38 @@ std::pair<int, int> getBestMove(Board *board, int player, int depth) {
   std::cout << "score: " << bestScore << std::endl;
   std::cout << "bestMove: " << bestMove.first << ", " << bestMove.second << std::endl;
   return bestMove;
+}
+
+void simulateAIBattle(Board *pBoard, int searchDepth, int numTurns) {
+  int currentPlayer = pBoard->getNextPlayer();  // or choose starting player
+
+  for (int turn = 0; turn < numTurns; ++turn) {
+    std::clock_t start = std::clock();  // Start time
+    // Get the best move for the current player.
+    std::pair<int, int> bestMove = Minimax::getBestMove(pBoard, currentPlayer, searchDepth);
+    if (bestMove.first == -1) {
+      std::cout << "No valid move found. Ending simulation." << std::endl;
+      break;
+    }
+    // Apply the move.
+    pBoard->setValueBit(bestMove.first, bestMove.second, currentPlayer);
+    std::clock_t end = std::clock();  // End time
+
+    std::cout << "Turn " << turn + 1 << ": Player " << currentPlayer << " moves at ("
+              << bestMove.first << ", " << bestMove.second << ")" << std::endl;
+    pBoard->printBitboard();
+    std::cout << "---------------------------" << std::endl;
+    double elapsed_seconds = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    double elapsed_ms = elapsed_seconds * 1000.0;
+    double elapsed_ns = elapsed_seconds * 1e9;
+
+    std::cout << "Execution time: " << elapsed_seconds << " s, " << elapsed_ms << " ms, "
+              << elapsed_ns << " ns" << std::endl;
+    std::cout << "---------------------------" << std::endl;
+
+    // Switch players.
+    currentPlayer = (currentPlayer == PLAYER_1 ? PLAYER_2 : PLAYER_1);
+  }
 }
 
 }  // namespace Minimax
