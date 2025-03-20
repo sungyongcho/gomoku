@@ -107,19 +107,19 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::cout << "coordinates: " << Board::convertIndexToCoordinates(last_x, last_y)
                   << std::endl;
-        int check = Minimax::evaluatePosition(pBoard, pBoard->getLastPlayer(), last_x, last_y);
+        // int check = Minimax::evaluatePosition(pBoard, pBoard->getLastPlayer(), last_x, last_y);
 
-        std::cout << "score: " << check << std::endl;
+        // std::cout << "score: " << check << std::endl;
 
-        std::vector<std::pair<int, int> > candidates1 = Minimax::generateCandidateMoves(pBoard);
+        // std::vector<std::pair<int, int> > candidates1 = Minimax::generateCandidateMoves(pBoard);
 
-        std::cout << "\nCandidate Moves (Row-based):" << std::endl;
-        for (size_t i = 0; i < candidates1.size(); i++) {
-          std::cout << "(" << candidates1[i].first << ", " << candidates1[i].second << ")"
-                    << std::endl;
-        }
+        // std::cout << "\nCandidate Moves (Row-based):" << std::endl;
+        // for (size_t i = 0; i < candidates1.size(); i++) {
+        //   std::cout << "(" << candidates1[i].first << ", " << candidates1[i].second << ")"
+        //             << std::endl;
+        // }
 
-        Minimax::printBoardWithCandidates(pBoard, candidates1);
+        // Minimax::printBoardWithCandidates(pBoard, candidates1);
         std::clock_t start = std::clock();  // Start time
 
         std::pair<int, int> a = Minimax::getBestMove(pBoard, pBoard->getNextPlayer(), 5);
@@ -135,6 +135,8 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
                   << elapsed_ns << " ns" << std::endl;
 
         std::cout << a.first << ", " << a.second << std::endl;
+
+        Minimax::simulateAIBattle(pBoard, 5, 80);
 
         responseSuccess(wsi, *pBoard);
         delete pBoard;
