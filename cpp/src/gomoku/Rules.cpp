@@ -31,17 +31,16 @@ bool bitmask_check_capture(Board &board, int x, int y, int currentPlayer, int dx
   return (((O[cy1] & mask1) != 0) && ((O[cy2] & mask2) != 0) && ((P[cy3] & mask3) != 0));
 }
 
-bool Rules::detectCaptureStones(Board &board, int x, int y, const std::string &last_player) {
-  int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
+bool Rules::detectCaptureStones(Board &board, int x, int y, int player) {
   bool foundCapture = false;
   // Loop over the 8 directions.
   for (size_t i = 0; i < 8; ++i) {
     int dx = DIRECTIONS[i][0];
     int dy = DIRECTIONS[i][1];
-    if (bitmask_check_capture(board, x, y, currentPlayer, dx, dy)) {
+    if (bitmask_check_capture(board, x, y, player, dx, dy)) {
       // Captured stones are at (x+dx, y+dy) and (x+2*dx, y+2*dy).
-      board.storeCapturedStone(x + dx, y + dy, OPPONENT(currentPlayer));
-      board.storeCapturedStone(x + 2 * dx, y + 2 * dy, OPPONENT(currentPlayer));
+      board.storeCapturedStone(x + dx, y + dy, OPPONENT(player));
+      board.storeCapturedStone(x + 2 * dx, y + 2 * dy, OPPONENT(player));
       foundCapture = true;
     }
   }
