@@ -135,8 +135,9 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
                   << elapsed_ns << " ns" << std::endl;
 
         std::cout << a.first << ", " << a.second << std::endl;
+        std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
 
-        Minimax::simulateAIBattle(pBoard, 5, 80);
+        // Minimax::simulateAIBattle(pBoard, 5, 80);
 
         responseSuccess(wsi, *pBoard);
         delete pBoard;

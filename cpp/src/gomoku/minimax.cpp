@@ -10,6 +10,7 @@ int combinedPatternScoreTable[LOOKUP_TABLE_SIZE] = {0};
 
 // (TODO) needs to be improved, this only checks the basic continous pattern
 int evaluateCombinedPattern(int combinedPattern, int player) {
+  int opponent = OPPONENT(player);
   int cells[COMBINED_WINDOW_SIZE];
   // Decode each cell (2 bits per cell).
   for (int i = 0; i < COMBINED_WINDOW_SIZE; i++) {
@@ -21,6 +22,11 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
   // Ensure the center cell is set to player's stone.
   cells[center] = player;
 
+  if (cells[center + 1] == opponent && cells[center + 2] == opponent && cells[center + 3] == player)
+    return CAPTURE_SCORE;
+
+  if (cells[center - 1] == opponent && cells[center - 2] == opponent && cells[center - 3] == player)
+    return CAPTURE_SCORE;
   // Count contiguous stones including the center.
   int leftCount = 0;
   for (int i = center - 1; i >= 0; i--) {
@@ -57,23 +63,23 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
     score = (openLeft && openRight) ? OPEN_SINGLE_STONE : 0;
 
   // Check capture opportunities.
-  int opponent = (player == PLAYER_1 ? PLAYER_2 : PLAYER_1);
-  // Forward capture check: if cells at indices center+1, center+2, center+3
-  // equal: opponent, opponent, player.
-  if (center + 3 < COMBINED_WINDOW_SIZE) {
-    if (cells[center + 1] == opponent && cells[center + 2] == opponent &&
-        cells[center + 3] == player) {
-      score += CAPTURE_SCORE;
-    }
-  }
-  // Backward capture check: if cells at indices center-3, center-2, center-1
-  // equal: player, opponent, opponent.
-  if (center - 3 >= 0) {
-    if (cells[center - 1] == opponent && cells[center - 2] == opponent &&
-        cells[center - 3] == player) {
-      score += CAPTURE_SCORE;
-    }
-  }
+  // int opponent = (player == PLAYER_1 ? PLAYER_2 : PLAYER_1);
+  // // Forward capture check: if cells at indices center+1, center+2, center+3
+  // // equal: opponent, opponent, player.
+  // if (center + 3 < COMBINED_WINDOW_SIZE) {
+  //   if (cells[center + 1] == opponent && cells[center + 2] == opponent &&
+  //       cells[center + 3] == player) {
+  //     score += CAPTURE_SCORE;
+  //   }
+  // }
+  // // Backward capture check: if cells at indices center-3, center-2, center-1
+  // // equal: player, opponent, opponent.
+  // if (center - 3 >= 0) {
+  //   if (cells[center - 1] == opponent && cells[center - 2] == opponent &&
+  //       cells[center - 3] == player) {
+  //     score += CAPTURE_SCORE;
+  //   }
+  // }
   return score;
 }
 
@@ -82,6 +88,7 @@ void initCombinedPatternScoreTable() {
     // Here we assume evaluation for PLAYER_1.
     // (For two-player support, either build two tables or adjust at runtime.)
     combinedPatternScoreTable[pattern] = evaluateCombinedPattern(pattern, PLAYER_1);
+    combinedPatternScoreTable[pattern] = evaluateCombinedPattern(pattern, PLAYER_2);
   }
 }
 
@@ -254,6 +261,11 @@ std::vector<std::pair<int, int> > filterDoubleThreeMoves(
 }
 
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY) {
+  // if (Rules::isWinningMove(board, PLAYER_1, lastX, lastY))
+  //   return std::numeric_limits<int>::max();  // or GOMOKU
+  // if (Rules::isWinningMove(board, PLAYER_2, lastX, lastY))
+  //   return -std::numeric_limits<int>::max();  // or -GOMOKU
+
   // Base case: depth 0, evaluate the board based on the last move.
   if (depth == 0) {
     return evaluatePosition(board, currentPlayer, lastX, lastY);
