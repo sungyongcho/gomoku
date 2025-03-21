@@ -111,7 +111,8 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
   pBoard->printBitboard();
 
   // Obtain captured stones, if any.
-  bool stoneCaptured = Rules::detectCaptureStones(*pBoard, x, y, last_player);
+  bool stoneCaptured =
+      Rules::detectCaptureStones(*pBoard, x, y, (last_player == "X") ? PLAYER_1 : PLAYER_2);
 
   // If capture occurred, print and remove captured stones.
   if (stoneCaptured) {

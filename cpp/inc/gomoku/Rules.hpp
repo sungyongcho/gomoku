@@ -9,7 +9,7 @@
 
 class Rules {
  public:
-  static bool detectCaptureStones(Board &board, int x, int y, const std::string &last_player);
+  static bool detectCaptureStones(Board &board, int x, int y, int player);
 
   static bool detectDoublethreeBit(Board &board, int x, int y, int player);
   static bool isWinningMove(Board *board, int player, int x, int y);

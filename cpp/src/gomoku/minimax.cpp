@@ -294,6 +294,8 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     for (size_t i = 0; i < moves.size(); i++) {
       Board *child = Board::cloneBoard(board);
       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
+      if (Rules::detectCaptureStones(*child, moves[i].first, moves[i].second, currentPlayer))
+        child->applyCapture();
       int eval = minimax(child, depth - 1, alpha, beta, PLAYER_2, moves[i].first, moves[i].second);
       maxEval = std::max(maxEval, eval);
       alpha = std::max(alpha, eval);
@@ -305,6 +307,8 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     for (size_t i = 0; i < moves.size(); i++) {
       Board *child = Board::cloneBoard(board);
       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
+      if (Rules::detectCaptureStones(*child, moves[i].first, moves[i].second, currentPlayer))
+        child->applyCapture();
       int eval = minimax(child, depth - 1, alpha, beta, PLAYER_1, moves[i].first, moves[i].second);
       minEval = std::min(minEval, eval);
       beta = std::min(beta, eval);
