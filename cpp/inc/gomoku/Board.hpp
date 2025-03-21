@@ -14,6 +14,12 @@
 
 #include "Gomoku.hpp"
 
+struct CapturedStone {
+  int x;
+  int y;
+  int player;
+};
+
 class Board {
  private:
   int goal;
@@ -21,6 +27,7 @@ class Board {
   int next_player;
   int last_player_score;
   int next_player_score;
+  std::vector<CapturedStone> captured_stones;
 
   uint64_t last_player_board[BOARD_SIZE];
   uint64_t next_player_board[BOARD_SIZE];
@@ -38,6 +45,9 @@ class Board {
 
   void setValueBit(int col, int row, int player);
   int getValueBit(int col, int row) const;
+
+  void storeCapturedStone(int x, int y, int player);
+  void applyCapture();
 
   // Fills the provided array with the occupancy (union of both players) for each row.
   void getOccupancy(uint64_t occupancy[BOARD_SIZE]) const;

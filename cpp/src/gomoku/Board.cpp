@@ -233,3 +233,32 @@ Board *Board::cloneBoard(const Board *board) {
   newBoard->next_player_score = board->next_player_score;
   return newBoard;
 }
+
+void Board::storeCapturedStone(int x, int y, int player) {
+  CapturedStone cs;
+  cs.x = x;
+  cs.y = y;
+  cs.player = player;
+  // Use push_back since captured_stones is a std::vector
+  captured_stones.push_back(cs);
+}
+
+void Board::applyCapture() {
+  // Iterate over the captured stones using size_t for safety.
+  for (size_t i = 0; i < captured_stones.size(); ++i) {
+    // Remove the stone from the board.
+    setValueBit(captured_stones[i].x, captured_stones[i].y, EMPTY_SPACE);
+
+    // Update scores based on which player's stone was captured.
+    if (captured_stones[i].player == last_player)
+      next_player_score++;
+    else if (captured_stones[i].player == next_player)
+      last_player_score++;
+  }
+  // Adjust the score: divide by 2 if required by your game rules.
+  next_player_score /= 2;
+  last_player_score /= 2;
+
+  // Clear the captured stones vector after processing.
+  captured_stones.clear();
+}

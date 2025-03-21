@@ -7,8 +7,7 @@
 // y+2*dy), with currentPlayer’s stone at (x+3*dx, y+3*dy). If the pattern is
 // found, it removes the captured stones from the opponent's bitboard and adds
 // their coordinates to the captured vector.
-bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlayer, int dx, int dy,
-                                     std::vector<std::pair<int, int> > &captured) {
+bool bitmask_check_capture(Board &board, int x, int y, int currentPlayer, int dx, int dy) {
   int opponent = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
   uint64_t *P = board.getBitboardByPlayer(currentPlayer);
   uint64_t *O = board.getBitboardByPlayer(opponent);
@@ -29,31 +28,22 @@ bool bitmask_check_and_apply_capture(Board &board, int x, int y, int currentPlay
   // The pattern: cell at (cx1, cy1) and (cx2, cy2) must be occupied by the
   // opponent, and the cell at (cx3, cy3) must be occupied by the current
   // player.
-  bool pattern = ((O[cy1] & mask1) != 0) && ((O[cy2] & mask2) != 0) && ((P[cy3] & mask3) != 0);
-
-  if (pattern) {
-    // Remove the captured stones from the opponent's bitboard.
-    O[cy1] &= ~mask1;
-    O[cy2] &= ~mask2;
-    // Save captured coordinates.
-    captured.push_back(std::make_pair(cx1, cy1));
-    captured.push_back(std::make_pair(cx2, cy2));
-    return true;
-  }
-  return false;
+  return (((O[cy1] & mask1) != 0) && ((O[cy2] & mask2) != 0) && ((P[cy3] & mask3) != 0));
 }
 
-bool Rules::getCapturedStones(Board &board, int x, int y, const std::string &last_player,
-                              std::vector<std::pair<int, int> > &captured) {
+bool Rules::detectCaptureStones(Board &board, int x, int y, const std::string &last_player) {
   int currentPlayer = (last_player == "X") ? PLAYER_1 : PLAYER_2;
   bool foundCapture = false;
   // Loop over the 8 directions.
   for (size_t i = 0; i < 8; ++i) {
-    // Use the direction offsets directly.
-    // If a capture is found in this direction, mark check true.
-    if (bitmask_check_and_apply_capture(board, x, y, currentPlayer, DIRECTIONS[i][0],
-                                        DIRECTIONS[i][1], captured))
+    int dx = DIRECTIONS[i][0];
+    int dy = DIRECTIONS[i][1];
+    if (bitmask_check_capture(board, x, y, currentPlayer, dx, dy)) {
+      // Captured stones are at (x+dx, y+dy) and (x+2*dx, y+2*dy).
+      board.storeCapturedStone(x + dx, y + dy, OPPONENT(currentPlayer));
+      board.storeCapturedStone(x + 2 * dx, y + 2 * dy, OPPONENT(currentPlayer));
       foundCapture = true;
+    }
   }
   return foundCapture;
 }
@@ -223,4 +213,13 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player) {
     if (i < 4 && check_middle_bit(board, x, y, dx, dy, player, opponent)) ++count;
   }
   return (count >= 2);
+}
+
+bool Rules::isWinningMove(Board *board, int player, int x, int y) {
+  for (int i = 0; i < 4; i++) {
+    if (GOMOKU <=
+        Minimax::evaluateCombinedAxis(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]))
+      return true;
+  }
+  return false;
 }

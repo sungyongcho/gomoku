@@ -5,13 +5,14 @@
 
 #include "Board.hpp"
 #include "Gomoku.hpp"
+#include "minimax.hpp"
 
 class Rules {
  public:
-  static bool getCapturedStones(Board &board, int x, int y, const std::string &last_player,
-                                std::vector<std::pair<int, int> > &captured);
+  static bool detectCaptureStones(Board &board, int x, int y, const std::string &last_player);
 
   static bool detectDoublethreeBit(Board &board, int x, int y, int player);
+  static bool isWinningMove(Board *board, int player, int x, int y);
 };
 
 #endif  // RULES_HPP
