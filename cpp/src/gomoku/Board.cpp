@@ -130,6 +130,10 @@ int Board::getNextPlayer() { return this->next_player; }
 
 int Board::getLastPlayer() { return this->last_player; }
 
+int Board::getNextPlayerScore() { return this->next_player_score; }
+
+int Board::getLastPlayerScore() { return this->last_player_score; }
+
 void Board::printBitboard() const {
   for (int r = 0; r < BOARD_SIZE; r++) {
     for (int c = 0; c < BOARD_SIZE; c++) {

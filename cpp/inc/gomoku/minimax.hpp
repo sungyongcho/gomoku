@@ -21,7 +21,7 @@
 #define BLOCKED_LINE_2 10
 #define BLOCKED_LINE_1 1
 #define OPEN_SINGLE_STONE 10
-#define CAPTURE_SCORE 5000
+#define CAPTURE_SCORE 500
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
@@ -35,10 +35,11 @@
 namespace Minimax {
 
 // Global lookup table for combined patterns.
-extern int combinedPatternScoreTable[LOOKUP_TABLE_SIZE];
+extern int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
+extern int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
 // Initializes the lookup table for combined patterns.
-void initCombinedPatternScoreTable();
+void initCombinedPatternScoreTables();
 
 // Evaluates the board position at (x,y) for the given player.
 // Returns a heuristic score computed by summing the scores from the four axes.

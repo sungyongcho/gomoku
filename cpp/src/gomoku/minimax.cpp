@@ -6,7 +6,8 @@
 #include <sstream>
 
 namespace Minimax {
-int combinedPatternScoreTable[LOOKUP_TABLE_SIZE] = {0};
+int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE] = {0};
+int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE] = {0};
 
 // (TODO) needs to be improved, this only checks the basic continous pattern
 int evaluateCombinedPattern(int combinedPattern, int player) {
@@ -83,12 +84,12 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
   return score;
 }
 
-void initCombinedPatternScoreTable() {
+void initCombinedPatternScoreTables() {
   for (int pattern = 0; pattern < LOOKUP_TABLE_SIZE; pattern++) {
     // Here we assume evaluation for PLAYER_1.
     // (For two-player support, either build two tables or adjust at runtime.)
-    combinedPatternScoreTable[pattern] = evaluateCombinedPattern(pattern, PLAYER_1);
-    combinedPatternScoreTable[pattern] = evaluateCombinedPattern(pattern, PLAYER_2);
+    combinedPatternScoreTablePlayerOne[pattern] = evaluateCombinedPattern(pattern, PLAYER_1);
+    combinedPatternScoreTablePlayerTwo[pattern] = evaluateCombinedPattern(pattern, PLAYER_2);
   }
 }
 
@@ -102,6 +103,7 @@ inline unsigned int reversePattern(unsigned int pattern, int windowSize) {
 }
 
 int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy) {
+  int score;
   // Extract the forward window.
   unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
   // Extract the backward window.
@@ -113,7 +115,17 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   // window]
   unsigned int combined = (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) |
                           ((unsigned int)player << (2 * SIDE_WINDOW_SIZE)) | forward;
-  int score = combinedPatternScoreTable[combined];
+  if (player == PLAYER_1) {
+    score = combinedPatternScoreTablePlayerOne[combined];
+  } else if (player == PLAYER_2)
+    score = combinedPatternScoreTablePlayerTwo[combined];
+
+  if (score == CAPTURE_SCORE) {
+    if (player == board->getLastPlayer())
+      score = CAPTURE_SCORE * 10 ^ board->getLastPlayerScore();
+    else if (player == board->getNextPlayer())
+      score = CAPTURE_SCORE * 10 ^ board->getNextPlayerScore();
+  }
   return score;
 }
 
