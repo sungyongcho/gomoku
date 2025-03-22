@@ -134,6 +134,17 @@ int Board::getNextPlayerScore() { return this->next_player_score; }
 
 int Board::getLastPlayerScore() { return this->last_player_score; }
 
+void Board::switchTurn() {
+  int tmp;
+
+  tmp = this->next_player;
+  this->next_player = this->last_player;
+  this->last_player = tmp;
+  tmp = this->next_player_score;
+  this->next_player_score = this->last_player_score;
+  this->last_player_score = tmp;
+}
+
 void Board::printBitboard() const {
   for (int r = 0; r < BOARD_SIZE; r++) {
     for (int c = 0; c < BOARD_SIZE; c++) {

@@ -327,4 +327,24 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   }
   return bestMove;
 }
+
+void simulateAIBattle(Board *pBoard, int searchDepth, int numTurns) {
+  for (int turn = 0; turn < numTurns; ++turn) {
+    int currentPlayer = pBoard->getNextPlayer();
+    std::pair<int, int> bestMove = getBestMove(pBoard, searchDepth);
+    if (bestMove.first == -1 || bestMove.second == -1) {
+      std::cout << "No valid moves available. Ending simulation." << std::endl;
+      break;
+    }
+    pBoard->setValueBit(bestMove.first, bestMove.second, currentPlayer);
+    if (Rules::detectCaptureStones(*pBoard, bestMove.first, bestMove.second, currentPlayer))
+      pBoard->applyCapture();
+    pBoard->switchTurn();  // Update turn after move is made.
+    std::cout << "Turn " << turn + 1 << ": Player " << currentPlayer << " moves at ("
+              << bestMove.first << ", " << bestMove.second << ")" << std::endl;
+    // Optionally, print the board state if your Board class provides a print method.
+    pBoard->printBitboard();
+  }
+}
+
 }  // namespace Minimax
