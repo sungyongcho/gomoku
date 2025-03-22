@@ -2,6 +2,7 @@
 #define MINMAX_HPP
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 #include <utility>
 #include <vector>
@@ -65,7 +66,7 @@ std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board);
 
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates);
 
-std::pair<int, int> getBestMove(Board *board, int player, int depth);
+std::pair<int, int> getBestMove(Board *board, int depth);
 
 void simulateAIBattle(Board *pBoard, int searchDepth, int numTurns);
 

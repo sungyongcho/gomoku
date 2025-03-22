@@ -122,7 +122,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         // Minimax::printBoardWithCandidates(pBoard, candidates1);
         std::clock_t start = std::clock();  // Start time
 
-        std::pair<int, int> a = Minimax::getBestMove(pBoard, pBoard->getNextPlayer(), 5);
+        std::pair<int, int> a = Minimax::getBestMove(pBoard, 5);
 
         std::clock_t end = std::clock();  // End time
 
@@ -137,7 +137,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         std::cout << a.first << ", " << a.second << std::endl;
         std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
 
-        Minimax::simulateAIBattle(pBoard, 5, 80);
+        // Minimax::simulateAIBattle(pBoard, 5, 80);
 
         responseSuccess(wsi, *pBoard);
         delete pBoard;

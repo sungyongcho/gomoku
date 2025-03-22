@@ -63,24 +63,6 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
   else
     score = (openLeft && openRight) ? OPEN_SINGLE_STONE : 0;
 
-  // Check capture opportunities.
-  // int opponent = (player == PLAYER_1 ? PLAYER_2 : PLAYER_1);
-  // // Forward capture check: if cells at indices center+1, center+2, center+3
-  // // equal: opponent, opponent, player.
-  // if (center + 3 < COMBINED_WINDOW_SIZE) {
-  //   if (cells[center + 1] == opponent && cells[center + 2] == opponent &&
-  //       cells[center + 3] == player) {
-  //     score += CAPTURE_SCORE;
-  //   }
-  // }
-  // // Backward capture check: if cells at indices center-3, center-2, center-1
-  // // equal: player, opponent, opponent.
-  // if (center - 3 >= 0) {
-  //   if (cells[center - 1] == opponent && cells[center - 2] == opponent &&
-  //       cells[center - 3] == player) {
-  //     score += CAPTURE_SCORE;
-  //   }
-  // }
   return score;
 }
 
@@ -122,9 +104,9 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
 
   if (score == CAPTURE_SCORE) {
     if (player == board->getLastPlayer())
-      score = CAPTURE_SCORE * 10 ^ board->getLastPlayerScore();
+      score = CAPTURE_SCORE * pow(10, board->getLastPlayerScore());
     else if (player == board->getNextPlayer())
-      score = CAPTURE_SCORE * 10 ^ board->getNextPlayerScore();
+      score = CAPTURE_SCORE * pow(10, board->getNextPlayerScore());
   }
   return score;
 }
@@ -132,7 +114,7 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
 int evaluatePosition(Board *&board, int player, int x, int y) {
   int totalScore = 0;
 
-  if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
+  // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
 
   for (int i = 0; i < 4; ++i)
     totalScore += evaluateCombinedAxis(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
@@ -272,56 +254,45 @@ std::vector<std::pair<int, int> > filterDoubleThreeMoves(
   return filtered;
 }
 
-int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY) {
-  // if (Rules::isWinningMove(board, PLAYER_1, lastX, lastY))
-  //   return std::numeric_limits<int>::max();  // or GOMOKU
-  // if (Rules::isWinningMove(board, PLAYER_2, lastX, lastY))
-  //   return -std::numeric_limits<int>::max();  // or -GOMOKU
-
-  // Base case: depth 0, evaluate the board based on the last move.
+int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
+            bool isMaximizing) {
+  // Terminal condition: if we've reached the maximum search depth.
   if (depth == 0) {
-    return evaluatePosition(board, currentPlayer, lastX, lastY);
+    // Evaluate board based on the last move (played by opponent of currentPlayer)
+    return evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
   }
 
   // Generate candidate moves.
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
-  if (moves.empty()) {
-    return evaluatePosition(board, currentPlayer, lastX, lastY);
-  }
-  moves = filterDoubleThreeMoves(board, moves, currentPlayer);
+  if (moves.empty()) return evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
 
-  // --- Apply selective search: sort moves using quick evaluation.
-  if (currentPlayer == PLAYER_1) {  // Maximizer
-    std::sort(moves.begin(), moves.end(), MoveComparatorMax(board, currentPlayer));
-    const size_t TOP_N = 10;
-    if (moves.size() > TOP_N) moves.resize(TOP_N);
-  } else {
-    std::sort(moves.begin(), moves.end(), MoveComparatorMin(board, currentPlayer));
-    const size_t TOP_N = 10;
-    if (moves.size() > TOP_N) moves.resize(TOP_N);
-  }
-
-  if (currentPlayer == PLAYER_1) {  // Maximizing player.
-    int maxEval = -std::numeric_limits<int>::max();
-    for (size_t i = 0; i < moves.size(); i++) {
+  if (isMaximizing) {
+    int maxEval = std::numeric_limits<int>::min();
+    for (size_t i = 0; i < moves.size(); ++i) {
+      // Create a child board state.
       Board *child = Board::cloneBoard(board);
       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-      if (Rules::detectCaptureStones(*child, moves[i].first, moves[i].second, currentPlayer))
-        child->applyCapture();
-      int eval = minimax(child, depth - 1, alpha, beta, PLAYER_2, moves[i].first, moves[i].second);
+      if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
+        board->applyCapture();
+      // Recurse: switch player and turn.
+      int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
+                         moves[i].second, false);
+      delete child;
       maxEval = std::max(maxEval, eval);
       alpha = std::max(alpha, eval);
       if (beta <= alpha) break;  // Beta cutoff.
     }
     return maxEval;
-  } else {  // Minimizing player.
+  } else {
     int minEval = std::numeric_limits<int>::max();
-    for (size_t i = 0; i < moves.size(); i++) {
+    for (size_t i = 0; i < moves.size(); ++i) {
       Board *child = Board::cloneBoard(board);
       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-      if (Rules::detectCaptureStones(*child, moves[i].first, moves[i].second, currentPlayer))
-        child->applyCapture();
-      int eval = minimax(child, depth - 1, alpha, beta, PLAYER_1, moves[i].first, moves[i].second);
+      if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
+        board->applyCapture();
+      int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
+                         moves[i].second, true);
+      delete child;
       minEval = std::min(minEval, eval);
       beta = std::min(beta, eval);
       if (beta <= alpha) break;  // Alpha cutoff.
@@ -330,86 +301,30 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   }
 }
 
-std::pair<int, int> getBestMove(Board *board, int player, int depth) {
-  std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
+std::pair<int, int> getBestMove(Board *board, int depth) {
+  int bestScore = std::numeric_limits<int>::min();
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
+  int currentPlayer = board->getNextPlayer();
+  std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
-  moves = filterDoubleThreeMoves(board, moves, player);
 
-  // --- Apply selective search: sort moves using quick evaluation.
-  if (player == PLAYER_1) {  // Maximizer
-    std::sort(moves.begin(), moves.end(), MoveComparatorMax(board, player));
-    const size_t TOP_N = 10;
-    if (moves.size() > TOP_N) moves.resize(TOP_N);
-  } else {
-    std::sort(moves.begin(), moves.end(), MoveComparatorMin(board, player));
-    const size_t TOP_N = 10;
-    if (moves.size() > TOP_N) moves.resize(TOP_N);
-  }
-
-  int bestScore;
-  if (player == PLAYER_1) {  // Maximizer.
-    bestScore = -std::numeric_limits<int>::max();
-    for (size_t i = 0; i < moves.size(); i++) {
-      Board *child = Board::cloneBoard(board);
-      child->setValueBit(moves[i].first, moves[i].second, player);
-      int score =
-          minimax(child, depth - 1, -std::numeric_limits<int>::max(),
-                  std::numeric_limits<int>::max(), PLAYER_2, moves[i].first, moves[i].second);
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = moves[i];
-      }
-    }
-  } else {  // Minimizer.
-    bestScore = std::numeric_limits<int>::max();
-    for (size_t i = 0; i < moves.size(); i++) {
-      Board *child = Board::cloneBoard(board);
-      child->setValueBit(moves[i].first, moves[i].second, player);
-      int score =
-          minimax(child, depth - 1, -std::numeric_limits<int>::max(),
-                  std::numeric_limits<int>::max(), PLAYER_1, moves[i].first, moves[i].second);
-      if (score < bestScore) {
-        bestScore = score;
-        bestMove = moves[i];
-      }
+  for (size_t i = 0; i < moves.size(); ++i) {
+    Board *child = Board::cloneBoard(board);
+    child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
+    // After currentPlayer plays, it becomes the opponent's turn.
+    int score =
+        minimax(child, depth - 1, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(),
+                OPPONENT(currentPlayer), moves[i].first, moves[i].second, false);
+    delete child;
+    if (score > bestScore) {
+      std::cout << "moves: " << Board::convertIndexToCoordinates(moves[i].first, moves[i].second)
+                << std::endl;
+      std::cout << "score before: [" << bestScore << "] score after: [" << score << "]"
+                << std::endl;
+      bestScore = score;
+      bestMove = moves[i];
     }
   }
-  std::cout << "score: " << bestScore << std::endl;
-  std::cout << "bestMove: " << bestMove.first << ", " << bestMove.second << std::endl;
   return bestMove;
 }
-
-void simulateAIBattle(Board *pBoard, int searchDepth, int numTurns) {
-  int currentPlayer = pBoard->getNextPlayer();  // or choose starting player
-
-  for (int turn = 0; turn < numTurns; ++turn) {
-    std::clock_t start = std::clock();  // Start time
-    // Get the best move for the current player.
-    std::pair<int, int> bestMove = Minimax::getBestMove(pBoard, currentPlayer, searchDepth);
-    if (bestMove.first == -1) {
-      std::cout << "No valid move found. Ending simulation." << std::endl;
-      break;
-    }
-    // Apply the move.
-    pBoard->setValueBit(bestMove.first, bestMove.second, currentPlayer);
-    std::clock_t end = std::clock();  // End time
-
-    std::cout << "Turn " << turn + 1 << ": Player " << currentPlayer << " moves at ("
-              << bestMove.first << ", " << bestMove.second << ")" << std::endl;
-    pBoard->printBitboard();
-    std::cout << "---------------------------" << std::endl;
-    double elapsed_seconds = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-    double elapsed_ms = elapsed_seconds * 1000.0;
-    double elapsed_ns = elapsed_seconds * 1e9;
-
-    std::cout << "Execution time: " << elapsed_seconds << " s, " << elapsed_ms << " ms, "
-              << elapsed_ns << " ns" << std::endl;
-    std::cout << "---------------------------" << std::endl;
-
-    // Switch players.
-    currentPlayer = (currentPlayer == PLAYER_1 ? PLAYER_2 : PLAYER_1);
-  }
-}
-
 }  // namespace Minimax
