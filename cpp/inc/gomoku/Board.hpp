@@ -62,6 +62,8 @@ class Board {
   int getLastPlayerScore();
   int getNextPlayerScore();
 
+  void switchTurn();
+
   void printBitboard() const;
   void BitboardToJsonBoardboard(rapidjson::Value &json_board,
                                 rapidjson::Document::AllocatorType &allocator) const;
