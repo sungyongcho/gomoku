@@ -31,7 +31,7 @@
 #define COMBINED_WINDOW_SIZE (2 * SIDE_WINDOW_SIZE + 1)
 // - Shifting 1 left by (2 * COMBINED_WINDOW_SIZE) is equivalent to 2^(2 * COMBINED_WINDOW_SIZE),
 //   which is the total number of unique patterns that can be represented.
-#define LOOKUP_TABLE_SIZE (1 << (2 * COMBINED_WINDOW_SIZE))
+#define LOOKUP_TABLE_SIZE (1 << (4 * COMBINED_WINDOW_SIZE))
 
 namespace Minimax {
 

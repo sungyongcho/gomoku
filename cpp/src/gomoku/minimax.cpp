@@ -8,8 +8,20 @@
 namespace Minimax {
 int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE] = {0};
 int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE] = {0};
-
-// (TODO) needs to be improved, this only checks the basic continous pattern
+/*
+ * 1. the evaluated cell from combined pattern will always be in the middle
+ * 2. check leftside, rightside for the continous pattern
+ * 2.1 for each side, check if the continous pattern happens in both on current player and opponent,
+ *     the opponent score is for to check how dangerous the current position is.
+ * 2.2 when checking for leftside and rightside, combine the score by checking the player's score
+ *     first then subtract opponent's score by last.
+ * 2.3 if the capture is available for player, give advantage and if for opponent, subtract for
+ *     opponent.
+ * (TODO) assuming middle is always empty?
+ * (TODO) there are three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
+ */
+// (TODO) needs to be improved, this only checks the basic
+// continous pattern
 int evaluateCombinedPattern(int combinedPattern, int player) {
   int opponent = OPPONENT(player);
   int cells[COMBINED_WINDOW_SIZE];
@@ -23,11 +35,6 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
   // Ensure the center cell is set to player's stone.
   cells[center] = player;
 
-  if (cells[center + 1] == opponent && cells[center + 2] == opponent && cells[center + 3] == player)
-    return CAPTURE_SCORE;
-
-  if (cells[center - 1] == opponent && cells[center - 2] == opponent && cells[center - 3] == player)
-    return CAPTURE_SCORE;
   // Count contiguous stones including the center.
   int leftCount = 0;
   for (int i = center - 1; i >= 0; i--) {
@@ -64,10 +71,18 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
     score = (openLeft && openRight) ? OPEN_SINGLE_STONE : 0;
 
   return score;
+
+  if (cells[center + 1] == opponent && cells[center + 2] == opponent && cells[center + 3] == player)
+    return CAPTURE_SCORE;
+
+  if (cells[center - 1] == opponent && cells[center - 2] == opponent && cells[center - 3] == player)
+    return CAPTURE_SCORE;
 }
 
 void initCombinedPatternScoreTables() {
   for (int pattern = 0; pattern < LOOKUP_TABLE_SIZE; pattern++) {
+    // to exclude all out of bounds pattern
+    if (pattern == LOOKUP_TABLE_SIZE - 1) continue;
     // Here we assume evaluation for PLAYER_1.
     // (For two-player support, either build two tables or adjust at runtime.)
     combinedPatternScoreTablePlayerOne[pattern] = evaluateCombinedPattern(pattern, PLAYER_1);
@@ -304,6 +319,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 std::pair<int, int> getBestMove(Board *board, int depth) {
   int bestScore = std::numeric_limits<int>::min();
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
+  std::cout << "next player: " << board->getNextPlayer() << std::endl;
   int currentPlayer = board->getNextPlayer();
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
@@ -315,12 +331,11 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
     int score =
         minimax(child, depth - 1, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(),
                 OPPONENT(currentPlayer), moves[i].first, moves[i].second, false);
+    std::cout << "moves: " << Board::convertIndexToCoordinates(moves[i].first, moves[i].second)
+              << std::endl;
+    std::cout << "score before: [" << bestScore << "] score after: [" << score << "]" << std::endl;
     delete child;
     if (score > bestScore) {
-      std::cout << "moves: " << Board::convertIndexToCoordinates(moves[i].first, moves[i].second)
-                << std::endl;
-      std::cout << "score before: [" << bestScore << "] score after: [" << score << "]"
-                << std::endl;
       bestScore = score;
       bestMove = moves[i];
     }
