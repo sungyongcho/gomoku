@@ -125,6 +125,9 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         std::pair<int, int> a = Minimax::getBestMove(pBoard, 5);
 
         std::clock_t end = std::clock();  // End time
+        pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
+        if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer()))
+          pBoard->applyCapture();
 
         // Calculate elapsed time
         double elapsed_seconds = static_cast<double>(end - start) / CLOCKS_PER_SEC;
@@ -137,7 +140,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         std::cout << a.first << ", " << a.second << std::endl;
         std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
 
-        Minimax::simulateAIBattle(pBoard, 5, 80);
+        // Minimax::simulateAIBattle(pBoard, 5, 80);
 
         responseSuccess(wsi, *pBoard);
         delete pBoard;
