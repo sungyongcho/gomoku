@@ -6,8 +6,8 @@
 #include <sstream>
 
 namespace Minimax {
-int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE] = {0};
-int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE] = {0};
+int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE_TMP] = {0};
+int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE_TMP] = {0};
 /*
  * 1. the evaluated cell from combined pattern will always be in the middle
  * 2. check leftside, rightside for the continous pattern
@@ -24,14 +24,14 @@ int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE] = {0};
 // continous pattern
 int evaluateCombinedPattern(int combinedPattern, int player) {
   int opponent = OPPONENT(player);
-  int cells[COMBINED_WINDOW_SIZE];
+  int cells[COMBINED_WINDOW_SIZE_TMP];
   // Decode each cell (2 bits per cell).
-  for (int i = 0; i < COMBINED_WINDOW_SIZE; i++) {
-    int shift = 2 * (COMBINED_WINDOW_SIZE - 1 - i);
+  for (int i = 0; i < COMBINED_WINDOW_SIZE_TMP; i++) {
+    int shift = 2 * (COMBINED_WINDOW_SIZE_TMP - 1 - i);
     cells[i] = (combinedPattern >> shift) & 0x3;
   }
   // The center index is SIDE_WINDOW_SIZE.
-  int center = SIDE_WINDOW_SIZE;
+  int center = SIDE_WINDOW_SIZE_TMP;
   // Ensure the center cell is set to player's stone.
   cells[center] = player;
 
@@ -44,7 +44,7 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
       break;
   }
   int rightCount = 0;
-  for (int i = center + 1; i < COMBINED_WINDOW_SIZE; i++) {
+  for (int i = center + 1; i < COMBINED_WINDOW_SIZE_TMP; i++) {
     if (cells[i] == player)
       rightCount++;
     else
@@ -55,7 +55,7 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
   // Check open ends: if the cell immediately outside the contiguous run is
   // EMPTY.
   bool openLeft = (center - leftCount - 1 >= 0 && cells[center - leftCount - 1] == EMPTY_SPACE);
-  bool openRight = (center + rightCount + 1 < COMBINED_WINDOW_SIZE &&
+  bool openRight = (center + rightCount + 1 < COMBINED_WINDOW_SIZE_TMP &&
                     cells[center + rightCount + 1] == EMPTY_SPACE);
 
   int score = 0;
@@ -79,10 +79,10 @@ int evaluateCombinedPattern(int combinedPattern, int player) {
     return CAPTURE_SCORE;
 }
 
-void initCombinedPatternScoreTables() {
-  for (int pattern = 0; pattern < LOOKUP_TABLE_SIZE; pattern++) {
+void initCombinedPatternScoreTablesToRemove() {
+  for (unsigned long long pattern = 0; pattern < LOOKUP_TABLE_SIZE_TMP; pattern++) {
     // to exclude all out of bounds pattern
-    if (pattern == LOOKUP_TABLE_SIZE - 1) continue;
+    if (pattern == LOOKUP_TABLE_SIZE_TMP - 1) continue;
     // Here we assume evaluation for PLAYER_1.
     // (For two-player support, either build two tables or adjust at runtime.)
     combinedPatternScoreTablePlayerOne[pattern] = evaluateCombinedPattern(pattern, PLAYER_1);
@@ -102,16 +102,16 @@ inline unsigned int reversePattern(unsigned int pattern, int windowSize) {
 int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy) {
   int score;
   // Extract the forward window.
-  unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
+  unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE_TMP);
   // Extract the backward window.
-  unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
+  unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE_TMP);
   // Reverse the backward window so that the cell immediately adjacent to (x,y)
   // is at the rightmost position.
-  unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE);
+  unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE_TMP);
   // Combine: [reversed backward window] + [center cell (player)] + [forward
   // window]
-  unsigned int combined = (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                          ((unsigned int)player << (2 * SIDE_WINDOW_SIZE)) | forward;
+  unsigned int combined = (revBackward << (2 * (SIDE_WINDOW_SIZE_TMP + 1))) |
+                          ((unsigned int)player << (2 * SIDE_WINDOW_SIZE_TMP)) | forward;
   if (player == PLAYER_1) {
     score = combinedPatternScoreTablePlayerOne[combined];
   } else if (player == PLAYER_2)
