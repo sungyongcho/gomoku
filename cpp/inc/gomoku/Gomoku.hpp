@@ -25,4 +25,20 @@ const int DIRECTIONS[8][2] = {
     {-1, -1}  // NORTHWEST
 };
 
+/**
+ * Helper functions to pack cell values into an unsigned int.
+ * Each cell uses 2 bits.
+ */
+inline unsigned int pack_cells_4(unsigned int a, unsigned int b, unsigned int c, unsigned int d) {
+  return (a << 6) | (b << 4) | (c << 2) | d;
+}
+
+inline unsigned int pack_cells_3(unsigned int a, unsigned int b, unsigned int c) {
+  return (a << 4) | (b << 2) | c;
+}
+
+inline unsigned int pack_cells_2(unsigned int a, unsigned int b) { return (a << 2) | b; }
+
+inline unsigned int pack_cells_1(unsigned int a) { return a; }
+
 #endif  // GOMOKU_HPP

@@ -2,8 +2,10 @@
 #define EVALUATION_HPP
 
 #include <algorithm>
+#include <cmath>
 
 #include "Board.hpp"
+#include "Gomoku.hpp"
 
 #define GOMOKU 10000000
 #define OPEN_LINE_4 100000
@@ -19,7 +21,7 @@
 #define CAPTURE_SCORE 500
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
-#define INVALID_PATTERN -1
+#define INVALID_PATTERN -1357
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
@@ -32,14 +34,15 @@
 
 namespace Evaluation {
 // Global lookup table for combined patterns.
-extern int PatternScoreTable[LOOKUP_TABLE_SIZE];
+extern int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
+extern int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
 // Initializes the lookup table for combined patterns.
 void initCombinedPatternScoreTables();
 
 // // Evaluates the board position at (x,y) for the given player.
 // // Returns a heuristic score computed by summing the scores from the four axes.
-// int evaluatePosition(Board *&board, int player, int x, int y);
+int evaluatePosition(Board *&board, int player, int x, int y);
 
 // // Helper: Evaluates one axis (direction dx,dy) at (x,y) by combining the forward
 // // and backward windows with the center move, then using the lookup table.

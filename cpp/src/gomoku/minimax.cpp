@@ -126,7 +126,7 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   return score;
 }
 
-int evaluatePosition(Board *&board, int player, int x, int y) {
+int evaluatePositionToRemove(Board *&board, int player, int x, int y) {
   int totalScore = 0;
 
   // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
@@ -220,12 +220,12 @@ struct MoveComparatorMax {
     // Here, we call evaluatePosition on clones of the board.
     Board *child1 = Board::cloneBoard(board);
     child1->setValueBit(m1.first, m1.second, player);
-    int score1 = evaluatePosition(child1, player, m1.first, m1.second);
+    int score1 = evaluatePositionToRemove(child1, player, m1.first, m1.second);
     delete child1;
 
     Board *child2 = Board::cloneBoard(board);
     child2->setValueBit(m2.first, m2.second, player);
-    int score2 = evaluatePosition(child2, player, m2.first, m2.second);
+    int score2 = evaluatePositionToRemove(child2, player, m2.first, m2.second);
     delete child2;
 
     return score1 > score2;  // For maximizer: higher score first.
@@ -240,12 +240,12 @@ struct MoveComparatorMin {
   bool operator()(const std::pair<int, int> &m1, const std::pair<int, int> &m2) const {
     Board *child1 = Board::cloneBoard(board);
     child1->setValueBit(m1.first, m1.second, player);
-    int score1 = evaluatePosition(child1, player, m1.first, m1.second);
+    int score1 = evaluatePositionToRemove(child1, player, m1.first, m1.second);
     delete child1;
 
     Board *child2 = Board::cloneBoard(board);
     child2->setValueBit(m2.first, m2.second, player);
-    int score2 = evaluatePosition(child2, player, m2.first, m2.second);
+    int score2 = evaluatePositionToRemove(child2, player, m2.first, m2.second);
     delete child2;
 
     return score1 < score2;  // For minimizer: lower score first.
@@ -274,12 +274,12 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   // Terminal condition: if we've reached the maximum search depth.
   if (depth == 0) {
     // Evaluate board based on the last move (played by opponent of currentPlayer)
-    return evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
+    return evaluatePositionToRemove(board, OPPONENT(currentPlayer), lastX, lastY);
   }
 
   // Generate candidate moves.
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
-  if (moves.empty()) return evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
+  if (moves.empty()) return evaluatePositionToRemove(board, OPPONENT(currentPlayer), lastX, lastY);
 
   if (isMaximizing) {
     int maxEval = std::numeric_limits<int>::min();
