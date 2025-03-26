@@ -26,21 +26,21 @@
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
-#define SIDE_WINDOW_SIZE 4
+#define SIDE_WINDOW_SIZE_TMP 4
 // Combined window size always equals 2*SIDE_WINDOW_SIZE + 1 (center cell + cells on both sides).
-#define COMBINED_WINDOW_SIZE (2 * SIDE_WINDOW_SIZE + 1)
+#define COMBINED_WINDOW_SIZE_TMP (2 * SIDE_WINDOW_SIZE_TMP + 1)
 // - Shifting 1 left by (2 * COMBINED_WINDOW_SIZE) is equivalent to 2^(2 * COMBINED_WINDOW_SIZE),
 //   which is the total number of unique patterns that can be represented.
-#define LOOKUP_TABLE_SIZE (1 << (4 * COMBINED_WINDOW_SIZE))
+#define LOOKUP_TABLE_SIZE_TMP (1 << (2 * COMBINED_WINDOW_SIZE_TMP))
 
 namespace Minimax {
 
 // Global lookup table for combined patterns.
-extern int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
-extern int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
+extern int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE_TMP];
+extern int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE_TMP];
 
 // Initializes the lookup table for combined patterns.
-void initCombinedPatternScoreTables();
+void initCombinedPatternScoreTablesToRemove();
 
 // Evaluates the board position at (x,y) for the given player.
 // Returns a heuristic score computed by summing the scores from the four axes.

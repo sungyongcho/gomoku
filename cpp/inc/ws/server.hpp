@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "Evaluation.hpp"
 #include "minimax.hpp"
 #include "websocket_handler.hpp"
 
