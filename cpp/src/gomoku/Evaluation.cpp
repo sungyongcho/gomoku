@@ -2,9 +2,10 @@
 // to remove
 #include <iostream>
 namespace Evaluation {
-int PatternScoreTable[LOOKUP_TABLE_SIZE];
+int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
+int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
-bool isValidLeftSidePattern(unsigned int sidePattern) {
+bool isValidBackwardPattern(unsigned int sidePattern) {
   bool encounteredValid = false;
   for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
     // Calculate shift: i=0 -> outermost cell (highest bits)
@@ -23,7 +24,7 @@ bool isValidLeftSidePattern(unsigned int sidePattern) {
 // is in the highest order bits. Validity rule:
 // - The cell closest to the center must not be OUT_OF_BOUNDS (3).
 // - After an OUT_OF_BOUNDS appears, all further cells (moving outward) must be 3.
-bool isValidRightSidePattern(unsigned int sidePattern) {
+bool isValidForwardPattern(unsigned int sidePattern) {
   // Check the cell closest to the center (highest order bits)
   int shift = 2 * (SIDE_WINDOW_SIZE - 1);
   int firstCell = (sidePattern >> shift) & 0x3;
@@ -53,26 +54,133 @@ void printPattern(unsigned int pattern, int numCells) {
   std::cout << std::endl;
 }
 
+/*
+ * 1. the evaluated cell from combined pattern will always be in the middle
+ * 2. check leftside, rightside for the continous pattern
+ * 2.1 for each side, check if the continous pattern happens in both on current player and opponent,
+ *     the opponent score is for to check how dangerous the current position is.
+ * 2.2 when checking for leftside and rightside, combine the score by checking the player's score
+ *     first then subtract opponent's score by last.
+ * 2.3 if the capture is available for player, give advantage and if for opponent, subtract for
+ *     opponent.
+ * (TODO) assuming middle is always empty?
+ * (TODO) there are three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
+ */
+// (TODO) needs to be improved, this only checks the basic
+// continous pattern
+int evaluateCombPattern(unsigned int backward, unsigned int forward, unsigned int player) {
+  int score = 0;
+  unsigned int opponent = OPPONENT(player);
+
+  if (forward == pack_cells_4(player, player, player, player))
+    score += OPEN_LINE_4;
+  else if (((forward & 0xFC) >> 2) == pack_cells_3(player, player, player))
+    score += OPEN_LINE_3;
+  else if (((forward & 0xF0) >> 4) == pack_cells_2(player, player))
+    score += OPEN_LINE_2;
+  else if (((forward & 0xC0) >> 6) == player)
+    score += OPEN_LINE_1;
+  else if (forward == pack_cells_4(opponent, opponent, opponent, opponent))
+    score -= BLOCKED_LINE_4;
+  else if (((forward & 0xFC) >> 2) == pack_cells_3(opponent, opponent, opponent))
+    score -= BLOCKED_LINE_3;
+  else if (((forward & 0xF0) >> 4) == pack_cells_2(opponent, opponent))
+    score -= BLOCKED_LINE_2;
+  else if (((forward & 0xC0) >> 6) == opponent)
+    score -= BLOCKED_LINE_1;
+
+  if (backward == pack_cells_4(player, player, player, player))
+    score += OPEN_LINE_4;
+  else if ((backward & 0x3F) == pack_cells_3(player, player, player))
+    score += OPEN_LINE_3;
+  else if ((backward & 0x0F) == pack_cells_2(player, player))
+    score += OPEN_LINE_2;
+  else if ((backward & 0x03) == player)
+    score += OPEN_LINE_1;
+  else if (backward == pack_cells_4(opponent, opponent, opponent, opponent))
+    score -= BLOCKED_LINE_4;
+  else if ((backward & 0x3F) == pack_cells_3(opponent, opponent, opponent))
+    score -= BLOCKED_LINE_3;
+  else if ((backward & 0x0F) == pack_cells_2(opponent, opponent))
+    score -= BLOCKED_LINE_2;
+  else if ((backward & 0x03) == opponent)
+    score -= BLOCKED_LINE_1;
+
+  return score;
+}
+
 void initCombinedPatternScoreTables() {
-  std::fill(PatternScoreTable, PatternScoreTable + LOOKUP_TABLE_SIZE, INVALID_PATTERN);
+  std::fill(patternScoreTablePlayerTwo, patternScoreTablePlayerOne + LOOKUP_TABLE_SIZE,
+            INVALID_PATTERN);
+  std::fill(patternScoreTablePlayerTwo, patternScoreTablePlayerTwo + LOOKUP_TABLE_SIZE,
+            INVALID_PATTERN);
 
   const unsigned int sideCount = 1 << (2 * SIDE_WINDOW_SIZE);
 
   // Iterate over all possible left and right side patterns.
-  for (unsigned int left = 0; left < sideCount; ++left) {
-    if (!isValidLeftSidePattern(left)) continue;
-    for (unsigned int right = 0; right < sideCount; ++right) {
-      if (!isValidRightSidePattern(right)) continue;
+  for (unsigned int backward = 0; backward < sideCount; ++backward) {
+    if (!isValidBackwardPattern(backward)) continue;
+    for (unsigned int forward = 0; forward < sideCount; ++forward) {
+      if (!isValidForwardPattern(forward)) continue;
 
       // Build the full pattern:
       // Left side occupies the highest 2*SIDE_WINDOW_SIZE bits,
       // then the fixed center (2 bits),
-      // and then the right side occupies the lowest 2*SIDE_WINDOW_SIZE bits.
-      unsigned int pattern = (left << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                             (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | right;
-      (void)pattern;
-      // printPattern(pattern, 9);
+      // and then the forward side occupies the lowest 2*SIDE_WINDOW_SIZE bits.
+      unsigned int pattern = (backward << (2 * (SIDE_WINDOW_SIZE + 1))) |
+                             (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forward;
+      patternScoreTablePlayerOne[pattern] = evaluateCombPattern(backward, forward, PLAYER_1);
+      patternScoreTablePlayerTwo[pattern] = evaluateCombPattern(backward, forward, PLAYER_2);
+      if (patternScoreTablePlayerOne[pattern] > 0) printPattern(pattern, 9);
     }
   }
 }
+inline unsigned int reversePattern(unsigned int pattern, int windowSize) {
+  unsigned int reversed = 0;
+  for (int i = 0; i < windowSize; i++) {
+    reversed = (reversed << 2) | (pattern & 0x3);
+    pattern >>= 2;
+  }
+  return reversed;
+}
+
+int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy) {
+  int score;
+  // Extract the forward window.
+  unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
+  // Extract the backward window.
+  unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
+  // Reverse the backward window so that the cell immediately adjacent to (x,y)
+  // is at the rightmost position.
+  unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE);
+  // Combine: [reversed backward window] + [center cell (player)] + [forward
+  // window]
+  // unsigned int combined = (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) |
+  //                         ((unsigned int)player << (2 * SIDE_WINDOW_SIZE)) | forward;
+  unsigned int combined =
+      (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) | (0 << (2 * SIDE_WINDOW_SIZE)) | forward;
+  if (player == PLAYER_1)
+    score = patternScoreTablePlayerOne[combined];
+  else if (player == PLAYER_2)
+    score = patternScoreTablePlayerOne[combined];
+  // TODO: add score for capture
+
+  return score;
+}
+
+int evaluatePosition(Board *&board, int player, int x, int y) {
+  (void)board;
+  (void)player;
+  (void)x;
+  (void)y;
+  int totalScore = 0;
+
+  // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
+
+  for (int i = 0; i < 4; ++i)
+    totalScore += evaluateCombinedAxis(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+
+  return totalScore;
+}
+
 }  // namespace Evaluation

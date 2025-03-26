@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Board.hpp"
+#include "Evaluation.hpp"
 #include "json_parser.hpp"
 
 int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,

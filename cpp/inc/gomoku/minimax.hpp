@@ -44,7 +44,7 @@ void initCombinedPatternScoreTablesToRemove();
 
 // Evaluates the board position at (x,y) for the given player.
 // Returns a heuristic score computed by summing the scores from the four axes.
-int evaluatePosition(Board *&board, int player, int x, int y);
+int evaluatePositionToRemove(Board *&board, int player, int x, int y);
 
 // Helper: Evaluates one axis (direction dx,dy) at (x,y) by combining the forward
 // and backward windows with the center move, then using the lookup table.
