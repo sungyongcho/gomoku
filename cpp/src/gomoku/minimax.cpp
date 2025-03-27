@@ -6,136 +6,139 @@
 #include <sstream>
 
 namespace Minimax {
-int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE_TMP] = {0};
-int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE_TMP] = {0};
-/*
- * 1. the evaluated cell from combined pattern will always be in the middle
- * 2. check leftside, rightside for the continous pattern
- * 2.1 for each side, check if the continous pattern happens in both on current player and opponent,
- *     the opponent score is for to check how dangerous the current position is.
- * 2.2 when checking for leftside and rightside, combine the score by checking the player's score
- *     first then subtract opponent's score by last.
- * 2.3 if the capture is available for player, give advantage and if for opponent, subtract for
- *     opponent.
- * (TODO) assuming middle is always empty?
- * (TODO) there are three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
- */
-// (TODO) needs to be improved, this only checks the basic
-// continous pattern
-int evaluateCombinedPattern(int combinedPattern, int player) {
-  int opponent = OPPONENT(player);
-  int cells[COMBINED_WINDOW_SIZE_TMP];
-  // Decode each cell (2 bits per cell).
-  for (int i = 0; i < COMBINED_WINDOW_SIZE_TMP; i++) {
-    int shift = 2 * (COMBINED_WINDOW_SIZE_TMP - 1 - i);
-    cells[i] = (combinedPattern >> shift) & 0x3;
-  }
-  // The center index is SIDE_WINDOW_SIZE.
-  int center = SIDE_WINDOW_SIZE_TMP;
-  // Ensure the center cell is set to player's stone.
-  cells[center] = player;
+// int combinedPatternScoreTablePlayerOne[LOOKUP_TABLE_SIZE_TMP] = {0};
+// int combinedPatternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE_TMP] = {0};
+// /*
+//  * 1. the evaluated cell from combined pattern will always be in the middle
+//  * 2. check leftside, rightside for the continous pattern
+//  * 2.1 for each side, check if the continous pattern happens in both on current player and
+//  opponent,
+//  *     the opponent score is for to check how dangerous the current position is.
+//  * 2.2 when checking for leftside and rightside, combine the score by checking the player's score
+//  *     first then subtract opponent's score by last.
+//  * 2.3 if the capture is available for player, give advantage and if for opponent, subtract for
+//  *     opponent.
+//  * (TODO) assuming middle is always empty?
+//  * (TODO) there are three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
+//  */
+// // (TODO) needs to be improved, this only checks the basic
+// // continous pattern
+// int evaluateCombinedPattern(int combinedPattern, int player) {
+//   int opponent = OPPONENT(player);
+//   int cells[COMBINED_WINDOW_SIZE_TMP];
+//   // Decode each cell (2 bits per cell).
+//   for (int i = 0; i < COMBINED_WINDOW_SIZE_TMP; i++) {
+//     int shift = 2 * (COMBINED_WINDOW_SIZE_TMP - 1 - i);
+//     cells[i] = (combinedPattern >> shift) & 0x3;
+//   }
+//   // The center index is SIDE_WINDOW_SIZE.
+//   int center = SIDE_WINDOW_SIZE_TMP;
+//   // Ensure the center cell is set to player's stone.
+//   cells[center] = player;
 
-  // Count contiguous stones including the center.
-  int leftCount = 0;
-  for (int i = center - 1; i >= 0; i--) {
-    if (cells[i] == player)
-      leftCount++;
-    else
-      break;
-  }
-  int rightCount = 0;
-  for (int i = center + 1; i < COMBINED_WINDOW_SIZE_TMP; i++) {
-    if (cells[i] == player)
-      rightCount++;
-    else
-      break;
-  }
-  int totalRun = leftCount + 1 + rightCount;
+//   // Count contiguous stones including the center.
+//   int leftCount = 0;
+//   for (int i = center - 1; i >= 0; i--) {
+//     if (cells[i] == player)
+//       leftCount++;
+//     else
+//       break;
+//   }
+//   int rightCount = 0;
+//   for (int i = center + 1; i < COMBINED_WINDOW_SIZE_TMP; i++) {
+//     if (cells[i] == player)
+//       rightCount++;
+//     else
+//       break;
+//   }
+//   int totalRun = leftCount + 1 + rightCount;
 
-  // Check open ends: if the cell immediately outside the contiguous run is
-  // EMPTY.
-  bool openLeft = (center - leftCount - 1 >= 0 && cells[center - leftCount - 1] == EMPTY_SPACE);
-  bool openRight = (center + rightCount + 1 < COMBINED_WINDOW_SIZE_TMP &&
-                    cells[center + rightCount + 1] == EMPTY_SPACE);
+//   // Check open ends: if the cell immediately outside the contiguous run is
+//   // EMPTY.
+//   bool openLeft = (center - leftCount - 1 >= 0 && cells[center - leftCount - 1] == EMPTY_SPACE);
+//   bool openRight = (center + rightCount + 1 < COMBINED_WINDOW_SIZE_TMP &&
+//                     cells[center + rightCount + 1] == EMPTY_SPACE);
 
-  int score = 0;
-  if (totalRun >= 5)
-    score = GOMOKU;
-  else if (totalRun == 4)
-    score = (openLeft && openRight) ? OPEN_LINE_4 : BLOCKED_LINE_4;
-  else if (totalRun == 3)
-    score = (openLeft && openRight) ? OPEN_LINE_3 : BLOCKED_LINE_3;
-  else if (totalRun == 2)
-    score = (openLeft && openRight) ? OPEN_LINE_2 : BLOCKED_LINE_2;
-  else
-    score = (openLeft && openRight) ? OPEN_SINGLE_STONE : 0;
+//   int score = 0;
+//   if (totalRun >= 5)
+//     score = GOMOKU;
+//   else if (totalRun == 4)
+//     score = (openLeft && openRight) ? OPEN_LINE_4 : BLOCKED_LINE_4;
+//   else if (totalRun == 3)
+//     score = (openLeft && openRight) ? OPEN_LINE_3 : BLOCKED_LINE_3;
+//   else if (totalRun == 2)
+//     score = (openLeft && openRight) ? OPEN_LINE_2 : BLOCKED_LINE_2;
+//   else
+//     score = (openLeft && openRight) ? OPEN_SINGLE_STONE : 0;
 
-  return score;
+//   return score;
 
-  if (cells[center + 1] == opponent && cells[center + 2] == opponent && cells[center + 3] == player)
-    return CAPTURE_SCORE;
+//   if (cells[center + 1] == opponent && cells[center + 2] == opponent && cells[center + 3] ==
+//   player)
+//     return CAPTURE_SCORE;
 
-  if (cells[center - 1] == opponent && cells[center - 2] == opponent && cells[center - 3] == player)
-    return CAPTURE_SCORE;
-}
+//   if (cells[center - 1] == opponent && cells[center - 2] == opponent && cells[center - 3] ==
+//   player)
+//     return CAPTURE_SCORE;
+// }
 
-void initCombinedPatternScoreTablesToRemove() {
-  for (unsigned long long pattern = 0; pattern < LOOKUP_TABLE_SIZE_TMP; pattern++) {
-    // to exclude all out of bounds pattern
-    if (pattern == LOOKUP_TABLE_SIZE_TMP - 1) continue;
-    // Here we assume evaluation for PLAYER_1.
-    // (For two-player support, either build two tables or adjust at runtime.)
-    combinedPatternScoreTablePlayerOne[pattern] = evaluateCombinedPattern(pattern, PLAYER_1);
-    combinedPatternScoreTablePlayerTwo[pattern] = evaluateCombinedPattern(pattern, PLAYER_2);
-  }
-}
+// void initCombinedPatternScoreTablesToRemove() {
+//   for (unsigned long long pattern = 0; pattern < LOOKUP_TABLE_SIZE_TMP; pattern++) {
+//     // to exclude all out of bounds pattern
+//     if (pattern == LOOKUP_TABLE_SIZE_TMP - 1) continue;
+//     // Here we assume evaluation for PLAYER_1.
+//     // (For two-player support, either build two tables or adjust at runtime.)
+//     combinedPatternScoreTablePlayerOne[pattern] = evaluateCombinedPattern(pattern, PLAYER_1);
+//     combinedPatternScoreTablePlayerTwo[pattern] = evaluateCombinedPattern(pattern, PLAYER_2);
+//   }
+// }
 
-inline unsigned int reversePattern(unsigned int pattern, int windowSize) {
-  unsigned int reversed = 0;
-  for (int i = 0; i < windowSize; i++) {
-    reversed = (reversed << 2) | (pattern & 0x3);
-    pattern >>= 2;
-  }
-  return reversed;
-}
+// inline unsigned int reversePattern(unsigned int pattern, int windowSize) {
+//   unsigned int reversed = 0;
+//   for (int i = 0; i < windowSize; i++) {
+//     reversed = (reversed << 2) | (pattern & 0x3);
+//     pattern >>= 2;
+//   }
+//   return reversed;
+// }
 
-int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy) {
-  int score;
-  // Extract the forward window.
-  unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE_TMP);
-  // Extract the backward window.
-  unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE_TMP);
-  // Reverse the backward window so that the cell immediately adjacent to (x,y)
-  // is at the rightmost position.
-  unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE_TMP);
-  // Combine: [reversed backward window] + [center cell (player)] + [forward
-  // window]
-  unsigned int combined = (revBackward << (2 * (SIDE_WINDOW_SIZE_TMP + 1))) |
-                          ((unsigned int)player << (2 * SIDE_WINDOW_SIZE_TMP)) | forward;
-  if (player == PLAYER_1) {
-    score = combinedPatternScoreTablePlayerOne[combined];
-  } else if (player == PLAYER_2)
-    score = combinedPatternScoreTablePlayerTwo[combined];
+// int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy) {
+//   int score;
+//   // Extract the forward window.
+//   unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE_TMP);
+//   // Extract the backward window.
+//   unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE_TMP);
+//   // Reverse the backward window so that the cell immediately adjacent to (x,y)
+//   // is at the rightmost position.
+//   unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE_TMP);
+//   // Combine: [reversed backward window] + [center cell (player)] + [forward
+//   // window]
+//   unsigned int combined = (revBackward << (2 * (SIDE_WINDOW_SIZE_TMP + 1))) |
+//                           ((unsigned int)player << (2 * SIDE_WINDOW_SIZE_TMP)) | forward;
+//   if (player == PLAYER_1) {
+//     score = combinedPatternScoreTablePlayerOne[combined];
+//   } else if (player == PLAYER_2)
+//     score = combinedPatternScoreTablePlayerTwo[combined];
 
-  if (score == CAPTURE_SCORE) {
-    if (player == board->getLastPlayer())
-      score = CAPTURE_SCORE * pow(10, board->getLastPlayerScore());
-    else if (player == board->getNextPlayer())
-      score = CAPTURE_SCORE * pow(10, board->getNextPlayerScore());
-  }
-  return score;
-}
+//   if (score == CAPTURE_SCORE) {
+//     if (player == board->getLastPlayer())
+//       score = CAPTURE_SCORE * pow(10, board->getLastPlayerScore());
+//     else if (player == board->getNextPlayer())
+//       score = CAPTURE_SCORE * pow(10, board->getNextPlayerScore());
+//   }
+//   return score;
+// }
 
-int evaluatePositionToRemove(Board *&board, int player, int x, int y) {
-  int totalScore = 0;
+// int evaluatePositionToRemove(Board *&board, int player, int x, int y) {
+//   int totalScore = 0;
 
-  // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
+//   // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
 
-  for (int i = 0; i < 4; ++i)
-    totalScore += evaluateCombinedAxis(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+//   for (int i = 0; i < 4; ++i)
+//     totalScore += evaluateCombinedAxis(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
 
-  return totalScore;
-}
+//   return totalScore;
+// }
 
 static const uint64_t rowMask = ((uint64_t)1 << BOARD_SIZE) - 1;
 
@@ -220,12 +223,12 @@ struct MoveComparatorMax {
     // Here, we call evaluatePosition on clones of the board.
     Board *child1 = Board::cloneBoard(board);
     child1->setValueBit(m1.first, m1.second, player);
-    int score1 = evaluatePositionToRemove(child1, player, m1.first, m1.second);
+    int score1 = Evaluation::evaluatePosition(child1, player, m1.first, m1.second);
     delete child1;
 
     Board *child2 = Board::cloneBoard(board);
     child2->setValueBit(m2.first, m2.second, player);
-    int score2 = evaluatePositionToRemove(child2, player, m2.first, m2.second);
+    int score2 = Evaluation::evaluatePosition(child2, player, m2.first, m2.second);
     delete child2;
 
     return score1 > score2;  // For maximizer: higher score first.
@@ -240,12 +243,12 @@ struct MoveComparatorMin {
   bool operator()(const std::pair<int, int> &m1, const std::pair<int, int> &m2) const {
     Board *child1 = Board::cloneBoard(board);
     child1->setValueBit(m1.first, m1.second, player);
-    int score1 = evaluatePositionToRemove(child1, player, m1.first, m1.second);
+    int score1 = Evaluation::evaluatePosition(child1, player, m1.first, m1.second);
     delete child1;
 
     Board *child2 = Board::cloneBoard(board);
     child2->setValueBit(m2.first, m2.second, player);
-    int score2 = evaluatePositionToRemove(child2, player, m2.first, m2.second);
+    int score2 = Evaluation::evaluatePosition(child2, player, m2.first, m2.second);
     delete child2;
 
     return score1 < score2;  // For minimizer: lower score first.
@@ -274,12 +277,13 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   // Terminal condition: if we've reached the maximum search depth.
   if (depth == 0) {
     // Evaluate board based on the last move (played by opponent of currentPlayer)
-    return evaluatePositionToRemove(board, OPPONENT(currentPlayer), lastX, lastY);
+    return Evaluation::evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
   }
 
   // Generate candidate moves.
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
-  if (moves.empty()) return evaluatePositionToRemove(board, OPPONENT(currentPlayer), lastX, lastY);
+  if (moves.empty())
+    return Evaluation::evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
 
   if (isMaximizing) {
     int maxEval = std::numeric_limits<int>::min();
@@ -287,11 +291,11 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
       // Create a child board state.
       Board *child = Board::cloneBoard(board);
       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-      if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
-        board->applyCapture();
       // Recurse: switch player and turn.
       int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
                          moves[i].second, false);
+      if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
+        board->applyCapture();
       delete child;
       maxEval = std::max(maxEval, eval);
       alpha = std::max(alpha, eval);
@@ -303,10 +307,10 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     for (size_t i = 0; i < moves.size(); ++i) {
       Board *child = Board::cloneBoard(board);
       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-      if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
-        board->applyCapture();
       int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
                          moves[i].second, true);
+      if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
+        board->applyCapture();
       delete child;
       minEval = std::min(minEval, eval);
       beta = std::min(beta, eval);
@@ -326,17 +330,33 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
 
   for (size_t i = 0; i < moves.size(); ++i) {
     Board *child = Board::cloneBoard(board);
+
+    // Evaluate the board immediately after applying move (and potential capture).
+    int immediateScore =
+        Evaluation::evaluatePosition(child, currentPlayer, moves[i].first, moves[i].second);
+    // Apply the move for currentPlayer.
     child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-    // After currentPlayer plays, it becomes the opponent's turn.
-    int score =
+
+    // Check and apply capture if it occurs.
+    if (Rules::detectCaptureStones(*child, moves[i].first, moves[i].second, currentPlayer)) {
+      child->applyCapture();
+    }
+
+    // Use minimax for deeper evaluation (switching to opponent's turn).
+    int minimaxScore =
         minimax(child, depth - 1, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(),
                 OPPONENT(currentPlayer), moves[i].first, moves[i].second, false);
-    std::cout << "moves: " << Board::convertIndexToCoordinates(moves[i].first, moves[i].second)
-              << std::endl;
-    std::cout << "score before: [" << bestScore << "] score after: [" << score << "]" << std::endl;
+
+    int totalScore = immediateScore + minimaxScore;
+
+    std::cout << "Move: " << Board::convertIndexToCoordinates(moves[i].first, moves[i].second)
+              << " Immediate: " << immediateScore << " Minimax: " << minimaxScore
+              << " Total: " << totalScore << std::endl;
+
     delete child;
-    if (score > bestScore) {
-      bestScore = score;
+
+    if (totalScore > bestScore) {
+      bestScore = totalScore;
       bestMove = moves[i];
     }
   }

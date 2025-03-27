@@ -15,7 +15,7 @@ Server::Server(int port) {
     std::cerr << "Libwebsockets context creation failed!" << std::endl;
     exit(1);
   }
-  Minimax::initCombinedPatternScoreTablesToRemove();
+  // Minimax::initCombinedPatternScoreTablesToRemove();
   Evaluation::initCombinedPatternScoreTables();
   std::cout << "WebSocket Server running on ws://localhost:" << port << "/ws/debug" << std::endl;
 }

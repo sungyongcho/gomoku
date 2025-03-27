@@ -216,10 +216,6 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player) {
 }
 
 bool Rules::isWinningMove(Board *board, int player, int x, int y) {
-  for (int i = 0; i < 4; i++) {
-    if (GOMOKU <=
-        Minimax::evaluateCombinedAxis(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]))
-      return true;
-  }
+  if (GOMOKU <= Evaluation::evaluatePosition(board, player, x, y)) return true;
   return false;
 }

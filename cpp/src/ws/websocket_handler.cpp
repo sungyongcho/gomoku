@@ -110,18 +110,9 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::cout << "score: " << check << std::endl;
 
-        // std::vector<std::pair<int, int> > candidates1 = Minimax::generateCandidateMoves(pBoard);
-
-        // std::cout << "\nCandidate Moves (Row-based):" << std::endl;
-        // for (size_t i = 0; i < candidates1.size(); i++) {
-        //   std::cout << "(" << candidates1[i].first << ", " << candidates1[i].second << ")"
-        //             << std::endl;
-        // }
-
-        // Minimax::printBoardWithCandidates(pBoard, candidates1);
         // std::clock_t start = std::clock();  // Start time
 
-        // std::pair<int, int> a = Minimax::getBestMove(pBoard, 5);
+        // std::pair<int, int> a = Minimax::getBestMove(pBoard, 1);
 
         // std::clock_t end = std::clock();  // End time
         // pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
