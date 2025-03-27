@@ -64,6 +64,8 @@ const onEvaluateStone = ({ x, y }: { x: number; y: number }) => {
 };
 
 watch(data, (rawData) => {
+  if (!data.value) return;
+
   try {
     const res: SocketDebugMoveResponse =
       typeof rawData === "string" ? JSON.parse(rawData) : rawData;
@@ -97,6 +99,7 @@ watch(data, (rawData) => {
       "Warn",
     );
   }
+  data.value = null;
 });
 
 onUnmounted(() => {
