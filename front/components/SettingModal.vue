@@ -36,6 +36,24 @@ watch(
   >
     <section class="flex flex-col items-center justify-center">
       <form class="mb-[60px] grid w-full grid-cols-2 gap-8">
+        <BButtonGroupSwitch
+          v-model="settings.difficulty"
+          :options="[
+            { value: 'easy', label: 'easy' },
+            { value: 'hard', label: 'hard' },
+          ]"
+          label="Difficulty"
+        />
+
+        <BButtonGroupSwitch
+          v-model="settings.ai"
+          :options="[
+            { value: 'minmax', label: 'Min-Max' },
+            { value: 'alphago', label: 'Alphago' },
+          ]"
+          label="AI Select"
+        />
+
         <BToggleSwitch v-model="settings.capture" label="Capture Stones" />
         <BToggleSwitch v-model="settings.doubleThree" label="Double Three" />
         <BToggleSwitch

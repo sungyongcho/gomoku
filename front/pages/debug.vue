@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { useWebSocket } from "@vueuse/core";
 
-import type { SocketDebugMoveResponse, SocketMoveRequest } from "~/types/game";
+import type {
+  RequestType,
+  SocketDebugMoveResponse,
+  SocketMoveRequest,
+} from "~/types/game";
 
 definePageMeta({
   layout: "debug",
@@ -15,28 +19,29 @@ const {
   player1TotalCaptured,
   player2TotalCaptured,
 } = storeToRefs(useGameStore());
+const { status, data, send, open, close } = useWebSocket(
+  "ws://localhost:8005/ws/debug",
+);
+const lastHistory = computed(() => histories.value.at(-1));
 const { deleteLastHistory, initGame, debugAddStoneToBoardData } =
   useGameStore();
 const { doAlert } = useAlertStore();
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   debugAddStoneToBoardData({ x, y }, turn.value);
 };
-const lastHistory = computed(() => histories.value.at(-1));
-const { status, data, send, open, close } = useWebSocket(
-  "ws://localhost:8005/ws/debug",
-);
 
-const onSendData = () => {
+const onSendData = (type: RequestType, { x, y }: { x: number; y: number }) => {
   send(
     JSON.stringify({
-      type: "move",
-      nextPlayer: turn.value === "X" ? "O" : "X",
+      type,
+      difficulty: settings.value.difficulty,
+      nextPlayer: lastHistory.value?.stone === "X" ? "O" : "X",
       goal: settings.value.totalPairCaptured,
       lastPlay: lastHistory.value
         ? {
             coordinate: {
-              x: lastHistory.value?.coordinate.x,
-              y: lastHistory.value?.coordinate.y,
+              x: x,
+              y: y,
             },
             stone: lastHistory.value?.stone,
           }
@@ -50,6 +55,14 @@ const onSendData = () => {
   );
 };
 
+const onSendStone = () => {
+  const { x, y } = lastHistory.value!.coordinate;
+  onSendData("move", { x, y });
+};
+const onEvaluateStone = ({ x, y }: { x: number; y: number }) => {
+  onSendData("evaluate", { x, y });
+};
+
 watch(data, (rawData) => {
   try {
     const res: SocketDebugMoveResponse =
@@ -61,6 +74,10 @@ watch(data, (rawData) => {
       }
       doAlert("Caution", "Double-three is not allowed", "Warn");
       return;
+    }
+
+    if (res.type === "evaluate") {
+      console.log("evaluated result", res);
     }
 
     boardData.value = res.board.map((row) =>
@@ -81,6 +98,10 @@ watch(data, (rawData) => {
     );
   }
 });
+
+onUnmounted(() => {
+  close();
+});
 </script>
 <template>
   <main
@@ -90,7 +111,7 @@ watch(data, (rawData) => {
       class="flex max-w-[1280px] items-center justify-center gap-10 -lg:flex-col-reverse"
     >
       <div>
-        <GoBoard @put="onPutStone" />
+        <GoBoard @put="onPutStone" @evaluate="onEvaluateStone" />
 
         <div class="mt-3 flex w-full justify-center gap-3">
           <Button
@@ -100,7 +121,7 @@ watch(data, (rawData) => {
             @click="deleteLastHistory"
           />
           <Button label="Restart" icon="pi pi-play" @click="initGame" />
-          <Button label="Send" icon="pi pi-send" @click="onSendData" />
+          <Button label="Send" icon="pi pi-send" @click="onSendStone" />
           <ToggleButton
             onIcon="pi pi-lock"
             offIcon="pi pi-lock-open"

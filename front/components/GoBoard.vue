@@ -4,7 +4,10 @@ const { boardData } = storeToRefs(useGameStore());
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   emit("put", { x, y });
 };
-const emit = defineEmits(["put"]);
+const onEvaluateStone = ({ x, y }: { x: number; y: number }) => {
+  emit("evaluate", { x, y });
+};
+const emit = defineEmits(["put", "evaluate"]);
 </script>
 <template>
   <section
@@ -16,6 +19,7 @@ const emit = defineEmits(["put"]);
           :x="cellIndex"
           :y="rowIndex"
           @put="onPutStone"
+          @evaluate="onEvaluateStone"
           :stone="cell.stone"
         />
       </div>

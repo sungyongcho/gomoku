@@ -15,9 +15,12 @@ const props = defineProps({
     default: "",
   },
 });
-const emit = defineEmits(["put"]);
+const emit = defineEmits(["put", "evaluate"]);
 const onClickCell = () => {
   emit("put", { x: props.x, y: props.y });
+};
+const onEvaluate = () => {
+  emit("evaluate", { x: props.x, y: props.y });
 };
 const { turn, gameOver } = storeToRefs(useGameStore());
 </script>
@@ -26,6 +29,7 @@ const { turn, gameOver } = storeToRefs(useGameStore());
   <button
     class="relative flex h-[calc(min(78vw,78vh)/19)] w-[calc(min(78vw,78vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-130px,90vh-130px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)] [&_.previewStone]:hover:block"
     @click="onClickCell"
+    @contextmenu.prevent="onEvaluate"
     :disabled="stone !== '.' || gameOver ? true : false"
   >
     <hr
