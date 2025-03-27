@@ -27,9 +27,11 @@ const onGameDebug = () => {
 </script>
 
 <template>
-  <main class="flex h-screen items-center justify-center bg-black">
+  <main
+    class="flex h-screen items-center justify-center overflow-hidden bg-black"
+  >
     <section
-      class="flex w-full max-w-[520px] flex-col items-center justify-center gap-20 rounded-[50%] bg-white px-4 py-20 shadow-[0_0_10px_5px_gray]"
+      class="flex h-[50vw] min-h-[500px] w-[50vw] min-w-[500px] flex-col items-center justify-center gap-20 rounded-[50%] bg-white px-4 py-20 shadow-[0_0_10px_5px_gray]"
     >
       <h1 class="uppercase typo-giga-title">Omok</h1>
 

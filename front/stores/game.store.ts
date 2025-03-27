@@ -28,6 +28,7 @@ export const useGameStore = defineStore("game", () => {
     advantage1: 0,
     advantage2: 0,
     isPlayer2AI: true,
+    isDebugTurnLocked: true,
   });
 
   const initialBoard = () => {
@@ -105,33 +106,6 @@ export const useGameStore = defineStore("game", () => {
     boardData[y][x].stone = stone;
   };
 
-  const debugAddStoneToBoardData = (
-    { x, y }: { x: number; y: number },
-    stone: Stone,
-  ) => {
-    // Calculate captured stone
-    const capturedStones = getCapturedStones({
-      x,
-      y,
-      stone,
-      boardData: boardData.value,
-    });
-
-    // // Update board
-    // updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
-
-    // Update board debug temp
-    updateBoardDebugTemp({ x, y, boardData: boardData.value, stone });
-
-    playStoneSound();
-
-    histories.value = histories.value.concat({
-      coordinate: { x, y },
-      stone,
-      capturedStones: capturedStones,
-    });
-  };
-
   const deleteLastHistory = () => {
     const lastHistory = histories.value.at(-1);
     if (!lastHistory) return;
@@ -152,6 +126,44 @@ export const useGameStore = defineStore("game", () => {
     gameOver.value = false;
     playUndoSound();
     changeTurn(lastHistory.stone);
+  };
+
+  const debugAddStoneToBoardData = (
+    { x, y }: { x: number; y: number },
+    stone: Stone,
+  ) => {
+    // Calculate captured stone
+    const capturedStones = getCapturedStones({
+      x,
+      y,
+      stone,
+      boardData: boardData.value,
+    });
+    // Check double-three (double-three can be bypassed by capturing)
+    if (
+      capturedStones.length == 0 &&
+      checkDoubleThree({ x, y, stone, boardData: boardData.value })
+    ) {
+      doAlert("Caution", "Double-three is not allowed", "Warn");
+      return;
+    }
+
+    // // Update board
+    // updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
+
+    // Update board debug temp
+    updateBoardDebugTemp({ x, y, boardData: boardData.value, stone });
+
+    playStoneSound();
+    if (!settings.value.isDebugTurnLocked) {
+      changeTurn();
+    }
+
+    histories.value = histories.value.concat({
+      coordinate: { x, y },
+      stone,
+      capturedStones: capturedStones,
+    });
   };
 
   const addStoneToBoardData = (
