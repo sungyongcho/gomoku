@@ -63,8 +63,6 @@ watch(data, (rawData) => {
       return;
     }
 
-    console.log(res);
-
     boardData.value = res.board.map((row) =>
       row.map((col) => ({ stone: col })),
     );
@@ -103,6 +101,13 @@ watch(data, (rawData) => {
           />
           <Button label="Restart" icon="pi pi-play" @click="initGame" />
           <Button label="Send" icon="pi pi-send" @click="onSendData" />
+          <ToggleButton
+            onIcon="pi pi-lock"
+            offIcon="pi pi-lock-open"
+            v-model="settings.isDebugTurnLocked"
+            onLabel="Turn Locked"
+            offLabel="Turn Unlocked"
+          />
         </div>
       </div>
       <DebugInfoBoard />
