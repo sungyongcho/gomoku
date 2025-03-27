@@ -349,9 +349,9 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
 
     int totalScore = immediateScore + minimaxScore;
 
-    std::cout << "Move: " << Board::convertIndexToCoordinates(moves[i].first, moves[i].second)
-              << " Immediate: " << immediateScore << " Minimax: " << minimaxScore
-              << " Total: " << totalScore << std::endl;
+    // std::cout << "Move: " << Board::convertIndexToCoordinates(moves[i].first, moves[i].second)
+    //           << " Immediate: " << immediateScore << " Minimax: " << minimaxScore
+    //           << " Total: " << totalScore << std::endl;
 
     delete child;
 

@@ -110,25 +110,25 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::cout << "score: " << check << std::endl;
 
-        // std::clock_t start = std::clock();  // Start time
+        std::clock_t start = std::clock();  // Start time
 
-        // std::pair<int, int> a = Minimax::getBestMove(pBoard, 1);
+        std::pair<int, int> a = Minimax::getBestMove(pBoard, 5);
 
-        // std::clock_t end = std::clock();  // End time
-        // pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
-        // if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer()))
-        //   pBoard->applyCapture();
+        std::clock_t end = std::clock();  // End time
+        pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
+        if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer()))
+          pBoard->applyCapture();
 
-        // // Calculate elapsed time
-        // double elapsed_seconds = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-        // double elapsed_ms = elapsed_seconds * 1000.0;
-        // double elapsed_ns = elapsed_seconds * 1e9;
+        // Calculate elapsed time
+        double elapsed_seconds = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+        double elapsed_ms = elapsed_seconds * 1000.0;
+        double elapsed_ns = elapsed_seconds * 1e9;
 
-        // std::cout << "Execution time: " << elapsed_seconds << " s, " << elapsed_ms << " ms, "
-        //           << elapsed_ns << " ns" << std::endl;
+        std::cout << "Execution time: " << elapsed_seconds << " s, " << elapsed_ms << " ms, "
+                  << elapsed_ns << " ns" << std::endl;
 
-        // std::cout << a.first << ", " << a.second << std::endl;
-        // std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
+        std::cout << a.first << ", " << a.second << std::endl;
+        std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
 
         // Minimax::simulateAIBattle(pBoard, 5, 80);
 

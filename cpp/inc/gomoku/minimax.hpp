@@ -11,19 +11,6 @@
 #include "Gomoku.hpp"
 #include "Rules.hpp"
 
-#define GOMOKU 10000000
-#define OPEN_LINE_4 100000
-#define OPEN_LINE_3 1000
-#define OPEN_LINE_2 100
-#define OPEN_LINE_1 10
-#define BLOCKED_LINE_5 99900
-#define BLOCKED_LINE_4 10000
-#define BLOCKED_LINE_3 100
-#define BLOCKED_LINE_2 10
-#define BLOCKED_LINE_1 1
-#define OPEN_SINGLE_STONE 10
-#define CAPTURE_SCORE 500
-
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
 #define SIDE_WINDOW_SIZE_TMP 4

@@ -122,8 +122,8 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
     //      it != capturedStones.end(); ++it) {
     //   std::cout << " - (" << it->first << ", " << it->second << ")" << std::endl;
     // }
-    // // std::cout << std::flush;
-    // pBoard->applyCapture();
+    // std::cout << std::flush;
+    pBoard->applyCapture();
 
     std::cout << "after" << std::endl;
     // pBoard->printBitboard();

@@ -56,55 +56,62 @@ void printPattern(unsigned int pattern, int numCells) {
 
 /*
  * 1. the evaluated cell from combined pattern will always be in the middle
- * 2. check leftside, rightside for the continous pattern
- * 2.1 for each side, check if the continous pattern happens in both on current player and opponent,
- *     the opponent score is for to check how dangerous the current position is.
- * 2.2 when checking for leftside and rightside, combine the score by checking the player's score
- *     first then subtract opponent's score by last.
- * 2.3 if the capture is available for player, give advantage and if for opponent, subtract for
- *     opponent.
- * ps1. assuming middle is always empty.
- * ps2. there are three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
+ * 2. check leftside, rightside for the continuous pattern
+ * 2.1 for each side, check if the continuous pattern happens in both on current player and
+ * opponent, the opponent score is for to check how dangerous the current position is. 2.2 when
+ * checking for leftside and rightside, combine the score by checking the player's score first then
+ * subtract opponent's score by last. 2.3 if the capture is available for player, give advantage and
+ * if for opponent, subtract for opponent. ps1. assuming middle is always empty. ps2. there are
+ * three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
  */
 int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsigned int player) {
-  int score = 0;
   unsigned int opponent = OPPONENT(player);
+  int continuous = 0;
+  int block = 0;
 
   if (forward == pack_cells_4(player, player, player, player))
-    score += OPEN_LINE_4;
+    continuous += 4;
   else if (((forward & 0xFC) >> 2) == pack_cells_3(player, player, player))
-    score += OPEN_LINE_3;
+    continuous += 3;
   else if (((forward & 0xF0) >> 4) == pack_cells_2(player, player))
-    score += OPEN_LINE_2;
+    continuous += 2;
   else if (((forward & 0xC0) >> 6) == player)
-    score += OPEN_LINE_1;
+    continuous += 1;
   else if (forward == pack_cells_4(opponent, opponent, opponent, opponent))
-    score -= BLOCKED_LINE_4;
+    block += 4;
   else if (((forward & 0xFC) >> 2) == pack_cells_3(opponent, opponent, opponent))
-    score -= BLOCKED_LINE_3;
+    block += 3;
   else if (((forward & 0xF0) >> 4) == pack_cells_2(opponent, opponent))
-    score -= BLOCKED_LINE_2;
+    block += 2;
   else if (((forward & 0xC0) >> 6) == opponent)
-    score -= BLOCKED_LINE_1;
+    block += 1;
 
   if (backward == pack_cells_4(player, player, player, player))
-    score += OPEN_LINE_4;
+    continuous += 4;
   else if ((backward & 0x3F) == pack_cells_3(player, player, player))
-    score += OPEN_LINE_3;
+    continuous += 3;
   else if ((backward & 0x0F) == pack_cells_2(player, player))
-    score += OPEN_LINE_2;
+    continuous += 2;
   else if ((backward & 0x03) == player)
-    score += OPEN_LINE_1;
+    continuous += 1;
   else if (backward == pack_cells_4(opponent, opponent, opponent, opponent))
-    score -= BLOCKED_LINE_4;
+    block += 4;
   else if ((backward & 0x3F) == pack_cells_3(opponent, opponent, opponent))
-    score -= BLOCKED_LINE_3;
+    block += 3;
   else if ((backward & 0x0F) == pack_cells_2(opponent, opponent))
-    score -= BLOCKED_LINE_2;
+    block += 2;
   else if ((backward & 0x03) == opponent)
-    score -= BLOCKED_LINE_1;
+    block += 1;
 
-  return score;
+  if (continuous > 4) continuous = 4;
+  if (block > 4) block = 4;
+
+  // Lookup tables for scores (indexes 0..4)
+  const int continuousScores[5] = {0, CONTINUOUS_LINE_2, CONTINUOUS_LINE_3, CONTINUOUS_LINE_4,
+                                   GOMOKU};
+  const int blockScores[5] = {0, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, GOMOKU};
+
+  return continuousScores[continuous] + blockScores[block];
 }
 
 void initCombinedPatternScoreTables() {
@@ -168,39 +175,39 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   } else if (player == PLAYER_2) {
     score = patternScoreTablePlayerTwo[combined];
   }
+  // std::cout << "player: " << player << std::endl;
+  // std::cout << "forward/backward" << std::endl;
+  // printPattern(forward, 4);
+  // printPattern(backward, 4);
+  // std::cout << "score: " << score << std::endl;
+
   int activeScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
                                                        : board->getNextPlayerScore();
   int opponentScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
                                                          : board->getLastPlayerScore();
-  std::cout << "player: " << player << std::endl;
-  std::cout << "nextPlayer: " << board->getNextPlayer() << " LastPlayer: " << board->getLastPlayer()
-            << std::endl;
-  std::cout << "activeScore: " << activeScore << " opponentScore: " << opponentScore << std::endl;
-  std::cout << "forward" << std::endl;
-  printPattern(forward, 4);
-  printPattern(backward, 4);
+  // std::cout << "nextPlayer: " << board->getNextPlayer() << " LastPlayer: " <<
+  // board->getLastPlayer()
+  //           << std::endl;
+  // std::cout << "activeScore: " << activeScore << " opponentScore: " << opponentScore <<
+  // std::endl;
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
     if (activeScore == 4) return GOMOKU;
-    score += CAPTURE_SCORE * (activeScore + 1);
+    score += CAPTURE_SCORE * (activeScore == 0 ? (activeScore + 1) : activeScore);
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
-    if (opponentScore == 4) return OPEN_LINE_4 - 1;
-    score -= CAPTURE_SCORE * (opponentScore + 1);
+    if (opponentScore == 4) return GOMOKU - 1;
+    score += CAPTURE_SCORE * (opponentScore == 0 ? (opponentScore + 1) : opponentScore);
   }
-
   return score;
 }
 
 int evaluatePosition(Board *&board, int player, int x, int y) {
-  (void)board;
-  (void)player;
-  (void)x;
-  (void)y;
   int totalScore = 0;
 
   // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
 
-  for (int i = 0; i < 4; ++i)
+  for (int i = 0; i < 4; ++i) {
     totalScore += evaluateCombinedAxis(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+  }
 
   return totalScore;
 }
