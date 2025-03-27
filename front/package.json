@@ -18,7 +18,7 @@
     "@primevue/themes": "^4.2.5",
     "@vueuse/core": "^12.2.0",
     "@vueuse/nuxt": "^12.2.0",
-    "nuxt": "^3.15.0",
+    "nuxt": "^3.16.1",
     "pinia": "^2.3.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.2.5",
