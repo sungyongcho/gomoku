@@ -8,20 +8,20 @@
 #include "Gomoku.hpp"
 
 #define GOMOKU 10000000
-#define OPEN_LINE_4 100000
-#define OPEN_LINE_3 1000
-#define OPEN_LINE_2 100
-#define OPEN_LINE_1 10
-#define BLOCKED_LINE_5 99900
-#define BLOCKED_LINE_4 10000
-#define BLOCKED_LINE_3 100
-#define BLOCKED_LINE_2 10
-#define BLOCKED_LINE_1 1
+#define CONTINUOUS_LINE_4 100000
+#define CONTINUOUS_LINE_3 1000
+#define CONTINUOUS_LINE_2 100
+#define CONTINUOUS_LINE_1 10
+#define BLOCK_LINE_5 999000
+#define BLOCK_LINE_4 10000
+#define BLOCK_LINE_3 100
+#define BLOCK_LINE_2 10
+#define BLOCK_LINE_1 1
 #define OPEN_SINGLE_STONE 10
-#define CAPTURE_SCORE 500
+#define CAPTURE_SCORE 1000
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
-#define INVALID_PATTERN -1357
+#define INVALID_PATTERN -1337
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
@@ -36,6 +36,10 @@ namespace Evaluation {
 // Global lookup table for combined patterns.
 extern int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
 extern int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
+
+static const int continuousScores[5] = {0, CONTINUOUS_LINE_2, CONTINUOUS_LINE_3, CONTINUOUS_LINE_4,
+                                        GOMOKU};
+static const int blockScores[5] = {0, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, GOMOKU};
 
 // Initializes the lookup table for combined patterns.
 void initCombinedPatternScoreTables();
