@@ -139,4 +139,6 @@ response_error.json (backend 착수 에러)
 - (front) needs to check how the check rendering is actually getting handled b/c the capture information on the board is all applied already.
 
 ## 3/27/05
-- capture score update needed
+- TODO(front)
+- doublethree로 착수가 불가능한 경우 마지막 착수가 된 지점의 보드의 돌이 그대로 남아 있는 경우가 있음
+- capture를 진행 할 경우, 현재 백엔드에서 보드판과 점수를 모두 업데이트 하는데 프론트에서 가지고 있을 필요가 있는지...?
