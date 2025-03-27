@@ -10,6 +10,8 @@
 #include "minimax.hpp"
 
 void responseSuccess(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY) {
+  (void)aiPlayX;
+  (void)aiPlayY;
   rapidjson::Document response;
   response.SetObject();
   rapidjson::Document::AllocatorType &allocator = response.GetAllocator();
@@ -21,47 +23,47 @@ void responseSuccess(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY) {
   board.BitboardToJsonBoardboard(json_board, allocator);
   response.AddMember("board", json_board, allocator);
 
-  rapidjson::Value scores(rapidjson::kArrayType);
-  {
-    rapidjson::Value scoreObj(rapidjson::kObjectType);
-    scoreObj.AddMember("player", board.getLastPlayer() == 1 ? "X" : "O", allocator);
-    scoreObj.AddMember("score", board.getLastPlayerScore(), allocator);
-    scores.PushBack(scoreObj, allocator);
+  // rapidjson::Value scores(rapidjson::kArrayType);
+  // {
+  //   rapidjson::Value scoreObj(rapidjson::kObjectType);
+  //   scoreObj.AddMember("player", board.getLastPlayer() == 1 ? "X" : "O", allocator);
+  //   scoreObj.AddMember("score", board.getLastPlayerScore(), allocator);
+  //   scores.PushBack(scoreObj, allocator);
 
-    rapidjson::Value scoreObj2(rapidjson::kObjectType);
-    scoreObj2.AddMember("player", board.getNextPlayer() == 2 ? "O" : "X", allocator);
-    scoreObj2.AddMember("score", board.getNextPlayerScore(), allocator);
-    scores.PushBack(scoreObj2, allocator);
-  }
-  response.AddMember("scores", scores, allocator);
+  //   rapidjson::Value scoreObj2(rapidjson::kObjectType);
+  //   scoreObj2.AddMember("player", board.getNextPlayer() == 2 ? "O" : "X", allocator);
+  //   scoreObj2.AddMember("score", board.getNextPlayerScore(), allocator);
+  //   scores.PushBack(scoreObj2, allocator);
+  // }
+  response.AddMember("scores", "success", allocator);
 
-  rapidjson::Value lastPlay(rapidjson::kObjectType);
-  {
-    rapidjson::Value coordinate(rapidjson::kObjectType);
-    coordinate.AddMember("x", aiPlayX, allocator);
-    coordinate.AddMember("y", aiPlayY, allocator);
-    lastPlay.AddMember("coordinate", coordinate, allocator);
-    lastPlay.AddMember("stone", board.getNextPlayer() == 1 ? "X" : "O", allocator);
-  }
-  response.AddMember("lastPlay", lastPlay, allocator);
+  // rapidjson::Value lastPlay(rapidjson::kObjectType);
+  // {
+  //   rapidjson::Value coordinate(rapidjson::kObjectType);
+  //   coordinate.AddMember("x", aiPlayX, allocator);
+  //   coordinate.AddMember("y", aiPlayY, allocator);
+  //   lastPlay.AddMember("coordinate", coordinate, allocator);
+  //   lastPlay.AddMember("stone", board.getNextPlayer() == 1 ? "X" : "O", allocator);
+  // }
+  response.AddMember("lastPlay", "success", allocator);
 
   // Build the capturedStones array.
-  rapidjson::Value capturedStones(rapidjson::kArrayType);
-  for (size_t i = 0; i < board.captured_stones.size(); ++i) {
-    rapidjson::Value captured(rapidjson::kObjectType);
-    captured.AddMember("x", board.captured_stones[i].x, allocator);
-    captured.AddMember("y", board.captured_stones[i].y, allocator);
-    // Convert captured stone's player to a stone representation.
-    captured.AddMember("stone", board.captured_stones[i].player == 1 ? "X" : "O", allocator);
-    capturedStones.PushBack(captured, allocator);
-  }
+  // rapidjson::Value capturedStones(rapidjson::kArrayType);
+  // for (size_t i = 0; i < board.captured_stones.size(); ++i) {
+  //   rapidjson::Value captured(rapidjson::kObjectType);
+  //   captured.AddMember("x", board.captured_stones[i].x, allocator);
+  //   captured.AddMember("y", board.captured_stones[i].y, allocator);
+  //   // Convert captured stone's player to a stone representation.
+  //   captured.AddMember("stone", board.captured_stones[i].player == 1 ? "X" : "O", allocator);
+  //   capturedStones.PushBack(captured, allocator);
+  // }
   response.AddMember("capturedStones", "success", allocator);
 
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   response.Accept(writer);
   std::string json_response = buffer.GetString();
-  std::cout << "Json Response: " << json_response << std::endl;
+  // std::cout << "Json Response: " << json_response << std::endl;
   sendJsonResponse(wsi, json_response);
 }
 
@@ -145,7 +147,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::clock_t start = std::clock();  // Start time
 
-        std::pair<int, int> a = Minimax::getBestMove(pBoard, 5);
+        std::pair<int, int> a = Minimax::getBestMove(pBoard, 1);
 
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());

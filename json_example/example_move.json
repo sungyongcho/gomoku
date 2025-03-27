@@ -1,6 +1,7 @@
 {
   "type": "move",
   "nextPlayer": "X",
+  "difficulty": "easy", //"easy" and "hard" - default is hard
   "lastPlay": {
     "coordinate": { "x": 9, "y": 10 },
     "stone": "X"
@@ -8,6 +9,19 @@
   "goal": 5,
   "board": [],
   "scores": [
+    { "player": "O", "score": 1 },
+    { "player": "X", "score": 3 }
+  ]
+},
+{
+  "type": "evaluate",
+  "nextPlayer": "X",
+  "lastPlay": {
+    "coordinate": { "x": 9, "y": 10 },
+    "stone": "X"
+  },
+  "goal": 5,
+    "scores": [
     { "player": "O", "score": 1 },
     { "player": "X", "score": 3 }
   ]
