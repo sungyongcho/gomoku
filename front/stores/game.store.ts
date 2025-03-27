@@ -9,6 +9,18 @@ import {
   type Stone,
 } from "~/types/game";
 
+type GameSituation = {
+  boardData: { stone: Stone }[][];
+  x: number;
+  y: number;
+  turn: Stone;
+  captured: {
+    player1: number;
+    player2: number;
+    goal: number;
+  };
+};
+
 export const useGameStore = defineStore("game", () => {
   const { doAlert } = useAlertStore();
   const { playStoneSound, playUndoSound } = useSound();
@@ -29,6 +41,8 @@ export const useGameStore = defineStore("game", () => {
     advantage2: 0,
     isPlayer2AI: true,
     isDebugTurnLocked: true,
+    difficulty: "hard",
+    ai: "minmax", // minmax, alphago
   });
 
   const initialBoard = () => {
@@ -128,6 +142,51 @@ export const useGameStore = defineStore("game", () => {
     changeTurn(lastHistory.stone);
   };
 
+  const checkGameOverBeforeChangeTurn = (situation: GameSituation) => {
+    const perfectFiveEnded = isPerfectFiveEnded(situation);
+    if (perfectFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
+      gameOver.value = true;
+      return doAlert(
+        "Game Over",
+        `${perfectFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
+        "Info",
+      );
+    }
+  };
+
+  // Check end condition after change turn
+  const checkGameOverAfterChangeTurn = (situation: GameSituation) => {
+    // Check capture points
+    situation.turn = turn.value;
+    const captureEnded = isCaptureEnded(situation);
+    if (captureEnded.result === GAME_END_SCENARIO.PAIR_CAPTURED) {
+      gameOver.value = true;
+      return doAlert(
+        "Game Over",
+        `${captureEnded.winner === "X" ? "Black" : "White"} Win - Captured ${situation.captured.goal}`,
+        "Info",
+      );
+    }
+
+    // Check current turn's five stones or more
+    const currentTurnFiveEnded = isCurrentTurnFiveEnded(situation);
+    if (currentTurnFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
+      gameOver.value = true;
+      return doAlert(
+        "Game Over",
+        `${currentTurnFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
+        "Info",
+      );
+    }
+
+    // Check Draw
+    const drawEnded = isDrawEnded(situation);
+    if (drawEnded.result === GAME_END_SCENARIO.DRAW) {
+      gameOver.value = true;
+      return doAlert("Game Over", "Draw", "Info");
+    }
+  };
+
   const debugAddStoneToBoardData = (
     { x, y }: { x: number; y: number },
     stone: Stone,
@@ -149,20 +208,40 @@ export const useGameStore = defineStore("game", () => {
     }
 
     // // Update board
-    // updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
+    updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
 
     // Update board debug temp
-    updateBoardDebugTemp({ x, y, boardData: boardData.value, stone });
+    // updateBoardDebugTemp({ x, y, boardData: boardData.value, stone });
+
+    // Add to history
+    histories.value = histories.value.concat({
+      coordinate: { x, y },
+      stone,
+      capturedStones: capturedStones,
+    });
+
+    // Check end condition
+    const situation: GameSituation = {
+      x,
+      y,
+      boardData: boardData.value,
+      turn: stone,
+      captured: {
+        player1: player1TotalCaptured.value,
+        player2: player2TotalCaptured.value,
+        goal: settings.value.totalPairCaptured,
+      },
+    };
+
+    checkGameOverBeforeChangeTurn(situation);
 
     playStoneSound();
     if (!settings.value.isDebugTurnLocked) {
       changeTurn();
     }
 
-    histories.value = histories.value.concat({
-      coordinate: { x, y },
-      stone,
-      capturedStones: capturedStones,
+    nextTick(() => {
+      checkGameOverAfterChangeTurn(situation);
     });
   };
 
@@ -198,7 +277,7 @@ export const useGameStore = defineStore("game", () => {
     });
 
     // Check end condition
-    const situation = {
+    const situation: GameSituation = {
       x,
       y,
       boardData: boardData.value,
@@ -209,53 +288,14 @@ export const useGameStore = defineStore("game", () => {
         goal: settings.value.totalPairCaptured,
       },
     };
-    const perfectFiveEnded = isPerfectFiveEnded(situation);
 
-    if (perfectFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
-      gameOver.value = true;
-      return doAlert(
-        "Game Over",
-        `${perfectFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
-        "Info",
-      );
-    }
+    checkGameOverBeforeChangeTurn(situation);
 
     playStoneSound();
     changeTurn();
 
     nextTick(() => {
-      // Check end condition after change turn
-      // Check capture points
-      situation.turn = turn.value;
-      const captureEnded = isCaptureEnded(situation);
-      if (captureEnded.result === GAME_END_SCENARIO.PAIR_CAPTURED) {
-        gameOver.value = true;
-        return doAlert(
-          "Game Over",
-          `${captureEnded.winner === "X" ? "Black" : "White"} Win - Captured ${situation.captured.goal}`,
-          "Info",
-        );
-      }
-
-      // Check current turn's five stones or more
-      const currentTurnFiveEnded = isCurrentTurnFiveEnded(situation);
-      if (
-        currentTurnFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES
-      ) {
-        gameOver.value = true;
-        return doAlert(
-          "Game Over",
-          `${currentTurnFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
-          "Info",
-        );
-      }
-
-      // Check Draw
-      const drawEnded = isDrawEnded(situation);
-      if (drawEnded.result === GAME_END_SCENARIO.DRAW) {
-        gameOver.value = true;
-        return doAlert("Game Over", "Draw", "Info");
-      }
+      checkGameOverAfterChangeTurn(situation);
     });
   };
 

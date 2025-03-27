@@ -35,9 +35,11 @@ export type GameResult = {
   result?: GAME_END_SCENARIO;
   winner?: Stone;
 };
-
+export type RequestType = "move" | "evaluate";
+export type ResponseType = "move" | "evaluate" | "error";
 export type SocketMoveRequest = {
-  type: "move";
+  type: RequestType;
+  difficulty: "easy" | "hard"; // default hard
   nextPlayer: Stone;
   goal: number;
   lastPlay?: {
@@ -49,7 +51,7 @@ export type SocketMoveRequest = {
 };
 
 export type SocketDebugMoveResponse = {
-  type: "move" | "error";
+  type: ResponseType;
   status: "success" | "doublethree";
   lastPlay: {
     coordinate: { x: number; y: number };
