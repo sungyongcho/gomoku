@@ -1,0 +1,22 @@
+{
+  "type": "move",
+  "status": "success",
+  "board": [],
+  "scores": [{"player": "O", "score": 1}, {"player": "X", "score": 3}], // can be removed
+  "lastPlay": {
+    "coordinate": { "x": 9, "y": 10 },
+    "stone": "X"
+  },
+  "capturedStones": [{"x": 1, "y": 1, "stone": "O"}, {"x": 1, "y": 1, "stone": "O"}],
+}
+,
+// {
+//   "type": "error",
+//   "status": "doublethree",
+// }, // won't be needed
+{
+  "type": "evaluate",
+  "evalScores": [{"player": "O", "evalScore": 1}, {"player": "X", "evalScore": 3}], // can be removed
+  // the scores will be determined later
+  // either 1) by winning percentage 2) directely returning evaluation score
+}
