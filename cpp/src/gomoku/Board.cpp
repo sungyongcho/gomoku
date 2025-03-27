@@ -10,6 +10,19 @@ Board::Board()
   resetBitboard();
 }
 
+Board::Board(const Board &other)
+    : goal(other.goal),
+      last_player(other.last_player),
+      next_player(other.next_player),
+      last_player_score(other.last_player_score),
+      next_player_score(other.next_player_score),
+      captured_stones(other.captured_stones) {
+  for (int i = 0; i < BOARD_SIZE; ++i) {
+    last_player_board[i] = other.last_player_board[i];
+    next_player_board[i] = other.next_player_board[i];
+  }
+}
+
 Board::Board(const std::vector<std::vector<char> > &board_data, int goal,
              const std::string &last_stone, const std::string &next_stone, int last_score,
              int next_score)
@@ -258,22 +271,24 @@ void Board::storeCapturedStone(int x, int y, int player) {
   captured_stones.push_back(cs);
 }
 
-void Board::applyCapture() {
-  // Iterate over the captured stones using size_t for safety.
+void Board::applyCapture(bool clearCapture) {
+  // std::cout << this->getLastPlayer() << "//" << last_player << std::endl;
+  // std::cout << this->getNextPlayer() << "//" << next_player << std::endl;
   for (size_t i = 0; i < captured_stones.size(); ++i) {
-    // Remove the stone from the board.
-    setValueBit(captured_stones[i].x, captured_stones[i].y, EMPTY_SPACE);
+    // std::cout << "[" << captured_stones[i].x << "][" << captured_stones[i].y << "]["
+    //           << captured_stones[i].player << "]" << std::endl;
+    if (captured_stones[i].player == last_player) {
+      // std::cout << "checking" << std::endl;
+      this->next_player_score++;
+    } else if (captured_stones[i].player == next_player) {
+      this->last_player_score++;
+      // std::cout << "checking 2" << std::endl;
+    }
 
-    // Update scores based on which player's stone was captured.
-    if (captured_stones[i].player == last_player)
-      next_player_score++;
-    else if (captured_stones[i].player == next_player)
-      last_player_score++;
+    setValueBit(captured_stones[i].x, captured_stones[i].y, EMPTY_SPACE);
   }
-  // Adjust the score: divide by 2 if required by your game rules.
   next_player_score /= 2;
   last_player_score /= 2;
 
-  // Clear the captured stones vector after processing.
-  captured_stones.clear();
+  if (clearCapture) captured_stones.clear();
 }

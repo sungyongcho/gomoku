@@ -9,7 +9,7 @@
 #include "Rules.hpp"
 #include "minimax.hpp"
 
-void responseSuccess(struct lws *wsi, Board &board) {
+void responseSuccess(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY) {
   rapidjson::Document response;
   response.SetObject();
   rapidjson::Document::AllocatorType &allocator = response.GetAllocator();
@@ -21,14 +21,47 @@ void responseSuccess(struct lws *wsi, Board &board) {
   board.BitboardToJsonBoardboard(json_board, allocator);
   response.AddMember("board", json_board, allocator);
 
-  response.AddMember("scores", "success", allocator);
-  response.AddMember("lastPlay", "success", allocator);
+  rapidjson::Value scores(rapidjson::kArrayType);
+  {
+    rapidjson::Value scoreObj(rapidjson::kObjectType);
+    scoreObj.AddMember("player", board.getLastPlayer() == 1 ? "X" : "O", allocator);
+    scoreObj.AddMember("score", board.getLastPlayerScore(), allocator);
+    scores.PushBack(scoreObj, allocator);
+
+    rapidjson::Value scoreObj2(rapidjson::kObjectType);
+    scoreObj2.AddMember("player", board.getNextPlayer() == 2 ? "O" : "X", allocator);
+    scoreObj2.AddMember("score", board.getNextPlayerScore(), allocator);
+    scores.PushBack(scoreObj2, allocator);
+  }
+  response.AddMember("scores", scores, allocator);
+
+  rapidjson::Value lastPlay(rapidjson::kObjectType);
+  {
+    rapidjson::Value coordinate(rapidjson::kObjectType);
+    coordinate.AddMember("x", aiPlayX, allocator);
+    coordinate.AddMember("y", aiPlayY, allocator);
+    lastPlay.AddMember("coordinate", coordinate, allocator);
+    lastPlay.AddMember("stone", board.getNextPlayer() == 1 ? "X" : "O", allocator);
+  }
+  response.AddMember("lastPlay", lastPlay, allocator);
+
+  // Build the capturedStones array.
+  rapidjson::Value capturedStones(rapidjson::kArrayType);
+  for (size_t i = 0; i < board.captured_stones.size(); ++i) {
+    rapidjson::Value captured(rapidjson::kObjectType);
+    captured.AddMember("x", board.captured_stones[i].x, allocator);
+    captured.AddMember("y", board.captured_stones[i].y, allocator);
+    // Convert captured stone's player to a stone representation.
+    captured.AddMember("stone", board.captured_stones[i].player == 1 ? "X" : "O", allocator);
+    capturedStones.PushBack(captured, allocator);
+  }
   response.AddMember("capturedStones", "success", allocator);
 
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   response.Accept(writer);
   std::string json_response = buffer.GetString();
+  std::cout << "Json Response: " << json_response << std::endl;
   sendJsonResponse(wsi, json_response);
 }
 
@@ -116,8 +149,10 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
-        if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer()))
-          pBoard->applyCapture();
+        if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
+          std::cout << "herher hrehreh" << std::endl;
+          pBoard->applyCapture(false);
+        }
 
         // Calculate elapsed time
         double elapsed_seconds = static_cast<double>(end - start) / CLOCKS_PER_SEC;
@@ -127,12 +162,14 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         std::cout << "Execution time: " << elapsed_seconds << " s, " << elapsed_ms << " ms, "
                   << elapsed_ns << " ns" << std::endl;
 
-        std::cout << a.first << ", " << a.second << std::endl;
+        // std::cout << a.first << ", " << a.second << std::endl;
         std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
+        std::cout << "score: " << pBoard->getLastPlayerScore() << " , "
+                  << pBoard->getNextPlayerScore() << std::endl;
 
         // Minimax::simulateAIBattle(pBoard, 5, 80);
 
-        responseSuccess(wsi, *pBoard);
+        responseSuccess(wsi, *pBoard, a.first, a.second);
         delete pBoard;
         return 0;
       } else {

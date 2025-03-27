@@ -106,12 +106,7 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
   if (continuous > 4) continuous = 4;
   if (block > 4) block = 4;
 
-  // Lookup tables for scores (indexes 0..4)
-  const int continuousScores[5] = {0, CONTINUOUS_LINE_2, CONTINUOUS_LINE_3, CONTINUOUS_LINE_4,
-                                   GOMOKU};
-  const int blockScores[5] = {0, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, GOMOKU};
-
-  return continuousScores[continuous] + blockScores[block];
+  return continuousScores[continuous + 1] + blockScores[block + 1];
 }
 
 void initCombinedPatternScoreTables() {
@@ -175,27 +170,19 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   } else if (player == PLAYER_2) {
     score = patternScoreTablePlayerTwo[combined];
   }
-  // std::cout << "player: " << player << std::endl;
-  // std::cout << "forward/backward" << std::endl;
-  // printPattern(forward, 4);
-  // printPattern(backward, 4);
-  // std::cout << "score: " << score << std::endl;
 
-  int activeScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
-                                                       : board->getNextPlayerScore();
-  int opponentScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
-                                                         : board->getLastPlayerScore();
-  // std::cout << "nextPlayer: " << board->getNextPlayer() << " LastPlayer: " <<
-  // board->getLastPlayer()
-  //           << std::endl;
-  // std::cout << "activeScore: " << activeScore << " opponentScore: " << opponentScore <<
-  // std::endl;
+  int activeCaptureScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
+                                                              : board->getNextPlayerScore();
+  int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
+                                                                : board->getLastPlayerScore();
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
-    if (activeScore == 4) return GOMOKU;
-    score += CAPTURE_SCORE * (activeScore == 0 ? (activeScore + 1) : activeScore);
+    if (activeCaptureScore == 4) return GOMOKU;
+    score +=
+        CAPTURE_SCORE * (activeCaptureScore == 0 ? (activeCaptureScore + 1) : activeCaptureScore);
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
-    if (opponentScore == 4) return GOMOKU - 1;
-    score += CAPTURE_SCORE * (opponentScore == 0 ? (opponentScore + 1) : opponentScore);
+    if (opponentCaptureScore == 4) return blockScores[5] - 1;
+    score += blockScores[2] *
+             (opponentCaptureScore == 0 ? (opponentCaptureScore + 1) : opponentCaptureScore);
   }
   return score;
 }
