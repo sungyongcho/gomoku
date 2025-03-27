@@ -50,7 +50,8 @@ bool parseBoard(const rapidjson::Document &doc, std::vector<std::vector<char> > 
   return true;
 }
 
-bool parseScores(const rapidjson::Document &doc, int &last_player_score, int &next_player_score) {
+bool parseScores(const rapidjson::Document &doc, std::string last_player, std::string next_player,
+                 int &last_player_score, int &next_player_score) {
   if (!doc.HasMember("scores") || !doc["scores"].IsArray()) {
     std::cerr << "Error: Missing or invalid 'scores' field." << std::endl;
     return false;
@@ -59,9 +60,9 @@ bool parseScores(const rapidjson::Document &doc, int &last_player_score, int &ne
   for (rapidjson::SizeType i = 0; i < doc["scores"].Size(); i++) {
     std::string player = doc["scores"][i]["player"].GetString();
     int score = doc["scores"][i]["score"].GetInt();
-    if (player == "X")
+    if (player == last_player)
       last_player_score = score;
-    else if (player == "O")
+    else if (player == next_player)
       next_player_score = score;
   }
 
@@ -99,7 +100,7 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
     return ERROR_INVALID_BOARD;
   }
 
-  if (!parseScores(doc, last_player_score, next_player_score)) {
+  if (!parseScores(doc, last_player, next_player, last_player_score, next_player_score)) {
     error = "Invalid scores field.";
     return ERROR_INVALID_SCORES;
   }
@@ -121,11 +122,11 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
     //      it != capturedStones.end(); ++it) {
     //   std::cout << " - (" << it->first << ", " << it->second << ")" << std::endl;
     // }
-    // std::cout << std::flush;
-    pBoard->applyCapture();
+    // // std::cout << std::flush;
+    // pBoard->applyCapture();
 
     std::cout << "after" << std::endl;
-    pBoard->printBitboard();
+    // pBoard->printBitboard();
     return PARSE_OK;
   }
 

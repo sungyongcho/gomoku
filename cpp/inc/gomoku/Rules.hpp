@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "Board.hpp"
+#include "Evaluation.hpp"
 #include "Gomoku.hpp"
-#include "minimax.hpp"
 
 class Rules {
  public:

@@ -63,12 +63,10 @@ void printPattern(unsigned int pattern, int numCells) {
  *     first then subtract opponent's score by last.
  * 2.3 if the capture is available for player, give advantage and if for opponent, subtract for
  *     opponent.
- * (TODO) assuming middle is always empty?
- * (TODO) there are three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
+ * ps1. assuming middle is always empty.
+ * ps2. there are three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
  */
-// (TODO) needs to be improved, this only checks the basic
-// continous pattern
-int evaluateCombPattern(unsigned int backward, unsigned int forward, unsigned int player) {
+int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsigned int player) {
   int score = 0;
   unsigned int opponent = OPPONENT(player);
 
@@ -129,12 +127,12 @@ void initCombinedPatternScoreTables() {
       // and then the forward side occupies the lowest 2*SIDE_WINDOW_SIZE bits.
       unsigned int pattern = (backward << (2 * (SIDE_WINDOW_SIZE + 1))) |
                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forward;
-      patternScoreTablePlayerOne[pattern] = evaluateCombPattern(backward, forward, PLAYER_1);
-      patternScoreTablePlayerTwo[pattern] = evaluateCombPattern(backward, forward, PLAYER_2);
-      if (patternScoreTablePlayerOne[pattern] > 0) printPattern(pattern, 9);
+      patternScoreTablePlayerOne[pattern] = evaluateContinousPattern(backward, forward, PLAYER_1);
+      patternScoreTablePlayerTwo[pattern] = evaluateContinousPattern(backward, forward, PLAYER_2);
     }
   }
 }
+
 inline unsigned int reversePattern(unsigned int pattern, int windowSize) {
   unsigned int reversed = 0;
   for (int i = 0; i < windowSize; i++) {
@@ -144,14 +142,20 @@ inline unsigned int reversePattern(unsigned int pattern, int windowSize) {
   return reversed;
 }
 
+int checkCapture(unsigned int side, unsigned int player) {
+  unsigned int opponent = OPPONENT(player);
+  if (((side & 0xFC) >> 2) == pack_cells_3(opponent, opponent, player))
+    return CAPTURE_SCORE;
+  else if (((side & 0xfc) >> 2) == pack_cells_3(player, player, opponent))
+    return -CAPTURE_SCORE;
+  return 0;
+}
+
 int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy) {
   int score;
-  // Extract the forward window.
+  // Extract windows.
   unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
-  // Extract the backward window.
   unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
-  // Reverse the backward window so that the cell immediately adjacent to (x,y)
-  // is at the rightmost position.
   unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE);
   // Combine: [reversed backward window] + [center cell (player)] + [forward
   // window]
@@ -159,11 +163,29 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   //                         ((unsigned int)player << (2 * SIDE_WINDOW_SIZE)) | forward;
   unsigned int combined =
       (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) | (0 << (2 * SIDE_WINDOW_SIZE)) | forward;
-  if (player == PLAYER_1)
+  if (player == PLAYER_1) {
     score = patternScoreTablePlayerOne[combined];
-  else if (player == PLAYER_2)
-    score = patternScoreTablePlayerOne[combined];
-  // TODO: add score for capture
+  } else if (player == PLAYER_2) {
+    score = patternScoreTablePlayerTwo[combined];
+  }
+  int activeScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
+                                                       : board->getNextPlayerScore();
+  int opponentScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
+                                                         : board->getLastPlayerScore();
+  std::cout << "player: " << player << std::endl;
+  std::cout << "nextPlayer: " << board->getNextPlayer() << " LastPlayer: " << board->getLastPlayer()
+            << std::endl;
+  std::cout << "activeScore: " << activeScore << " opponentScore: " << opponentScore << std::endl;
+  std::cout << "forward" << std::endl;
+  printPattern(forward, 4);
+  printPattern(backward, 4);
+  if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
+    if (activeScore == 4) return GOMOKU;
+    score += CAPTURE_SCORE * (activeScore + 1);
+  } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
+    if (opponentScore == 4) return OPEN_LINE_4 - 1;
+    score -= CAPTURE_SCORE * (opponentScore + 1);
+  }
 
   return score;
 }

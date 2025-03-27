@@ -26,7 +26,8 @@ enum ParseResult {
 bool extractRequiredFields(const rapidjson::Document &doc, int &x, int &y, std::string &last_player,
                            std::string &next_player, int &goal);
 bool parseBoard(const rapidjson::Document &doc, std::vector<std::vector<char> > &board_data);
-bool parseScores(const rapidjson::Document &doc, int &last_player_score, int &next_player_score);
+bool parseScores(const rapidjson::Document &doc, std::string last_player, std::string next_player,
+                 int &last_player_score, int &next_player_score);
 std::vector<std::vector<char> > parseBoardFromJson(const rapidjson::Document &doc);
 
 void sendJsonResponse(struct lws *wsi, const std::string &response);
