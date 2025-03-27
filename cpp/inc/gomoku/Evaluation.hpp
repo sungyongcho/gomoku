@@ -18,7 +18,7 @@
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
 #define OPEN_SINGLE_STONE 10
-#define CAPTURE_SCORE 1000
+#define CAPTURE_SCORE 100
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
 #define INVALID_PATTERN -1337
@@ -37,9 +37,14 @@ namespace Evaluation {
 extern int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
 extern int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
-static const int continuousScores[5] = {0, CONTINUOUS_LINE_2, CONTINUOUS_LINE_3, CONTINUOUS_LINE_4,
-                                        GOMOKU};
-static const int blockScores[5] = {0, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, GOMOKU};
+static const int continuousScores[6] = {0,
+                                        CONTINUOUS_LINE_1,
+                                        CONTINUOUS_LINE_2,
+                                        CONTINUOUS_LINE_3,
+                                        CONTINUOUS_LINE_4,
+                                        CONTINUOUS_LINE_4};
+static const int blockScores[6] = {
+    0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
 // Initializes the lookup table for combined patterns.
 void initCombinedPatternScoreTables();

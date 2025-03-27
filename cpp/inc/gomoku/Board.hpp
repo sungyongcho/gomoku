@@ -27,7 +27,6 @@ class Board {
   int next_player;
   int last_player_score;
   int next_player_score;
-  std::vector<CapturedStone> captured_stones;
 
   uint64_t last_player_board[BOARD_SIZE];
   uint64_t next_player_board[BOARD_SIZE];
@@ -36,7 +35,9 @@ class Board {
   void initBitboardFromData(const std::vector<std::vector<char> > &board_data);
 
  public:
+  std::vector<CapturedStone> captured_stones;
   Board();
+  Board(const Board &other);
   Board(const std::vector<std::vector<char> > &board_data, int goal, const std::string &last_stone,
         const std::string &next_stone, int last_score, int next_score);
 
@@ -47,7 +48,7 @@ class Board {
   int getValueBit(int col, int row) const;
 
   void storeCapturedStone(int x, int y, int player);
-  void applyCapture();
+  void applyCapture(bool clearCapture);
 
   // Fills the provided array with the occupancy (union of both players) for each row.
   void getOccupancy(uint64_t occupancy[BOARD_SIZE]) const;

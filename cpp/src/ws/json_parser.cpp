@@ -91,7 +91,7 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
     error = "Missing required fields.";
     return ERROR_UNKNOWN;
   }
-
+  std::cout << last_player << "," << next_player << std::endl;
   *last_x = x;
   *last_y = y;
 
@@ -117,16 +117,7 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
 
   // If capture occurred, print and remove captured stones.
   if (stoneCaptured) {
-    // std::cout << "Captured stones:" << std::endl;
-    // for (std::vector<std::pair<int, int> >::iterator it = capturedStones.begin();
-    //      it != capturedStones.end(); ++it) {
-    //   std::cout << " - (" << it->first << ", " << it->second << ")" << std::endl;
-    // }
-    // std::cout << std::flush;
-    pBoard->applyCapture();
-
-    std::cout << "after" << std::endl;
-    // pBoard->printBitboard();
+    pBoard->applyCapture(true);
     return PARSE_OK;
   }
 

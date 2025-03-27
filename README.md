@@ -137,3 +137,6 @@ response_error.json (backend 착수 에러)
 
 ## 3/20/25
 - (front) needs to check how the check rendering is actually getting handled b/c the capture information on the board is all applied already.
+
+## 3/27/05
+- capture score update needed
