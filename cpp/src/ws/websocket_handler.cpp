@@ -35,29 +35,29 @@ void responseSuccess(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY) {
   //   scoreObj2.AddMember("score", board.getNextPlayerScore(), allocator);
   //   scores.PushBack(scoreObj2, allocator);
   // }
-  response.AddMember("scores", "success", allocator);
+  // response.AddMember("scores", scores, allocator);
 
-  // rapidjson::Value lastPlay(rapidjson::kObjectType);
-  // {
-  //   rapidjson::Value coordinate(rapidjson::kObjectType);
-  //   coordinate.AddMember("x", aiPlayX, allocator);
-  //   coordinate.AddMember("y", aiPlayY, allocator);
-  //   lastPlay.AddMember("coordinate", coordinate, allocator);
-  //   lastPlay.AddMember("stone", board.getNextPlayer() == 1 ? "X" : "O", allocator);
-  // }
-  response.AddMember("lastPlay", "success", allocator);
+  rapidjson::Value lastPlay(rapidjson::kObjectType);
+  {
+    rapidjson::Value coordinate(rapidjson::kObjectType);
+    coordinate.AddMember("x", aiPlayX, allocator);
+    coordinate.AddMember("y", aiPlayY, allocator);
+    lastPlay.AddMember("coordinate", coordinate, allocator);
+    lastPlay.AddMember("stone", board.getNextPlayer() == 1 ? "X" : "O", allocator);
+  }
+  response.AddMember("lastPlay", lastPlay, allocator);
 
   // Build the capturedStones array.
-  // rapidjson::Value capturedStones(rapidjson::kArrayType);
-  // for (size_t i = 0; i < board.captured_stones.size(); ++i) {
-  //   rapidjson::Value captured(rapidjson::kObjectType);
-  //   captured.AddMember("x", board.captured_stones[i].x, allocator);
-  //   captured.AddMember("y", board.captured_stones[i].y, allocator);
-  //   // Convert captured stone's player to a stone representation.
-  //   captured.AddMember("stone", board.captured_stones[i].player == 1 ? "X" : "O", allocator);
-  //   capturedStones.PushBack(captured, allocator);
-  // }
-  response.AddMember("capturedStones", "success", allocator);
+  const std::vector<CapturedStone> &captured = board.getCapturedStones();
+  rapidjson::Value capturedStones(rapidjson::kArrayType);
+  for (size_t i = 0; i < captured.size(); ++i) {
+    rapidjson::Value capturedObj(rapidjson::kObjectType);
+    capturedObj.AddMember("x", captured[i].x, allocator);
+    capturedObj.AddMember("y", captured[i].y, allocator);
+    capturedObj.AddMember("stone", captured[i].player == 1 ? "X" : "O", allocator);
+    capturedStones.PushBack(capturedObj, allocator);
+  }
+  response.AddMember("capturedStones", capturedStones, allocator);
 
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -131,11 +131,11 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         ParseResult result = parseJson(doc, pBoard, error, &last_x, &last_y);
 
         if (result != PARSE_OK) {
-          // TODO: revert back to doublethree and send back
           std::string error_response = constructErrorResponse(result, error);
           std::cout << error_response << std::endl;
           sendJsonResponse(wsi, error_response);
-          if (result == ERROR_DOUBLE_THREE) return 0;
+          // TODO : remove
+          //  if (result == ERROR_DOUBLE_THREE) return 0;
           return -1;
         }
 
@@ -147,7 +147,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::clock_t start = std::clock();  // Start time
 
-        std::pair<int, int> a = Minimax::getBestMove(pBoard, 1);
+        std::pair<int, int> a = Minimax::getBestMove(pBoard, 5);
 
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());

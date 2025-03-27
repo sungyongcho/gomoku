@@ -31,11 +31,12 @@ class Board {
   uint64_t last_player_board[BOARD_SIZE];
   uint64_t next_player_board[BOARD_SIZE];
 
+  std::vector<CapturedStone> captured_stones;
+
   void resetBitboard();
   void initBitboardFromData(const std::vector<std::vector<char> > &board_data);
 
  public:
-  std::vector<CapturedStone> captured_stones;
   Board();
   Board(const Board &other);
   Board(const std::vector<std::vector<char> > &board_data, int goal, const std::string &last_stone,
@@ -62,6 +63,8 @@ class Board {
 
   int getLastPlayerScore();
   int getNextPlayerScore();
+
+  const std::vector<CapturedStone> &getCapturedStones() const;
 
   void switchTurn();
 

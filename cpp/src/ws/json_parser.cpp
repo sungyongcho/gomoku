@@ -111,24 +111,24 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
   std::cout << "Parsed Board State:\n" << std::endl;
   pBoard->printBitboard();
 
-  // Obtain captured stones, if any.
-  bool stoneCaptured =
-      Rules::detectCaptureStones(*pBoard, x, y, (last_player == "X") ? PLAYER_1 : PLAYER_2);
+  // // Obtain captured stones, if any.
+  // bool stoneCaptured =
+  //     Rules::detectCaptureStones(*pBoard, x, y, (last_player == "X") ? PLAYER_1 : PLAYER_2);
 
-  // If capture occurred, print and remove captured stones.
-  if (stoneCaptured) {
-    pBoard->applyCapture(true);
-    return PARSE_OK;
-  }
+  // // If capture occurred, print and remove captured stones.
+  // if (stoneCaptured) {
+  //   pBoard->applyCapture(true);
+  //   return PARSE_OK;
+  // }
 
-  bool doubleThreeBit =
-      Rules::detectDoublethreeBit(*pBoard, x, y, (last_player == "X") ? PLAYER_1 : PLAYER_2);
-  if (doubleThreeBit) {
-    error = "doublethree";
-    delete pBoard;
-    pBoard = NULL;
-    return ERROR_DOUBLE_THREE;
-  }
+  // bool doubleThreeBit =
+  //     Rules::detectDoublethreeBit(*pBoard, x, y, (last_player == "X") ? PLAYER_1 : PLAYER_2);
+  // if (doubleThreeBit) {
+  //   error = "doublethree";
+  //   delete pBoard;
+  //   pBoard = NULL;
+  //   return ERROR_DOUBLE_THREE;
+  // }
 
   return PARSE_OK;
 }
