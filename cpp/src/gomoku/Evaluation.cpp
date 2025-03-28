@@ -176,14 +176,18 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
                                                                 : board->getLastPlayerScore();
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
-    if (activeCaptureScore == 4) return GOMOKU;
-    score +=
-        CAPTURE_SCORE * (activeCaptureScore == 0 ? (activeCaptureScore + 1) : activeCaptureScore);
+    if (activeCaptureScore == board->getGoal() - 1) return GOMOKU;
+    double goalRatio =
+        board->getGoal() / 5.0;  // Adjust bonus if goal changes from the base value 5
+    int captureMultiplier = (activeCaptureScore == 0 ? 1 : activeCaptureScore);
+    score += static_cast<int>(CAPTURE_SCORE * captureMultiplier * goalRatio);
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
-    if (opponentCaptureScore == 4) return blockScores[5] - 1;
-    score += blockScores[2] *
-             (opponentCaptureScore == 0 ? (opponentCaptureScore + 1) : opponentCaptureScore);
+    if (opponentCaptureScore == board->getGoal() - 1) return blockScores[5] - 1;
+    double goalRatio = board->getGoal() / 5.0;
+    int blockMultiplier = (opponentCaptureScore == 0 ? 1 : opponentCaptureScore);
+    score += static_cast<int>(blockScores[2] * blockMultiplier * goalRatio);
   }
+
   return score;
 }
 

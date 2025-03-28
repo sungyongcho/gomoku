@@ -64,6 +64,8 @@ class Board {
   int getLastPlayerScore();
   int getNextPlayerScore();
 
+  int getGoal();
+
   const std::vector<CapturedStone> &getCapturedStones() const;
 
   void switchTurn();
