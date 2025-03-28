@@ -32,11 +32,11 @@ bool extractEvaluationFields(const rapidjson::Document &doc, int &x, int &y,
                              std::string &last_player, std::string &next_player, int &goal) {
   next_player = doc["nextPlayer"].GetString();
   last_player = (next_player[0] == PLAYER_X) ? PLAYER_O : PLAYER_X;
-  x = doc["coordinate"]["x"].GetInt();
-  y = doc["coordinate"]["y"].GetInt();
+  // x = doc["coordinate"]["x"].GetInt();
+  // y = doc["coordinate"]["y"].GetInt();
   // TODO: needs to check
-  // x = doc["lastPlay"]["coordinate"]["x"].GetInt();
-  // y = doc["lastPlay"]["coordinate"]["y"].GetInt();
+  x = doc["lastPlay"]["coordinate"]["x"].GetInt();
+  y = doc["lastPlay"]["coordinate"]["y"].GetInt();
   goal = doc["goal"].GetInt();
 
   std::cout << "Move received:" << std::endl;

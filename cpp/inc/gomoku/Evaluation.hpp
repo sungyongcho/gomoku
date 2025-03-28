@@ -33,7 +33,7 @@
 #define LOOKUP_TABLE_SIZE (1 << (2 * COMBINED_WINDOW_SIZE))
 
 namespace Evaluation {
-// Global lookup table for combined patterns.
+
 extern int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
 extern int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
@@ -46,29 +46,11 @@ static const int continuousScores[6] = {0,
 static const int blockScores[6] = {
     0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
-// Initializes the lookup table for combined patterns.
 void initCombinedPatternScoreTables();
 
-// // Evaluates the board position at (x,y) for the given player.
-// // Returns a heuristic score computed by summing the scores from the four axes.
 int evaluatePosition(Board *&board, int player, int x, int y);
 
-// // Helper: Evaluates one axis (direction dx,dy) at (x,y) by combining the forward
-// // and backward windows with the center move, then using the lookup table.
-// int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy);
-
-// // Helper: Extracts a window of 'length' cells as a bit-packed integer,
-// // starting from (x,y) moving in direction (dx,dy). Out-of-bound cells are marked with
-// // OUT_OF_BOUNDS.
-// unsigned int extractLineAsBits(Board *board, int x, int y, int dx, int dy, int length);
-
-// // Helper: Reverses a bit-packed pattern over 'windowSize' cells (each cell: 2 bits).
-// unsigned int reversePattern(unsigned int pattern, int windowSize);
-
-// // Helper: Given a combined pattern (of COMBINED_WINDOW_SIZE cells),
-// // decode it into an array and return a heuristic score based on the contiguous run
-// // (including the center), open ends, and capture opportunities.
-// int evaluateCombinedPattern(int combinedPattern, int player);
+int getEvaluationRating(int score);
 
 }  // namespace Evaluation
 #endif  // EVALUATION_HPP
