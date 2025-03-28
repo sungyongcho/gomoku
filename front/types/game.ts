@@ -4,6 +4,7 @@ export type History = {
   stone: Stone;
   coordinate: { x: number; y: number };
   capturedStones?: BoardStone[];
+  executionTime?: { s: number; ms: number; ns: number }; // ms
 };
 
 export type BoardInput = {
