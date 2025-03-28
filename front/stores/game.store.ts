@@ -21,6 +21,12 @@ type GameSituation = {
   };
 };
 
+type StoneEval = {
+  player: "O" | "X";
+  evalScores: number;
+  rating: 1 | 2 | 3 | 4 | 5;
+};
+
 export const useGameStore = defineStore("game", () => {
   const { doAlert } = useAlertStore();
   const { playStoneSound, playUndoSound } = useSound();
@@ -60,6 +66,7 @@ export const useGameStore = defineStore("game", () => {
   };
   const turn = useStorage<Stone>("turn", "X"); // Player1 = 'X', Player2 = 'O'
   const histories = useStorage<History[]>("histories", []);
+  const evalScores = ref<[StoneEval, StoneEval] | []>([]);
   const gameOver = useStorage<boolean>("gameOver", false);
   const boardData = useStorage<{ stone: Stone }[][]>(
     "boardData",
@@ -313,5 +320,6 @@ export const useGameStore = defineStore("game", () => {
     deleteLastHistory,
     player1TotalCaptured,
     player2TotalCaptured,
+    evalScores,
   };
 });

@@ -20,9 +20,14 @@ const onClickCell = () => {
   emit("put", { x: props.x, y: props.y });
 };
 const onEvaluate = () => {
+  // get evaluation
   emit("evaluate", { x: props.x, y: props.y });
 };
-const { turn, gameOver } = storeToRefs(useGameStore());
+const onMouseLeave = () => {
+  // clear previous evaluation
+  emit("evaluate", undefined);
+};
+const { turn, gameOver, isShowEval } = storeToRefs(useGameStore());
 </script>
 
 <template>
@@ -30,6 +35,7 @@ const { turn, gameOver } = storeToRefs(useGameStore());
     class="relative flex h-[calc(min(78vw,78vh)/19)] w-[calc(min(78vw,78vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-130px,90vh-130px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)] [&_.previewStone]:hover:block"
     @click="onClickCell"
     @contextmenu.prevent="onEvaluate"
+    @mouseleave="onMouseLeave"
     :disabled="stone !== '.' || gameOver ? true : false"
   >
     <hr

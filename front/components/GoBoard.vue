@@ -4,8 +4,8 @@ const { boardData } = storeToRefs(useGameStore());
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   emit("put", { x, y });
 };
-const onEvaluateStone = ({ x, y }: { x: number; y: number }) => {
-  emit("evaluate", { x, y });
+const onEvaluateStone = (coordinate: { x: number; y: number } | undefined) => {
+  emit("evaluate", coordinate);
 };
 const emit = defineEmits(["put", "evaluate"]);
 </script>
