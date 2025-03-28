@@ -11,17 +11,19 @@ void sendJsonResponse(struct lws *wsi, const std::string &response) {
 }
 
 bool extractRequiredFields(const rapidjson::Document &doc, int &x, int &y, std::string &last_player,
-                           std::string &next_player, int &goal) {
+                           std::string &next_player, int &goal, std::string &difficulty) {
   x = doc["lastPlay"]["coordinate"]["x"].GetInt();
   y = doc["lastPlay"]["coordinate"]["y"].GetInt();
   last_player = doc["lastPlay"]["stone"].GetString();
   next_player = doc["nextPlayer"].GetString();
   goal = doc["goal"].GetInt();
+  difficulty = doc["difficulty"].GetString();
 
   std::cout << "Move received:" << std::endl;
   std::cout << "  Last Play: (" << x << ", " << y << ") by " << last_player << std::endl;
   std::cout << "  Next Player: " << next_player << std::endl;
   std::cout << "  Goal: " << goal << std::endl;
+  // std::cout << "  Difficulty: " << difficulty << std::endl;
 
   return true;
 }
@@ -72,7 +74,7 @@ bool parseScores(const rapidjson::Document &doc, std::string last_player, std::s
 // Main parseJson function using ParseResult enum
 ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error,
                       // temporary for storing the position
-                      int *last_x, int *last_y) {
+                      int *last_x, int *last_y, std::string &difficulty) {
   int x, y, goal;
   std::string last_player, next_player;
   std::vector<std::vector<char> > board_data;
@@ -87,7 +89,7 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
     return ERROR_NO_LAST_PLAY;
   }
 
-  if (!extractRequiredFields(doc, x, y, last_player, next_player, goal)) {
+  if (!extractRequiredFields(doc, x, y, last_player, next_player, goal, difficulty)) {
     error = "Missing required fields.";
     return ERROR_UNKNOWN;
   }

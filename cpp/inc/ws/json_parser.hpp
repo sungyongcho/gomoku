@@ -19,7 +19,6 @@ enum ParseResult {
   ERROR_NO_LAST_PLAY,
   ERROR_INVALID_BOARD,
   ERROR_INVALID_SCORES,
-  ERROR_DOUBLE_THREE,
   ERROR_UNKNOWN
 };
 
@@ -32,6 +31,6 @@ std::vector<std::vector<char> > parseBoardFromJson(const rapidjson::Document &do
 
 void sendJsonResponse(struct lws *wsi, const std::string &response);
 ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error,
-                      int *last_x, int *last_y);
+                      int *last_x, int *last_y, std::string &difficulty);
 
 #endif  // JSON_PARSER_H
