@@ -10,8 +10,8 @@ void sendJsonResponse(struct lws *wsi, const std::string &response) {
   delete[] buf;
 }
 
-bool extractRequiredFields(const rapidjson::Document &doc, int &x, int &y, std::string &last_player,
-                           std::string &next_player, int &goal, std::string &difficulty) {
+bool extractMoveFields(const rapidjson::Document &doc, int &x, int &y, std::string &last_player,
+                       std::string &next_player, int &goal, std::string &difficulty) {
   x = doc["lastPlay"]["coordinate"]["x"].GetInt();
   y = doc["lastPlay"]["coordinate"]["y"].GetInt();
   last_player = doc["lastPlay"]["stone"].GetString();
@@ -24,6 +24,25 @@ bool extractRequiredFields(const rapidjson::Document &doc, int &x, int &y, std::
   std::cout << "  Next Player: " << next_player << std::endl;
   std::cout << "  Goal: " << goal << std::endl;
   // std::cout << "  Difficulty: " << difficulty << std::endl;
+
+  return true;
+}
+
+bool extractEvaluationFields(const rapidjson::Document &doc, int &x, int &y,
+                             std::string &last_player, std::string &next_player, int &goal) {
+  next_player = doc["nextPlayer"].GetString();
+  last_player = (next_player[0] == PLAYER_X) ? PLAYER_O : PLAYER_X;
+  // TODO: needs to change
+  // x = doc["coordinate"]["x"].GetInt();
+  // y = doc["coordinate"]["y"].GetInt();
+  x = doc["lastPlay"]["coordinate"]["x"].GetInt();
+  y = doc["lastPlay"]["coordinate"]["y"].GetInt();
+  goal = doc["goal"].GetInt();
+
+  std::cout << "Move received:" << std::endl;
+  std::cout << "  Last Play: (" << x << ", " << y << ") by " << last_player << std::endl;
+  std::cout << "  Next Player: " << next_player << std::endl;
+  std::cout << "  Goal: " << goal << std::endl;
 
   return true;
 }
@@ -72,9 +91,9 @@ bool parseScores(const rapidjson::Document &doc, std::string last_player, std::s
 }
 
 // Main parseJson function using ParseResult enum
-ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::string &error,
-                      // temporary for storing the position
-                      int *last_x, int *last_y, std::string &difficulty) {
+ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std::string &error,
+                             // temporary for storing the position
+                             int *last_x, int *last_y, std::string &difficulty) {
   int x, y, goal;
   std::string last_player, next_player;
   std::vector<std::vector<char> > board_data;
@@ -89,7 +108,7 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
     return ERROR_NO_LAST_PLAY;
   }
 
-  if (!extractRequiredFields(doc, x, y, last_player, next_player, goal, difficulty)) {
+  if (!extractMoveFields(doc, x, y, last_player, next_player, goal, difficulty)) {
     error = "Missing required fields.";
     return ERROR_UNKNOWN;
   }
@@ -131,6 +150,42 @@ ParseResult parseJson(const rapidjson::Document &doc, Board *&pBoard, std::strin
   //   pBoard = NULL;
   //   return ERROR_DOUBLE_THREE;
   // }
+
+  return PARSE_OK;
+}
+
+ParseResult parseEvaluateRequest(const rapidjson::Document &doc, Board *&pBoard, std::string &error,
+                                 // temporary for storing the position
+                                 int *eval_x, int *eval_y) {
+  int x, y, goal;
+  std::string last_player, next_player;
+  std::vector<std::vector<char> > board_data;
+  int last_player_score = 0;
+  int next_player_score = 0;
+
+  pBoard = NULL;
+  error.clear();
+
+  if (!extractEvaluationFields(doc, x, y, last_player, next_player, goal)) {
+    error = "Missing required fields.";
+    return ERROR_UNKNOWN;
+  }
+
+  *eval_x = x;
+  *eval_y = y;
+
+  if (!parseBoard(doc, board_data)) {
+    error = "Invalid board field.";
+    return ERROR_INVALID_BOARD;
+  }
+
+  if (!parseScores(doc, last_player, next_player, last_player_score, next_player_score)) {
+    error = "Invalid scores field.";
+    return ERROR_INVALID_SCORES;
+  }
+
+  pBoard =
+      new Board(board_data, goal, last_player, next_player, last_player_score, next_player_score);
 
   return PARSE_OK;
 }
