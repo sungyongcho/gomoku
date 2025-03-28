@@ -175,15 +175,13 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
                                                               : board->getNextPlayerScore();
   int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
                                                                 : board->getLastPlayerScore();
+  double goalRatio = board->getGoal() / 5.0;  // Adjust bonus if goal changes from the base value 5
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
     if (activeCaptureScore == board->getGoal() - 1) return GOMOKU;
-    double goalRatio =
-        board->getGoal() / 5.0;  // Adjust bonus if goal changes from the base value 5
     int captureMultiplier = (activeCaptureScore == 0 ? 1 : activeCaptureScore);
     score += static_cast<int>(CAPTURE_SCORE * captureMultiplier * goalRatio);
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
     if (opponentCaptureScore == board->getGoal() - 1) return blockScores[5] - 1;
-    double goalRatio = board->getGoal() / 5.0;
     int blockMultiplier = (opponentCaptureScore == 0 ? 1 : opponentCaptureScore);
     score += static_cast<int>(blockScores[2] * blockMultiplier * goalRatio);
   }
@@ -201,6 +199,22 @@ int evaluatePosition(Board *&board, int player, int x, int y) {
   }
 
   return totalScore;
+}
+
+int getEvaluationRating(int score) {
+  // Map score from [1, GOMOKU] to [0, 100]
+  int percentage = (score - 1) * 100 / (GOMOKU - 1);
+
+  if (percentage < 20)
+    return 1;
+  else if (percentage < 40)
+    return 2;
+  else if (percentage < 60)
+    return 3;
+  else if (percentage < 80)
+    return 4;
+  else
+    return 5;
 }
 
 }  // namespace Evaluation

@@ -16,7 +16,11 @@
 ,
 {
   "type": "evaluate",
-  "evalScores": [{"player": "O", "evalScore": 1}, {"player": "X", "evalScore": 3}], // can be removed
-  // the scores will be determined later
-  // either 1) by winning percentage 2) directely returning evaluation score
+  "evalScores": [{"player": "O", "evalScores": 1, "rating": 2}, {"player": "X", "evalScores":3,  "rating": 4}],
+  // five different ratings:
+  // 1 -- Weak
+  // 2 -- Less Weak
+  // 3 -- Mediocre
+  // 4 -- Less Strong
+  // 5 -- Strong
 }
