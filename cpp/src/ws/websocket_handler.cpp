@@ -2,9 +2,6 @@
 
 #include <cstring>
 #include <ctime>  // Required for clock()
-#include <iostream>
-#include <string>
-#include <vector>
 
 #include "Rules.hpp"
 #include "minimax.hpp"
@@ -48,6 +45,35 @@ void responseSuccessMove(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY
   response.Accept(writer);
   std::string json_response = buffer.GetString();
   // std::cout << "Json Response: " << json_response << std::endl;
+  sendJsonResponse(wsi, json_response);
+}
+
+void responseSuccessEvaluate(struct lws *wsi, int evalScoreX, int evalScoreY) {
+  rapidjson::Document response;
+  response.SetObject();
+  rapidjson::Document::AllocatorType &allocator = response.GetAllocator();
+
+  response.AddMember("type", "evaluate", allocator);
+  rapidjson::Value evalScores(rapidjson::kArrayType);
+
+  // Assuming evalScoreY is for player "O" and evalScoreX for player "X"
+  rapidjson::Value scoreO(rapidjson::kObjectType);
+  scoreO.AddMember("player", "O", allocator);
+  scoreO.AddMember("evalScore", evalScoreY, allocator);
+  evalScores.PushBack(scoreO, allocator);
+
+  rapidjson::Value scoreX(rapidjson::kObjectType);
+  scoreX.AddMember("player", "X", allocator);
+  scoreX.AddMember("evalScore", evalScoreX, allocator);
+  evalScores.PushBack(scoreX, allocator);
+
+  response.AddMember("evalScores", evalScores, allocator);
+
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  response.Accept(writer);
+  std::string json_response = buffer.GetString();
+  std::cout << "Json Response: " << json_response << std::endl;
   sendJsonResponse(wsi, json_response);
 }
 
@@ -119,13 +145,6 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           return -1;
         }
 
-        // std::cout << "coordinates: " << Board::convertIndexToCoordinates(last_x, last_y)
-        //           << std::endl;
-        // int check = Evaluation::evaluatePosition(pBoard, pBoard->getLastPlayer(), last_x,
-        // last_y);
-
-        // std::cout << "score: " << check << std::endl;
-
         std::clock_t start = std::clock();  // Start time
 
         std::pair<int, int> a = Minimax::getBestMove(pBoard, difficulty == "easy" ? 1 : 5);
@@ -167,13 +186,12 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           sendJsonResponse(wsi, error_response);
           return -1;
         }
+        // p1 mapped as x and p2 mapped as y
+        int x_scores = Evaluation::evaluatePosition(pBoard, PLAYER_1, eval_x, eval_y);
+        int y_scores = Evaluation::evaluatePosition(pBoard, PLAYER_2, eval_x, eval_y);
 
-        std::cout << "coordinates: " << Board::convertIndexToCoordinates(eval_x, eval_y)
-                  << std::endl;
-        int p1_scores = Evaluation::evaluatePosition(pBoard, PLAYER_1, eval_x, eval_y);
-        int p2_scores = Evaluation::evaluatePosition(pBoard, PLAYER_2, eval_x, eval_y);
-
-        std::cout << "x_scores: " << p1_scores << " y_scores: " << p2_scores << std::endl;
+        std::cout << "x_scores: " << x_scores << " y_scores: " << y_scores << std::endl;
+        responseSuccessEvaluate(wsi, x_scores, y_scores);
 
         delete pBoard;
         return 0;
