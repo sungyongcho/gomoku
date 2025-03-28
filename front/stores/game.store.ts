@@ -109,8 +109,11 @@ export const useGameStore = defineStore("game", () => {
     const player = h.stone === "X" ? "Black" : "White";
     const x = String.fromCharCode("A".charCodeAt(0) + h.coordinate.x);
     const y = h.coordinate.y + 1;
-
-    return `${player} - (${x}, ${y})`;
+    const history = `[${player}]: (${x}, ${y})`;
+    if (h.executionTime) {
+      return `${history} - ${h.executionTime.ms.toFixed(0)}ms`;
+    }
+    return history;
   };
 
   const updateBoard = (
@@ -197,6 +200,7 @@ export const useGameStore = defineStore("game", () => {
   const debugAddStoneToBoardData = (
     { x, y }: { x: number; y: number },
     stone: Stone,
+    executionTime?: { s: number; ms: number; ns: number },
   ) => {
     // Calculate captured stone
     const capturedStones = getCapturedStones({
@@ -225,6 +229,7 @@ export const useGameStore = defineStore("game", () => {
       coordinate: { x, y },
       stone,
       capturedStones: capturedStones,
+      executionTime,
     });
 
     // Check end condition
@@ -255,6 +260,7 @@ export const useGameStore = defineStore("game", () => {
   const addStoneToBoardData = (
     { x, y }: { x: number; y: number },
     stone: Stone,
+    executionTime?: { s: number; ms: number; ns: number },
   ) => {
     // Calculate captured stone
     const capturedStones = getCapturedStones({
@@ -281,6 +287,7 @@ export const useGameStore = defineStore("game", () => {
       coordinate: { x, y },
       stone,
       capturedStones: capturedStones,
+      executionTime,
     });
 
     // Check end condition
