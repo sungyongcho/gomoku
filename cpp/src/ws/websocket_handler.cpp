@@ -81,9 +81,6 @@ std::string constructErrorResponse(ParseResult result, const std::string &detail
     case ERROR_INVALID_SCORES:
       oss << "Invalid scores field";
       break;
-    case ERROR_DOUBLE_THREE:
-      oss << "doublethree";
-      break;
     default:
       oss << "Unknown error";
       break;
@@ -128,14 +125,13 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         std::string error;
         int last_x;
         int last_y;
-        ParseResult result = parseJson(doc, pBoard, error, &last_x, &last_y);
+        std::string difficulty;
+        ParseResult result = parseJson(doc, pBoard, error, &last_x, &last_y, difficulty);
 
         if (result != PARSE_OK) {
           std::string error_response = constructErrorResponse(result, error);
           std::cout << error_response << std::endl;
           sendJsonResponse(wsi, error_response);
-          // TODO : remove
-          //  if (result == ERROR_DOUBLE_THREE) return 0;
           return -1;
         }
 
@@ -147,7 +143,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::clock_t start = std::clock();  // Start time
 
-        std::pair<int, int> a = Minimax::getBestMove(pBoard, 5);
+        std::pair<int, int> a = Minimax::getBestMove(pBoard, difficulty == "easy" ? 1 : 5);
 
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
