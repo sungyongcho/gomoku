@@ -46,7 +46,10 @@ std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board) {
   for (int row = 0; row < BOARD_SIZE; row++) {
     uint64_t candidates = neighbor[row] & (~occupancy[row]) & rowMask;
     for (int col = 0; col < BOARD_SIZE; col++) {
-      if (candidates & (1ULL << col)) moves.push_back(std::make_pair(col, row));
+      if (candidates & (1ULL << col)) {
+        if (!Rules::detectDoublethreeBit(*board, col, row, board->getNextPlayer()))
+          moves.push_back(std::make_pair(col, row));
+      }
     }
   }
   return moves;
@@ -122,23 +125,6 @@ struct MoveComparatorMin {
   }
 };
 
-// Filter candidate moves to remove moves that cause a double-three.
-// Assume detectDoublethree is implemented to return true if the move creates a double-three.
-std::vector<std::pair<int, int> > filterDoubleThreeMoves(
-    Board *board, const std::vector<std::pair<int, int> > &moves, int player) {
-  std::vector<std::pair<int, int> > filtered;
-  for (size_t i = 0; i < moves.size(); i++) {
-    Board *temp = Board::cloneBoard(board);
-    temp->setValueBit(moves[i].first, moves[i].second, player);
-    // If this move does not create a double-three, keep it.
-    if (!Rules::detectDoublethreeBit(*temp, moves[i].first, moves[i].second, player)) {
-      filtered.push_back(moves[i]);
-    }
-    delete temp;
-  }
-  return filtered;
-}
-
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
             bool isMaximizing) {
   // Terminal condition: if we've reached the maximum search depth.
@@ -190,7 +176,6 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 std::pair<int, int> getBestMove(Board *board, int depth) {
   int bestScore = std::numeric_limits<int>::min();
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
-  std::cout << "next player: " << board->getNextPlayer() << std::endl;
   int currentPlayer = board->getNextPlayer();
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
