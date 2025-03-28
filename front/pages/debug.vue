@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useWebSocket } from "@vueuse/core";
+import { useMouse, useParentElement } from "@vueuse/core";
 
 import type {
   RequestType,
@@ -16,12 +17,15 @@ const {
   turn,
   boardData,
   settings,
+  evalScores,
   player1TotalCaptured,
   player2TotalCaptured,
 } = storeToRefs(useGameStore());
 const { status, data, send, open, close } = useWebSocket(
   "ws://localhost:8005/ws/debug",
 );
+
+const { x, y } = useMouse({ touch: false });
 const lastHistory = computed(() => histories.value.at(-1));
 const { deleteLastHistory, initGame, debugAddStoneToBoardData } =
   useGameStore();
@@ -59,8 +63,14 @@ const onSendStone = () => {
   const { x, y } = lastHistory.value!.coordinate;
   onSendData("move", { x, y });
 };
-const onEvaluateStone = ({ x, y }: { x: number; y: number }) => {
-  onSendData("evaluate", { x, y });
+const onEvaluateStone = (coordinate: undefined | { x: number; y: number }) => {
+  if (coordinate) {
+    onSendData("evaluate", coordinate);
+  } else {
+    // hide eval
+    evalScores.value = [];
+    data.value = null;
+  }
 };
 
 watch(data, (rawData) => {
@@ -69,6 +79,12 @@ watch(data, (rawData) => {
   try {
     const res: SocketDebugMoveResponse =
       typeof rawData === "string" ? JSON.parse(rawData) : rawData;
+
+    if (res.type === "evaluate") {
+      evalScores.value = res.evalScores;
+      return;
+    }
+
     if (res.type === "error") {
       if (res.status === "tba") {
         doAlert("Caution", "TBA", "Warn");
@@ -76,10 +92,6 @@ watch(data, (rawData) => {
       }
       doAlert("Caution", "Double-three is not allowed", "Warn");
       return;
-    }
-
-    if (res.type === "evaluate") {
-      console.log("evaluated result", res);
     }
 
     boardData.value = res.board.map((row) =>
@@ -110,6 +122,25 @@ onUnmounted(() => {
   <main
     class="flex h-[calc(100vh-80px)] w-full items-start justify-center -lg:h-[calc(100vh-68px)] lg:items-center"
   >
+    <!-- Eval Stone -->
+    <div
+      v-if="evalScores.length"
+      class="shadow-3xl fixed left-0 top-0 z-[100] flex flex-col gap-2 rounded-md bg-white p-2 shadow-xl"
+      :style="{ transform: `translate(${x + 20}px, ${y - 30}px)` }"
+    >
+      <div v-for="s in evalScores" class="flex items-center gap-2">
+        <i
+          class="pi"
+          :class="{
+            ['pi-circle-fill']: s.player === 'X',
+            ['pi-circle']: s.player === 'O',
+          }"
+        ></i>
+        <EvalScoreGage v-model="s.rating" />
+      </div>
+    </div>
+
+    <!-- Board & History -->
     <div
       class="flex max-w-[1280px] items-center justify-center gap-10 -lg:flex-col-reverse"
     >
