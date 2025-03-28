@@ -6,7 +6,8 @@
 #include "Rules.hpp"
 #include "minimax.hpp"
 
-void responseSuccessMove(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY) {
+void responseSuccessMove(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY,
+                         double executionTime) {
   rapidjson::Document response;
   response.SetObject();
   rapidjson::Document::AllocatorType &allocator = response.GetAllocator();
@@ -40,11 +41,21 @@ void responseSuccessMove(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY
   }
   response.AddMember("capturedStones", capturedStones, allocator);
 
+  {
+    double elapsed_ms = executionTime * 1000.0;
+    double elapsed_ns = executionTime * 1e9;
+    rapidjson::Value execTime(rapidjson::kObjectType);
+    execTime.AddMember("s", executionTime, allocator);
+    execTime.AddMember("ms", elapsed_ms, allocator);
+    execTime.AddMember("ns", elapsed_ns, allocator);
+    response.AddMember("executionTime", execTime, allocator);
+  }
+
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   response.Accept(writer);
   std::string json_response = buffer.GetString();
-  // std::cout << "Json Response: " << json_response << std::endl;
+  std::cout << "Json Response: " << json_response << std::endl;
   sendJsonResponse(wsi, json_response);
 }
 
@@ -156,21 +167,21 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           pBoard->applyCapture(false);
         }
 
-        // Calculate elapsed time
-        double elapsed_seconds = static_cast<double>(end - start) / CLOCKS_PER_SEC;
-        double elapsed_ms = elapsed_seconds * 1000.0;
-        double elapsed_ns = elapsed_seconds * 1e9;
+        // // Calculate elapsed time
+        double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+        // double elapsed_ms = executionTime * 1000.0;
+        // double elapsed_ns = executionTime * 1e9;
 
-        std::cout << "Execution time: " << elapsed_seconds << " s, " << elapsed_ms << " ms, "
-                  << elapsed_ns << " ns" << std::endl;
-        // std::cout << a.first << ", " << a.second << std::endl;
-        std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
-        std::cout << "score: " << pBoard->getLastPlayerScore() << " , "
-                  << pBoard->getNextPlayerScore() << std::endl;
+        // std::cout << "Execution time: " << executionTime << " s, " << elapsed_ms << " ms, "
+        //           << elapsed_ns << " ns" << std::endl;
+        // // std::cout << a.first << ", " << a.second << std::endl;
+        // std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
+        // std::cout << "score: " << pBoard->getLastPlayerScore() << " , "
+        //           << pBoard->getNextPlayerScore() << std::endl;
 
         // Minimax::simulateAIBattle(pBoard, 5, 80);
 
-        responseSuccessMove(wsi, *pBoard, a.first, a.second);
+        responseSuccessMove(wsi, *pBoard, a.first, a.second, executionTime);
         delete pBoard;
         return 0;
       } else if (type == "evaluate") {
