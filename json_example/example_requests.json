@@ -19,7 +19,7 @@
   "board": [],
   "coordinate": { "x": 9, "y": 10 },
   "goal": 5,
-    "scores": [
+  "scores": [
     { "player": "O", "score": 1 },
     { "player": "X", "score": 3 }
   ]

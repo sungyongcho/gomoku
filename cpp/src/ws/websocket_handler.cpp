@@ -9,9 +9,7 @@
 #include "Rules.hpp"
 #include "minimax.hpp"
 
-void responseSuccess(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY) {
-  (void)aiPlayX;
-  (void)aiPlayY;
+void responseSuccessMove(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY) {
   rapidjson::Document response;
   response.SetObject();
   rapidjson::Document::AllocatorType &allocator = response.GetAllocator();
@@ -22,20 +20,6 @@ void responseSuccess(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY) {
   rapidjson::Value json_board(rapidjson::kArrayType);
   board.BitboardToJsonBoardboard(json_board, allocator);
   response.AddMember("board", json_board, allocator);
-
-  // rapidjson::Value scores(rapidjson::kArrayType);
-  // {
-  //   rapidjson::Value scoreObj(rapidjson::kObjectType);
-  //   scoreObj.AddMember("player", board.getLastPlayer() == 1 ? "X" : "O", allocator);
-  //   scoreObj.AddMember("score", board.getLastPlayerScore(), allocator);
-  //   scores.PushBack(scoreObj, allocator);
-
-  //   rapidjson::Value scoreObj2(rapidjson::kObjectType);
-  //   scoreObj2.AddMember("player", board.getNextPlayer() == 2 ? "O" : "X", allocator);
-  //   scoreObj2.AddMember("score", board.getNextPlayerScore(), allocator);
-  //   scores.PushBack(scoreObj2, allocator);
-  // }
-  // response.AddMember("scores", scores, allocator);
 
   rapidjson::Value lastPlay(rapidjson::kObjectType);
   {
@@ -126,7 +110,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         int last_x;
         int last_y;
         std::string difficulty;
-        ParseResult result = parseJson(doc, pBoard, error, &last_x, &last_y, difficulty);
+        ParseResult result = parseMoveRequest(doc, pBoard, error, &last_x, &last_y, difficulty);
 
         if (result != PARSE_OK) {
           std::string error_response = constructErrorResponse(result, error);
@@ -135,11 +119,12 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           return -1;
         }
 
-        std::cout << "coordinates: " << Board::convertIndexToCoordinates(last_x, last_y)
-                  << std::endl;
-        int check = Evaluation::evaluatePosition(pBoard, pBoard->getLastPlayer(), last_x, last_y);
+        // std::cout << "coordinates: " << Board::convertIndexToCoordinates(last_x, last_y)
+        //           << std::endl;
+        // int check = Evaluation::evaluatePosition(pBoard, pBoard->getLastPlayer(), last_x,
+        // last_y);
 
-        std::cout << "score: " << check << std::endl;
+        // std::cout << "score: " << check << std::endl;
 
         std::clock_t start = std::clock();  // Start time
 
@@ -159,7 +144,6 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::cout << "Execution time: " << elapsed_seconds << " s, " << elapsed_ms << " ms, "
                   << elapsed_ns << " ns" << std::endl;
-
         // std::cout << a.first << ", " << a.second << std::endl;
         std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
         std::cout << "score: " << pBoard->getLastPlayerScore() << " , "
@@ -167,7 +151,30 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         // Minimax::simulateAIBattle(pBoard, 5, 80);
 
-        responseSuccess(wsi, *pBoard, a.first, a.second);
+        responseSuccessMove(wsi, *pBoard, a.first, a.second);
+        delete pBoard;
+        return 0;
+      } else if (type == "evaluate") {
+        Board *pBoard = NULL;
+        std::string error;
+        int eval_x;
+        int eval_y;
+        ParseResult result = parseEvaluateRequest(doc, pBoard, error, &eval_x, &eval_y);
+
+        if (result != PARSE_OK) {
+          std::string error_response = constructErrorResponse(result, error);
+          std::cout << error_response << std::endl;
+          sendJsonResponse(wsi, error_response);
+          return -1;
+        }
+
+        std::cout << "coordinates: " << Board::convertIndexToCoordinates(eval_x, eval_y)
+                  << std::endl;
+        int p1_scores = Evaluation::evaluatePosition(pBoard, PLAYER_1, eval_x, eval_y);
+        int p2_scores = Evaluation::evaluatePosition(pBoard, PLAYER_2, eval_x, eval_y);
+
+        std::cout << "x_scores: " << p1_scores << " y_scores: " << p2_scores << std::endl;
+
         delete pBoard;
         return 0;
       } else {

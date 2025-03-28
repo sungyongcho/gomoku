@@ -14,7 +14,7 @@
 int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
                   size_t len);
 
-void responseSuccess(struct lws *wsi, Board &board);
+void responseSuccessMove(struct lws *wsi, Board &board);
 
 std::string constructErrorResponse(ParseResult result, const std::string &details);
 
