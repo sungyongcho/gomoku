@@ -147,6 +147,8 @@ int Board::getNextPlayerScore() { return this->next_player_score; }
 
 int Board::getLastPlayerScore() { return this->last_player_score; }
 
+int Board::getGoal() { return this->goal; }
+
 const std::vector<CapturedStone> &Board::getCapturedStones() const { return this->captured_stones; }
 
 void Board::switchTurn() {
