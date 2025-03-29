@@ -63,6 +63,7 @@ export const useGameStore = defineStore("game", () => {
   const histories = useStorage<History[]>("histories", []);
   const evalScores = ref<[StoneEval, StoneEval] | []>([]);
   const gameOver = useStorage<boolean>("gameOver", false);
+  const isAiThinking = ref(false);
   const boardData = useStorage<{ stone: Stone }[][]>(
     "boardData",
     initialBoard(),
@@ -323,5 +324,6 @@ export const useGameStore = defineStore("game", () => {
     player1TotalCaptured,
     player2TotalCaptured,
     evalScores,
+    isAiThinking,
   };
 });

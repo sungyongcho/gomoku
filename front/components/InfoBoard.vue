@@ -9,6 +9,7 @@ const {
   player2TotalCaptured,
   settings,
   turn,
+  isAiThinking,
 } = storeToRefs(useGameStore());
 const { historyToLog } = useGameStore();
 const historyEl = ref<HTMLElement>();
@@ -28,7 +29,6 @@ const aiAverageResponseTime = computed(() => {
 watch(
   () => histories.value?.length,
   () => {
-    console.log("HERE");
     nextTick(() => {
       const scrollHeight = historyEl.value!.scrollHeight;
       historyEl.value!.scroll(0, scrollHeight);
@@ -48,11 +48,10 @@ watch(
         :disabled="!isDebug"
         @click="turn = 'X'"
       >
-        <Avatar
-          size="xlarge"
-          shape="circle"
+        <InfoAvatar
           :image="player1Image"
-          class="border-4 border-black shadow-[0_0_4px_1px_gray]"
+          :loading="isAiThinking && turn === 'X'"
+          size="xlarge"
         />
         <span>Player1</span>
       </button>
@@ -67,11 +66,10 @@ watch(
         :disabled="!isDebug"
         @click="turn = 'O'"
       >
-        <Avatar
-          class="border-4 border-gray-100 shadow-[0_0_4px_1px_black]"
-          size="xlarge"
-          shape="circle"
+        <InfoAvatar
           :image="settings.isPlayer2AI ? aiImage : player2Image"
+          :loading="isAiThinking && turn === 'O'"
+          size="xlarge"
         />
         <span> {{ settings.isPlayer2AI ? "AI" : "Player2" }}</span>
       </button>

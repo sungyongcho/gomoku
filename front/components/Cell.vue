@@ -17,6 +17,7 @@ const props = defineProps({
 });
 const emit = defineEmits(["put", "evaluate"]);
 const onClickCell = () => {
+  if (isAiThinking.value) return;
   emit("put", { x: props.x, y: props.y });
 };
 const onEvaluate = () => {
@@ -27,7 +28,7 @@ const onMouseLeave = () => {
   // clear previous evaluation
   emit("evaluate", undefined);
 };
-const { turn, gameOver, histories } = storeToRefs(useGameStore());
+const { turn, gameOver, histories, isAiThinking } = storeToRefs(useGameStore());
 const lastHistory = computed(() => histories.value.at(-1));
 </script>
 

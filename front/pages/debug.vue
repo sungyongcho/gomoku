@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useWebSocket } from "@vueuse/core";
-import { useMouse, useParentElement } from "@vueuse/core";
+import { useMouse } from "@vueuse/core";
 
 import type {
   RequestType,
@@ -20,10 +20,22 @@ const {
   evalScores,
   player1TotalCaptured,
   player2TotalCaptured,
+  isAiThinking,
 } = storeToRefs(useGameStore());
-const { status, data, send, open, close } = useWebSocket(
-  "ws://localhost:8005/ws/debug",
-);
+const { data, send, close } = useWebSocket("ws://localhost:8005/ws/debug", {
+  autoReconnect: {
+    retries: 3,
+    delay: 500,
+    onFailed() {
+      doAlert(
+        "Error",
+        "WebSocket connection failed. Please refresh the page to retry",
+        "Warn",
+      );
+      isAiThinking.value = false;
+    },
+  },
+});
 
 const { x, y } = useMouse({ touch: false });
 const lastHistory = computed(() => histories.value.at(-1));
@@ -35,6 +47,7 @@ const onPutStone = ({ x, y }: { x: number; y: number }) => {
 };
 
 const onSendData = (type: RequestType, { x, y }: { x: number; y: number }) => {
+  isAiThinking.value = true;
   send(
     JSON.stringify({
       type,
@@ -73,6 +86,11 @@ const onEvaluateStone = (coordinate: undefined | { x: number; y: number }) => {
   }
 };
 
+const purgeState = () => {
+  isAiThinking.value = false;
+  data.value = null;
+};
+
 watch(data, (rawData) => {
   if (!data.value) return;
 
@@ -82,11 +100,13 @@ watch(data, (rawData) => {
 
     if (res.type === "evaluate") {
       evalScores.value = res.evalScores;
+      purgeState();
       return;
     }
 
     if (res.type === "error") {
       doAlert("Caution", "Double-three is not allowed", "Warn");
+      purgeState();
       return;
     }
 
@@ -102,8 +122,9 @@ watch(data, (rawData) => {
       "An unexpected error occurred while processing data.",
       "Warn",
     );
+  } finally {
+    purgeState();
   }
-  data.value = null;
 });
 
 onUnmounted(() => {
@@ -147,7 +168,13 @@ onUnmounted(() => {
             @click="deleteLastHistory"
           />
           <Button label="Restart" icon="pi pi-play" @click="initGame" />
-          <Button label="Send" icon="pi pi-send" @click="onSendStone" />
+          <Button
+            label="Send"
+            icon="pi pi-send"
+            @click="onSendStone"
+            :disabled="isAiThinking"
+            :loading="isAiThinking"
+          />
           <ToggleButton
             onIcon="pi pi-lock"
             offIcon="pi pi-lock-open"
