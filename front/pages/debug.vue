@@ -161,7 +161,7 @@ onUnmounted(() => {
           />
         </div>
       </div>
-      <DebugInfoBoard />
+      <InfoBoard />
     </div>
   </main>
 </template>
