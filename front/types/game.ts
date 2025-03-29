@@ -69,4 +69,5 @@ export type SocketMoveResponse = {
   scores: { player: Stone; score: number }[];
   executionTime?: { s: number; ms: number; ns: number };
   evalScores: [StoneEval, StoneEval];
+  error?: string;
 };
