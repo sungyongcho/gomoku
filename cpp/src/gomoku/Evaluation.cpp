@@ -183,7 +183,7 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
     if (opponentCaptureScore == board->getGoal() - 1) return blockScores[5] - 1;
     int blockMultiplier = (opponentCaptureScore == 0 ? 1 : opponentCaptureScore);
-    score += static_cast<int>(blockScores[2] * blockMultiplier * goalRatio);
+    score += static_cast<int>(CAPTURE_SCORE * blockMultiplier * goalRatio);
   }
 
   return score;
