@@ -27,7 +27,8 @@ const onMouseLeave = () => {
   // clear previous evaluation
   emit("evaluate", undefined);
 };
-const { turn, gameOver, isShowEval } = storeToRefs(useGameStore());
+const { turn, gameOver, histories } = storeToRefs(useGameStore());
+const lastHistory = computed(() => histories.value.at(-1));
 </script>
 
 <template>
@@ -62,8 +63,13 @@ const { turn, gameOver, isShowEval } = storeToRefs(useGameStore());
     </small>
     <span
       v-if="stone !== '.'"
-      class="absolute z-10 h-[calc(min(70vw,70vh)/19)] w-[calc(min(70vw,70vh)/19)] rounded-[50%] shadow-[0_2px_6px_1px_#78716c] -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
-      :class="{ 'bg-white': stone == 'O', 'bg-black': stone == 'X' }"
+      class="absolute z-10 box-content h-[calc(min(70vw,70vh)/19)] w-[calc(min(70vw,70vh)/19)] rounded-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] shadow-[0_2px_6px_1px_#78716c] -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
+      :class="{
+        'from-white via-white to-gray-300': stone == 'O',
+        'from-gray-600 via-gray-900 to-black': stone == 'X',
+        ['z-[11] border-[4px] border-red-500']:
+          lastHistory?.coordinate.x === x && lastHistory?.coordinate.y === y,
+      }"
     ></span>
     <span
       v-else-if="!gameOver"
