@@ -139,6 +139,18 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     return Evaluation::evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
 
   if (isMaximizing) {
+    MoveComparatorMax cmp(board, currentPlayer);
+    std::sort(moves.begin(), moves.end(), cmp);
+  } else {
+    MoveComparatorMin cmp(board, currentPlayer);
+    std::sort(moves.begin(), moves.end(), cmp);
+  }
+
+  // if (moves.size() > 1) {
+  //   moves.resize(moves.size() / 2);
+  // }
+
+  if (isMaximizing) {
     int maxEval = std::numeric_limits<int>::min();
     for (size_t i = 0; i < moves.size(); ++i) {
       // Create a child board state.
@@ -179,6 +191,13 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   int currentPlayer = board->getNextPlayer();
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
+
+  MoveComparatorMax cmp(board, currentPlayer);
+  std::sort(moves.begin(), moves.end(), cmp);
+
+  // if (moves.size() > 1) {
+  //   moves.resize(moves.size() / 2);
+  // }
 
   for (size_t i = 0; i < moves.size(); ++i) {
     Board *child = Board::cloneBoard(board);
