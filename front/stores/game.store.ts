@@ -42,7 +42,7 @@ export const useGameStore = defineStore("game", () => {
     advantage2: 0,
     isPlayer2AI: true,
     isDebugTurnLocked: true,
-    difficulty: "hard",
+    difficulty: "hard", // easy, medium, hard
     ai: "minmax", // minmax, alphago
   });
 
