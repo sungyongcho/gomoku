@@ -3,15 +3,15 @@ import player1Image from "~/assets/player1.webp";
 import player2Image from "~/assets/player2.webp";
 import aiImage from "~/assets/ai.webp";
 
-const { player1TotalCaptured, player2TotalCaptured, settings, turn } =
-  storeToRefs(useGameStore());
-const { deleteLastHistory, initGame } = useGameStore();
 const props = defineProps({
   debug: {
     type: Boolean,
     default: false,
   },
 });
+const { player1TotalCaptured, player2TotalCaptured, settings, turn } =
+  storeToRefs(useGameStore());
+const { isAiThinking } = storeToRefs(useGameStore());
 </script>
 
 <template>
@@ -35,10 +35,9 @@ const props = defineProps({
               @click="turn = 'X'"
             >
               <span class="text-sm">Player1</span>
-              <Avatar
+              <InfoAvatar
                 :image="player1Image"
-                shape="circle"
-                class="border-2 border-black shadow-[0_0_4px_1px_white]"
+                :loading="isAiThinking && turn === 'X'"
               />
             </button>
 
@@ -72,10 +71,9 @@ const props = defineProps({
               <span class="text-sm">{{
                 settings.isPlayer2AI ? "AI" : "Player2"
               }}</span>
-              <Avatar
+              <InfoAvatar
                 :image="settings.isPlayer2AI ? aiImage : player2Image"
-                shape="circle"
-                class="border-2 border-white shadow-[0_0_8px_1px_gray]"
+                :loading="isAiThinking && turn === 'O'"
               />
             </button>
           </div>
