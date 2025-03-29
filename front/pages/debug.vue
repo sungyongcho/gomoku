@@ -4,7 +4,7 @@ import { useMouse, useParentElement } from "@vueuse/core";
 
 import type {
   RequestType,
-  SocketDebugMoveResponse,
+  SocketMoveResponse,
   SocketMoveRequest,
 } from "~/types/game";
 
@@ -77,7 +77,7 @@ watch(data, (rawData) => {
   if (!data.value) return;
 
   try {
-    const res: SocketDebugMoveResponse =
+    const res: SocketMoveResponse =
       typeof rawData === "string" ? JSON.parse(rawData) : rawData;
 
     if (res.type === "evaluate") {
@@ -86,10 +86,6 @@ watch(data, (rawData) => {
     }
 
     if (res.type === "error") {
-      if (res.status === "tba") {
-        doAlert("Caution", "TBA", "Warn");
-        return;
-      }
       doAlert("Caution", "Double-three is not allowed", "Warn");
       return;
     }

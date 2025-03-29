@@ -51,7 +51,13 @@ export type SocketMoveRequest = {
   scores: { player: Stone; score: number }[];
 };
 
-export type SocketDebugMoveResponse = {
+export type StoneEval = {
+  player: "O" | "X";
+  evalScores: number;
+  rating: 1 | 2 | 3 | 4 | 5;
+};
+
+export type SocketMoveResponse = {
   type: ResponseType;
   status: "success" | "doublethree";
   lastPlay: {
@@ -61,4 +67,6 @@ export type SocketDebugMoveResponse = {
   board: Stone[][];
   capturedStones: { x: number; y: number; stone: Stone }[];
   scores: { player: Stone; score: number }[];
+  executionTime?: { s: number; ms: number; ns: number };
+  evalScores: [StoneEval, StoneEval];
 };

@@ -7,6 +7,7 @@ import {
   GAME_END_SCENARIO,
   type History,
   type Stone,
+  type StoneEval,
 } from "~/types/game";
 
 type GameSituation = {
@@ -19,12 +20,6 @@ type GameSituation = {
     player2: number;
     goal: number;
   };
-};
-
-type StoneEval = {
-  player: "O" | "X";
-  evalScores: number;
-  rating: 1 | 2 | 3 | 4 | 5;
 };
 
 export const useGameStore = defineStore("game", () => {
