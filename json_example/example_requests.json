@@ -1,7 +1,7 @@
 {
   "type": "move",
   "nextPlayer": "X",
-  "difficulty": "easy", //"easy" and "hard" - default is hard
+  "difficulty": "easy", //"easy", "medium" and "hard" - default is medium - represents the depth of minimax search
   "lastPlay": {
     "coordinate": { "x": 9, "y": 10 },
     "stone": "X"
@@ -23,4 +23,7 @@
     { "player": "O", "score": 1 },
     { "player": "X", "score": 3 }
   ]
+},
+{
+  "type": "reset"
 }
