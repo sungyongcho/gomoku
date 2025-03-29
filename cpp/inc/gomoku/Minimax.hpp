@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -19,6 +21,20 @@
 // - Shifting 1 left by (2 * COMBINED_WINDOW_SIZE) is equivalent to 2^(2 * COMBINED_WINDOW_SIZE),
 //   which is the total number of unique patterns that can be represented.
 #define LOOKUP_TABLE_SIZE_TMP (1 << (2 * COMBINED_WINDOW_SIZE_TMP))
+
+// Bound types used for alpha-beta entries.
+enum BoundType { EXACT, LOWERBOUND, UPPERBOUND };
+
+// Structure for transposition table entries.
+struct TTEntry {
+  int score;                     // Evaluation score
+  int depth;                     // Depth at which the evaluation was computed
+  std::pair<int, int> bestMove;  // Best move from this state (if available)
+  BoundType flag;                // Flag indicating whether score is EXACT, a lower, or upper bound.
+};
+
+// Global transposition table (using std::map for simplicity in C++98).
+static std::map<uint64_t, TTEntry> transTable;
 
 namespace Minimax {
 

@@ -1,7 +1,9 @@
 #ifndef GOMOKU_HPP
 #define GOMOKU_HPP
 
+#include <stdint.h>
 // Define constants
+
 #define PLAYER_1 1
 #define PLAYER_2 2
 #define PLAYER_X 'X'
@@ -40,5 +42,19 @@ inline unsigned int pack_cells_3(unsigned int a, unsigned int b, unsigned int c)
 inline unsigned int pack_cells_2(unsigned int a, unsigned int b) { return (a << 2) | b; }
 
 inline unsigned int pack_cells_1(unsigned int a) { return a; }
+
+/**
+ * for zobrist table
+ */
+
+static const int NUM_CELLS = BOARD_SIZE * BOARD_SIZE;
+static const uint64_t LAST_SCORE_MULTIPLIER = 2654435761UL;
+static const uint64_t NEXT_SCORE_MULTIPLIER = 1597334677UL;  // Different prime constant
+
+extern uint64_t zobristTable[NUM_CELLS]
+                            [3];  // For each cell and state (0: empty, 1: black, 2: white).
+extern uint64_t zobristTurn[3];   // For turn: index 1 for BLACK, 2 for WHITE.
+
+void initZobrist();
 
 #endif  // GOMOKU_HPP

@@ -5,9 +5,17 @@ Board::Board()
       last_player(PLAYER_1),  // Default starting player for last move
       next_player(PLAYER_2),  // Default next player
       last_player_score(0),
-      next_player_score(0) {
+      next_player_score(0),
+      currentHash(0) {
   // Reset the bitboards to start with an empty board.
   resetBitboard();
+  for (int row = 0; row < BOARD_SIZE; ++row) {
+    for (int col = 0; col < BOARD_SIZE; ++col) {
+      int index = row * BOARD_SIZE + col;
+      currentHash ^= zobristTable[index][EMPTY_SPACE];
+    }
+  }
+  currentHash ^= zobristTurn[getNextPlayer()];
 }
 
 Board::Board(const Board &other)
@@ -16,7 +24,8 @@ Board::Board(const Board &other)
       next_player(other.next_player),
       last_player_score(other.last_player_score),
       next_player_score(other.next_player_score),
-      captured_stones(other.captured_stones) {
+      captured_stones(other.captured_stones),
+      currentHash(other.currentHash) {
   for (int i = 0; i < BOARD_SIZE; ++i) {
     last_player_board[i] = other.last_player_board[i];
     next_player_board[i] = other.next_player_board[i];
@@ -33,6 +42,16 @@ Board::Board(const std::vector<std::vector<char> > &board_data, int goal,
       next_player_score(next_score) {
   this->resetBitboard();
   this->initBitboardFromData(board_data);
+
+  // Recompute currentHash based on the new board state.
+  currentHash = 0;
+  for (int row = 0; row < BOARD_SIZE; ++row) {
+    for (int col = 0; col < BOARD_SIZE; ++col) {
+      int index = row * BOARD_SIZE + col;
+      currentHash ^= zobristTable[index][getValueBit(col, row)];
+    }
+  }
+  currentHash ^= zobristTurn[getNextPlayer()];
 }
 
 bool Board::isValidCoordinate(int col, int row) {
@@ -69,6 +88,11 @@ uint64_t *Board::getBitboardByPlayer(int player) {
 // Set the cell (col, row) to a given player.
 void Board::setValueBit(int col, int row, int player) {
   if (!isValidCoordinate(col, row)) return;
+
+  int index = row * BOARD_SIZE + col;
+  int oldState = getValueBit(col, row);
+
+  currentHash ^= zobristTable[index][oldState];
   // Each row is a separate uint64_t; only the lower BOARD_SIZE bits are used.
   uint64_t mask = 1ULL << col;  // Bit position corresponds to the column.
   // Clear the cell in both boards.
@@ -79,6 +103,9 @@ void Board::setValueBit(int col, int row, int player) {
     this->last_player_board[row] |= mask;
   else if (player == PLAYER_2)
     this->next_player_board[row] |= mask;
+
+  currentHash ^= zobristTable[index][player];
+  currentHash ^= zobristTurn[getNextPlayer()];
 }
 
 // Get the value at (col, row).
@@ -149,8 +176,11 @@ int Board::getLastPlayerScore() { return this->last_player_score; }
 
 int Board::getGoal() { return this->goal; }
 
+uint64_t Board::getHash() { return this->currentHash; }
+
 const std::vector<CapturedStone> &Board::getCapturedStones() const { return this->captured_stones; }
 
+// TODO: needs to change the hash value
 void Board::switchTurn() {
   int tmp;
 
@@ -275,24 +305,46 @@ void Board::storeCapturedStone(int x, int y, int player) {
   captured_stones.push_back(cs);
 }
 
+void Board::updateLastPlayerScore(int newAddedScore) {
+  // Remove the old last_player_score's contribution from the hash.
+  currentHash ^= static_cast<uint64_t>(this->last_player_score) * LAST_SCORE_MULTIPLIER;
+  // Update the score variable.
+  this->last_player_score += newAddedScore;
+  // Add the new score's contribution.
+  currentHash ^= static_cast<uint64_t>(this->last_player_score) * LAST_SCORE_MULTIPLIER;
+}
+
+void Board::updateNextPlayerScore(int newAddedScore) {
+  // Remove the old next_player_score's contribution.
+  currentHash ^= static_cast<uint64_t>(this->next_player_score) * NEXT_SCORE_MULTIPLIER;
+  // Update the score.
+  this->next_player_score += newAddedScore;
+  // Add the new score's contribution.
+  currentHash ^= static_cast<uint64_t>(this->next_player_score) * NEXT_SCORE_MULTIPLIER;
+}
+
 void Board::applyCapture(bool clearCapture) {
-  // std::cout << this->getLastPlayer() << "//" << last_player << std::endl;
-  // std::cout << this->getNextPlayer() << "//" << next_player << std::endl;
+  int newLastPlayerScore = 0;
+  int newNextPlayerScore = 0;
   for (size_t i = 0; i < captured_stones.size(); ++i) {
     // std::cout << "[" << captured_stones[i].x << "][" << captured_stones[i].y << "]["
     //           << captured_stones[i].player << "]" << std::endl;
     if (captured_stones[i].player == last_player) {
       // std::cout << "checking" << std::endl;
-      this->next_player_score++;
+      newNextPlayerScore++;
     } else if (captured_stones[i].player == next_player) {
-      this->last_player_score++;
+      newLastPlayerScore++;
       // std::cout << "checking 2" << std::endl;
     }
 
     setValueBit(captured_stones[i].x, captured_stones[i].y, EMPTY_SPACE);
   }
-  next_player_score /= 2;
-  last_player_score /= 2;
+
+  newLastPlayerScore /= 2;
+  newNextPlayerScore /= 2;
+
+  updateLastPlayerScore(newLastPlayerScore);
+  updateNextPlayerScore(newNextPlayerScore);
 
   if (clearCapture) captured_stones.clear();
 }
