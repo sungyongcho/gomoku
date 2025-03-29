@@ -7,7 +7,8 @@
 #include <iostream>
 
 #include "Evaluation.hpp"
-#include "minimax.hpp"
+#include "Gomoku.hpp"
+#include "Minimax.hpp"
 #include "websocket_handler.hpp"
 
 class Server {

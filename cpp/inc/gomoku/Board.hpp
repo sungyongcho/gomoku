@@ -33,8 +33,12 @@ class Board {
 
   std::vector<CapturedStone> captured_stones;
 
+  uint64_t currentHash;
+
   void resetBitboard();
   void initBitboardFromData(const std::vector<std::vector<char> > &board_data);
+  void updateLastPlayerScore(int newScore);
+  void updateNextPlayerScore(int newScore);
 
  public:
   Board();
@@ -65,6 +69,8 @@ class Board {
   int getNextPlayerScore();
 
   int getGoal();
+
+  uint64_t getHash();
 
   const std::vector<CapturedStone> &getCapturedStones() const;
 

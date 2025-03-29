@@ -3,8 +3,8 @@
 #include <cstring>
 #include <ctime>  // Required for clock()
 
+#include "Minimax.hpp"
 #include "Rules.hpp"
-#include "minimax.hpp"
 
 void responseSuccessMove(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY,
                          double executionTime) {
