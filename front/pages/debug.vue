@@ -86,6 +86,11 @@ const onEvaluateStone = (coordinate: undefined | { x: number; y: number }) => {
   }
 };
 
+const onRestart = () => {
+  initGame();
+  send(JSON.stringify({ type: "reset" }));
+};
+
 const purgeState = () => {
   isAiThinking.value = false;
   data.value = null;
@@ -167,7 +172,7 @@ onUnmounted(() => {
             :disabled="histories.length < 1"
             @click="deleteLastHistory"
           />
-          <Button label="Restart" icon="pi pi-play" @click="initGame" />
+          <Button label="Restart" icon="pi pi-play" @click="onRestart" />
           <Button
             label="Send"
             icon="pi pi-send"
