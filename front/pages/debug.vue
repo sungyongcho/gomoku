@@ -46,7 +46,10 @@ const onPutStone = ({ x, y }: { x: number; y: number }) => {
   debugAddStoneToBoardData({ x, y }, turn.value);
 };
 
-const onSendData = (type: RequestType, { x, y }: { x: number; y: number }) => {
+const onSendData = (
+  type: RequestType,
+  coordinate?: { x: number; y: number },
+) => {
   isAiThinking.value = true;
   send(
     JSON.stringify({
@@ -54,11 +57,11 @@ const onSendData = (type: RequestType, { x, y }: { x: number; y: number }) => {
       difficulty: settings.value.difficulty,
       nextPlayer: lastHistory.value?.stone === "X" ? "O" : "X",
       goal: settings.value.totalPairCaptured,
-      lastPlay: lastHistory.value
+      lastPlay: coordinate
         ? {
             coordinate: {
-              x: x,
-              y: y,
+              x: coordinate.x,
+              y: coordinate.y,
             },
             stone: lastHistory.value?.stone,
           }
@@ -73,8 +76,10 @@ const onSendData = (type: RequestType, { x, y }: { x: number; y: number }) => {
 };
 
 const onSendStone = () => {
-  const { x, y } = lastHistory.value!.coordinate;
-  onSendData("move", { x, y });
+  onSendData(
+    "move",
+    lastHistory.value?.coordinate ? lastHistory.value.coordinate : undefined,
+  );
 };
 const onEvaluateStone = (coordinate: undefined | { x: number; y: number }) => {
   if (coordinate) {
@@ -110,7 +115,8 @@ watch(data, (rawData) => {
     }
 
     if (res.type === "error") {
-      doAlert("Caution", "Double-three is not allowed", "Warn");
+      console.error(res);
+      doAlert("Caution", res.error, "Warn");
       purgeState();
       return;
     }
