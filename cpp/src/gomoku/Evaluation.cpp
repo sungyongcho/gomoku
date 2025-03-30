@@ -96,13 +96,13 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
     backwardOpen = true;
     continuous += 4;
   } else if ((backward & 0x3F) == pack_cells_3(player, player, player)) {
-    if (((forward & 0xC0) >> 6) == EMPTY_SPACE) backwardOpen = true;
+    if (((backward & 0xC0) >> 6) == EMPTY_SPACE) backwardOpen = true;
     continuous += 3;
   } else if ((backward & 0x0F) == pack_cells_2(player, player)) {
-    if (((forward & 0x30) >> 4) == EMPTY_SPACE) backwardOpen = true;
+    if (((backward & 0x30) >> 4) == EMPTY_SPACE) backwardOpen = true;
     continuous += 2;
   } else if ((backward & 0x03) == player) {
-    if (((forward & 0x0c) >> 2) == EMPTY_SPACE) backwardOpen = true;
+    if (((backward & 0x0c) >> 2) == EMPTY_SPACE) backwardOpen = true;
     continuous += 1;
   } else if (backward == pack_cells_4(opponent, opponent, opponent, opponent))
     block += 4;

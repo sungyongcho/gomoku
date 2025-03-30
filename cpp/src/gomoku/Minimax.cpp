@@ -380,7 +380,7 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
   for (int depth = 1; depth <= maxDepth; ++depth) {
     // Check elapsed time.
     double elapsedTime = static_cast<double>(std::clock() - startTime) / CLOCKS_PER_SEC;
-    if (elapsedTime >= timeLimitSeconds) {
+    if (elapsedTime > timeLimitSeconds) {
       std::cout << "Time limit reached at depth " << depth << ".\n";
       break;
     }
