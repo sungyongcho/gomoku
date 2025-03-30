@@ -37,12 +37,8 @@ namespace Evaluation {
 extern int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
 extern int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
-static const int continuousScores[6] = {0,
-                                        CONTINUOUS_LINE_1,
-                                        CONTINUOUS_LINE_2,
-                                        CONTINUOUS_LINE_3,
-                                        CONTINUOUS_LINE_4,
-                                        CONTINUOUS_LINE_4};
+static const int continuousScores[6] = {
+    0, CONTINUOUS_LINE_1, CONTINUOUS_LINE_2, CONTINUOUS_LINE_3, CONTINUOUS_LINE_4, GOMOKU};
 static const int blockScores[6] = {
     0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
