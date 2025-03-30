@@ -158,9 +158,24 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           return -1;
         }
 
+        // std::clock_t start = std::clock();  // Start time
+
+        // std::pair<int, int> a = Minimax::getBestMove(pBoard, difficulty == "easy" ? 1 : 8);
+
+        // std::clock_t end = std::clock();  // End time
+        // pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
+        // if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
+        //   std::cout << "herher hrehreh" << std::endl;
+        //   pBoard->applyCapture(false);
+        // }
+
+        // // // Calculate elapsed time
+        // double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+
         std::clock_t start = std::clock();  // Start time
 
-        std::pair<int, int> a = Minimax::getBestMove(pBoard, difficulty == "easy" ? 1 : 8);
+        std::pair<int, int> a =
+            Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : 8, 0.5);
 
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
@@ -171,6 +186,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         // // Calculate elapsed time
         double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+
         // double elapsed_ms = executionTime * 1000.0;
         // double elapsed_ns = executionTime * 1e9;
 

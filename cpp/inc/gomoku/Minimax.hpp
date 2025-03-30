@@ -43,6 +43,7 @@ std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board);
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates);
 
 std::pair<int, int> getBestMove(Board *board, int depth);
+std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLimitSeconds);
 
 void simulateAIBattle(Board *pBoard, int searchDepth, int numTurns);
 
