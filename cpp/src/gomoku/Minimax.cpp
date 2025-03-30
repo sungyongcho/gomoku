@@ -370,6 +370,29 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   return bestMove;
 }
 
+std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLimitSeconds) {
+  std::pair<int, int> bestMove = std::make_pair(-1, -1);
+  std::clock_t startTime = std::clock();
+
+  // Optionally clear the transposition table before starting.
+  transTable.clear();
+
+  for (int depth = 1; depth <= maxDepth; ++depth) {
+    // Check elapsed time.
+    double elapsedTime = static_cast<double>(std::clock() - startTime) / CLOCKS_PER_SEC;
+    if (elapsedTime >= timeLimitSeconds) {
+      std::cout << "Time limit reached at depth " << depth << ".\n";
+      break;
+    }
+    bestMove = getBestMove(board, depth);
+
+    std::cout << "Depth " << depth << " best move: (" << bestMove.first << ", " << bestMove.second
+              << ") - Elapsed: " << elapsedTime << " s\n";
+  }
+
+  return bestMove;
+}
+
 void simulateAIBattle(Board *pBoard, int searchDepth, int numTurns) {
   for (int turn = 0; turn < numTurns; ++turn) {
     int currentPlayer = pBoard->getNextPlayer();
