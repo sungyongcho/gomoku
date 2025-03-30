@@ -271,19 +271,15 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     return eval;
   }
 
-  // Order moves for better pruning.
-  if (isMaximizing) {
-    MoveComparatorMax cmp(board, currentPlayer);
-    std::sort(moves.begin(), moves.end(), cmp);
-  } else {
-    MoveComparatorMin cmp(board, currentPlayer);
-    std::sort(moves.begin(), moves.end(), cmp);
-  }
-
   int bestEval;
+  // Save original alpha and beta for later bound determination.
+  int originalAlpha = alpha;
+  int originalBeta = beta;
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
 
   if (isMaximizing) {
+    MoveComparatorMax cmp(board, currentPlayer);
+    std::sort(moves.begin(), moves.end(), cmp);
     bestEval = std::numeric_limits<int>::min();
     for (size_t i = 0; i < moves.size(); ++i) {
       Board *child = Board::cloneBoard(board);
@@ -299,6 +295,8 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
       if (beta <= alpha) break;  // Beta cutoff.
     }
   } else {
+    MoveComparatorMin cmp(board, currentPlayer);
+    std::sort(moves.begin(), moves.end(), cmp);
     bestEval = std::numeric_limits<int>::max();
     for (size_t i = 0; i < moves.size(); ++i) {
       Board *child = Board::cloneBoard(board);
@@ -315,8 +313,17 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     }
   }
 
+  // Determine the bound type for the entry.
+  BoundType flag;
+  if (bestEval <= originalAlpha)
+    flag = UPPERBOUND;
+  else if (bestEval >= originalBeta)
+    flag = LOWERBOUND;
+  else
+    flag = EXACT;
+
   // Store the computed value in the transposition table.
-  TTEntry newEntry = {bestEval, depth, bestMove, EXACT};
+  TTEntry newEntry = {bestEval, depth, bestMove, flag};
   transTable[hash] = newEntry;
   return bestEval;
 }
