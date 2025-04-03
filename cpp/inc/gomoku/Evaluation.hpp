@@ -13,10 +13,10 @@
 #define CONTINUOUS_LINE_2 100
 #define CONTINUOUS_LINE_1 10
 #define BLOCK_LINE_5 999000
-#define BLOCK_LINE_4 999000
-#define BLOCK_LINE_3 1000
-#define BLOCK_LINE_2 100
-#define BLOCK_LINE_1 10
+#define BLOCK_LINE_4 10000
+#define BLOCK_LINE_3 100
+#define BLOCK_LINE_2 10
+#define BLOCK_LINE_1 1
 #define OPEN_SINGLE_STONE 10
 #define CAPTURE_SCORE 100
 #define WINDOW_CENTER_VALUE 0
@@ -39,7 +39,8 @@ extern int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
 static const int continuousScores[6] = {
     0, CONTINUOUS_LINE_1, CONTINUOUS_LINE_2, CONTINUOUS_LINE_3, CONTINUOUS_LINE_4, GOMOKU};
-static const int blockScores[5] = {0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4};
+static const int blockScores[6] = {
+    0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
 void initCombinedPatternScoreTables();
 
