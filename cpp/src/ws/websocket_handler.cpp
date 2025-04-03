@@ -227,6 +227,8 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         delete pBoard;
         return 0;
+      } else if (type == "reset") {
+        initZobrist();
       } else {
         std::string error_response = constructErrorResponse(ERROR_UNKNOWN, "Unknown type");
         sendJsonResponse(wsi, error_response);

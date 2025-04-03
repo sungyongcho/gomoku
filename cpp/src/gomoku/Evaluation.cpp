@@ -127,13 +127,6 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
   if ((SIDE_WINDOW_SIZE - continuous) > (forwardContEmpty + backwardContEmpty)) continuous = 0;
   if (block > 4) block = 4;
 
-  // if (continuous > 4) continuous = 5;
-  // if (forwardOpen == false && backwardOpen == false) continuous = 0;
-  // if (continuous > 0) {
-  //   if (forwardOpen == false && ((backward & 0x03) == opponent)) continuous = 0;
-  //   if (backwardOpen == false && ((forward & 0xC0) >> 6) == opponent) continuous = 0;
-  // }
-
   return continuousScores[continuous] + blockScores[block];
 }
 
