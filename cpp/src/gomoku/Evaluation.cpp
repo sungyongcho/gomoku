@@ -67,22 +67,22 @@ void printPattern(unsigned int pattern, int numCells) {
 int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsigned int player) {
   unsigned int opponent = OPPONENT(player);
   int continuous = 0;
+  int forwardContinuous = 0;
+  int forwardContEmpty = 0;
+  int backwardContinuous = 0;
+  int backwardContEmpty = 0;
   int block = 0;
 
-  bool forwardOpen = false;
-  bool backwardOpen = false;
   if (forward == pack_cells_4(player, player, player, player)) {
-    forwardOpen = true;
-    continuous += 4;
+    // forwardContinuous += 4;
+    // return gomoku
+    return GOMOKU;
   } else if (((forward & 0xFC) >> 2) == pack_cells_3(player, player, player)) {
-    if ((forward & 0x03) == EMPTY_SPACE) forwardOpen = true;
-    continuous += 3;
+    forwardContinuous += 3;
   } else if (((forward & 0xF0) >> 4) == pack_cells_2(player, player)) {
-    if (((forward & 0x0C) >> 2) == EMPTY_SPACE) forwardOpen = true;
-    continuous += 2;
+    forwardContinuous += 2;
   } else if (((forward & 0xC0) >> 6) == player) {
-    if (((forward & 0x30) >> 4) == EMPTY_SPACE) forwardOpen = true;
-    continuous += 1;
+    forwardContinuous += 1;
   } else if (forward == pack_cells_4(opponent, opponent, opponent, opponent))
     block += 4;
   else if (((forward & 0xFC) >> 2) == pack_cells_3(opponent, opponent, opponent))
@@ -91,19 +91,22 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
     block += 2;
   else if (((forward & 0xC0) >> 6) == opponent)
     block += 1;
+  for (int i = forwardContinuous; i > 0; i--) {
+    if (((forward >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
+      forwardContinuous += 1;
+    else
+      break;
+  }
 
   if (backward == pack_cells_4(player, player, player, player)) {
-    backwardOpen = true;
-    continuous += 4;
+    return GOMOKU;
+    // backwardContinuous += 4;
   } else if ((backward & 0x3F) == pack_cells_3(player, player, player)) {
-    if (((backward & 0xC0) >> 6) == EMPTY_SPACE) backwardOpen = true;
-    continuous += 3;
+    backwardContinuous += 3;
   } else if ((backward & 0x0F) == pack_cells_2(player, player)) {
-    if (((backward & 0x30) >> 4) == EMPTY_SPACE) backwardOpen = true;
-    continuous += 2;
+    backwardContinuous += 2;
   } else if ((backward & 0x03) == player) {
-    if (((backward & 0x0c) >> 2) == EMPTY_SPACE) backwardOpen = true;
-    continuous += 1;
+    backwardContinuous += 1;
   } else if (backward == pack_cells_4(opponent, opponent, opponent, opponent))
     block += 4;
   else if ((backward & 0x3F) == pack_cells_3(opponent, opponent, opponent))
@@ -113,15 +116,25 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
   else if ((backward & 0x03) == opponent)
     block += 1;
 
-  if (continuous > 4) continuous = 5;
-  if (block > 4) block = 4;
-  if (forwardOpen == false && backwardOpen == false) continuous = 0;
-  if (continuous > 0) {
-    if (forwardOpen == false && ((backward & 0x03) == opponent)) continuous = 0;
-    if (backwardOpen == false && ((forward & 0xC0) >> 6) == opponent) continuous = 0;
+  for (int i = backwardContinuous; i < SIDE_WINDOW_SIZE; i++) {
+    if (((backward >> (i * 2)) & 0x03) == EMPTY_SPACE)
+      backwardContEmpty += 1;
+    else
+      break;
   }
+  continuous = forwardContinuous + backwardContinuous;
+  if (continuous > 4) continuous = 4;
+  if ((SIDE_WINDOW_SIZE - continuous) > (forwardContEmpty + backwardContEmpty)) continuous = 0;
+  if (block > 4) block = 4;
 
-  return continuousScores[continuous + 1] + blockScores[block + 1];
+  // if (continuous > 4) continuous = 5;
+  // if (forwardOpen == false && backwardOpen == false) continuous = 0;
+  // if (continuous > 0) {
+  //   if (forwardOpen == false && ((backward & 0x03) == opponent)) continuous = 0;
+  //   if (backwardOpen == false && ((forward & 0xC0) >> 6) == opponent) continuous = 0;
+  // }
+
+  return continuousScores[continuous + 1] + blockScores[block];
 }
 
 void initCombinedPatternScoreTables() {
@@ -190,15 +203,15 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
                                                               : board->getNextPlayerScore();
   int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
                                                                 : board->getLastPlayerScore();
-  double goalRatio = board->getGoal() / 5.0;  // Adjust bonus if goal changes from the base value 5
+  // double goalRatio = board->getGoal();
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
     if (activeCaptureScore == board->getGoal() - 1) return GOMOKU;
     int captureMultiplier = (activeCaptureScore == 0 ? 1 : activeCaptureScore);
-    score += static_cast<int>(CAPTURE_SCORE * captureMultiplier * goalRatio);
+    score += static_cast<int>(CAPTURE_SCORE * captureMultiplier);
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
     if (opponentCaptureScore == board->getGoal() - 1) return blockScores[5] - 1;
     int blockMultiplier = (opponentCaptureScore == 0 ? 1 : opponentCaptureScore);
-    score += static_cast<int>(CAPTURE_SCORE * blockMultiplier * goalRatio);
+    score += static_cast<int>(CAPTURE_SCORE * blockMultiplier);
   }
 
   return score;
