@@ -125,7 +125,7 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
   continuous = forwardContinuous + backwardContinuous;
   if (continuous > 4) continuous = 5;
   if (block > 4) block = 5;
-  if ((SIDE_WINDOW_SIZE - continuous) > (forwardContEmpty + backwardContEmpty)) continuous = 0;
+  if ((SIDE_WINDOW_SIZE - continuous) >= (forwardContEmpty + backwardContEmpty)) continuous = 0;
   if ((((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) &&
        ((backward & 0x03) == EMPTY_SPACE)) ||
       (((backward & 0x0F)) == pack_cells_2(opponent, player) &&
@@ -137,7 +137,7 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
             (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player)))
     continuous = 0;
 
-  return continuousScores[continuous] + blockScores[block];
+  return continuousScores[continuous + 1] + blockScores[block + 1];
 }
 
 void initCombinedPatternScoreTables() {

@@ -123,8 +123,8 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
   switch (reason) {
     case LWS_CALLBACK_ESTABLISHED:
       std::cout << "WebSocket `/ws/debug` connected!" << std::endl;
+      initZobrist();
       break;
-
     case LWS_CALLBACK_RECEIVE: {
       std::string received_msg((char *)in, len);
       std::cout << "Received: " << received_msg << std::endl;
@@ -175,7 +175,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         std::clock_t start = std::clock();  // Start time
 
         std::pair<int, int> a =
-            Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : 8, 500);
+            Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : 10, 500);
 
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
