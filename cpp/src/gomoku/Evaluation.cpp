@@ -123,9 +123,17 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
       break;
   }
   continuous = forwardContinuous + backwardContinuous;
-  if (continuous > 4) continuous = 4;
+  if (continuous > 4) continuous = 5;
+  if (block > 4) block = 5;
   if ((SIDE_WINDOW_SIZE - continuous) > (forwardContEmpty + backwardContEmpty)) continuous = 0;
-  if (block > 4) block = 4;
+  if ((((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) &&
+       ((backward & 0x03) == EMPTY_SPACE)) ||
+      (((backward & 0x0F)) == pack_cells_2(opponent, player) &&
+       ((forward & 0xC0) >> 6) == EMPTY_SPACE))
+    continuous = 0;
+  else if (((backward & 0x03) == opponent && ((forward & 0xC0) >> 6) == player) ||
+           ((backward & 0x03) == player && ((forward & 0xC0) >> 6) == opponent))
+    continuous = 0;
 
   return continuousScores[continuous] + blockScores[block];
 }
