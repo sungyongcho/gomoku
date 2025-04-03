@@ -131,8 +131,10 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
       (((backward & 0x0F)) == pack_cells_2(opponent, player) &&
        ((forward & 0xC0) >> 6) == EMPTY_SPACE))
     continuous = 0;
-  else if (((backward & 0x03) == opponent && ((forward & 0xC0) >> 6) == player) ||
-           ((backward & 0x03) == player && ((forward & 0xC0) >> 6) == opponent))
+  else if (((backward & 0x03) == opponent &&
+            ((forward & 0xF0) >> 4) == pack_cells_2(player, EMPTY_SPACE)) ||
+           (((forward & 0xC0) >> 6) == opponent &&
+            (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player)))
     continuous = 0;
 
   return continuousScores[continuous] + blockScores[block];
