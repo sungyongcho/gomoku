@@ -180,7 +180,6 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
         if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
-          std::cout << "herher hrehreh" << std::endl;
           pBoard->applyCapture(false);
         }
 
