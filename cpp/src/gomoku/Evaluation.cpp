@@ -141,7 +141,7 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
   }
   // TODO: block sharpning
 
-  return continuousScores[continuous + 1] + blockScores[block + 1];
+  return continuousScores[continuous + 1] + blockScores[block];
 }
 
 void initCombinedPatternScoreTables() {

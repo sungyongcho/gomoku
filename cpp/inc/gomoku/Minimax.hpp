@@ -22,6 +22,7 @@
 //   which is the total number of unique patterns that can be represented.
 #define LOOKUP_TABLE_SIZE_TMP (1 << (2 * COMBINED_WINDOW_SIZE_TMP))
 
+#define MAX_DEPTH 8
 // Bound types used for alpha-beta entries.
 enum BoundType { EXACT, LOWERBOUND, UPPERBOUND };
 
@@ -36,8 +37,11 @@ struct TTEntry {
 // Global transposition table (using std::map for simplicity in C++98).
 static std::map<uint64_t, TTEntry> transTable;
 
+// killerMoves[depth][0] is the primary killer, [1] is the secondary.
+// Initialize all killer moves to (-1, -1) to indicate "no move".
 namespace Minimax {
 
+void initKillerMoves();
 std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board);
 
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates);
