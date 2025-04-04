@@ -381,13 +381,14 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
     // Check elapsed time.
     double elapsedTime = static_cast<double>(std::clock() - startTime) / CLOCKS_PER_SEC;
     if (elapsedTime > timeLimitSeconds) {
-      std::cout << "Time limit reached at depth " << depth << ".\n";
+      // std::cout << "Time limit reached at depth " << depth << ".\n";
       break;
     }
     bestMove = getBestMove(board, depth);
 
-    std::cout << "Depth " << depth << " best move: (" << bestMove.first << ", " << bestMove.second
-              << ") - Elapsed: " << elapsedTime << " s\n";
+    // std::cout << "Depth " << depth << " best move: (" << bestMove.first << ", " <<
+    // bestMove.second
+    //           << ") - Elapsed: " << elapsedTime << " s\n";
   }
 
   return bestMove;
