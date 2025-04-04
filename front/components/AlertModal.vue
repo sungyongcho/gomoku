@@ -29,7 +29,7 @@ const _visible = computed({
             { 'pi-exclamation-triangle text-warn': alert?.type === 'Warn' },
           ]"
         />
-        <span>{{ alert?.header }}</span>
+        <span class="mr-5">{{ alert?.header }}</span>
       </div>
     </template>
 

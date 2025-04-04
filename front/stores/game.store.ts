@@ -122,10 +122,6 @@ export const useGameStore = defineStore("game", () => {
     });
   };
 
-  const updateBoardDebugTemp = ({ x, y, boardData, stone }: BoardInput) => {
-    boardData[y][x].stone = stone;
-  };
-
   const deleteLastHistory = () => {
     const lastHistory = histories.value.at(-1);
     if (!lastHistory) return;
@@ -217,9 +213,6 @@ export const useGameStore = defineStore("game", () => {
     // // Update board
     updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
 
-    // Update board debug temp
-    // updateBoardDebugTemp({ x, y, boardData: boardData.value, stone });
-
     // Add to history
     histories.value = histories.value.concat({
       coordinate: { x, y },
@@ -309,6 +302,30 @@ export const useGameStore = defineStore("game", () => {
     });
   };
 
+  const exportData = (): string => {
+    // boardData, histories, settings
+    const route = useRoute();
+    const data = {
+      boardData: boardData.value,
+      histories: histories.value,
+      settings: settings.value,
+      turn: turn.value,
+      gameOver: gameOver.value,
+    };
+    const dataStr = JSON.stringify(data);
+    const base64Encoded = btoa(dataStr);
+    return `${window.location.origin}${route.fullPath}?data=${base64Encoded}`;
+  };
+
+  const importData = (dataStr: string) => {
+    const data = JSON.parse(atob(dataStr));
+    boardData.value = data.boardData;
+    histories.value = data.histories;
+    settings.value = data.settings;
+    turn.value = data.turn;
+    gameOver.value = data.gameOver;
+  };
+
   return {
     settings,
     turn,
@@ -325,5 +342,7 @@ export const useGameStore = defineStore("game", () => {
     player2TotalCaptured,
     evalScores,
     isAiThinking,
+    exportData,
+    importData,
   };
 });
