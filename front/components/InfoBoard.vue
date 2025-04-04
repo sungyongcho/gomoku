@@ -2,6 +2,7 @@
 import player1Image from "~/assets/player1.webp";
 import player2Image from "~/assets/player2.webp";
 import aiImage from "~/assets/ai.webp";
+import { useClipboard } from "@vueuse/core";
 
 const {
   histories,
@@ -11,10 +12,19 @@ const {
   turn,
   isAiThinking,
 } = storeToRefs(useGameStore());
-const { historyToLog } = useGameStore();
+const { historyToLog, exportData } = useGameStore();
 const historyEl = ref<HTMLElement>();
 const route = useRoute();
 const isDebug = computed(() => route.name === "debug");
+const exportedData = ref("");
+const { text, copy, copied, isSupported } = useClipboard({
+  source: exportedData,
+});
+
+const onClickExport = () => {
+  const url = exportData();
+  copy(url);
+};
 const aiHistories = computed(() => {
   return histories.value.filter((h) => !!h.executionTime?.ms);
 });
@@ -82,25 +92,42 @@ watch(
     />
 
     <section class="w-full -lg:hidden">
-      <p class="mb-1 pl-1 text-sm">Game history</p>
+      <div class="mb-1 flex items-center justify-between pl-1 text-sm">
+        <p class="text-md font-bold">Game history</p>
+
+        <ClientOnly>
+          <button
+            v-if="isSupported"
+            class="rounded-md bg-black px-2 py-1 text-white hover:bg-opacity-80"
+            @click="onClickExport"
+          >
+            <span v-if="!copied" class="flex items-center gap-1">
+              Export as url <i class="pi pi-link"></i>
+            </span>
+            <span v-else>Copied!</span>
+          </button>
+        </ClientOnly>
+      </div>
       <div
         ref="historyEl"
-        class="relative h-[50vh] w-full overflow-y-auto rounded-md bg-black p-2 pt-8 text-sm"
+        class="relative h-[50vh] w-full overflow-y-auto rounded-md bg-black text-sm"
       >
         <p
-          class="absolute left-0 top-0 w-full rounded-t border-[4px] border-black bg-gray-300 px-2 text-black"
+          class="sticky left-0 top-0 w-full rounded-t border-[4px] border-black bg-gray-300 px-2 text-black"
         >
           AI Average Response Time:
           {{ aiAverageResponseTime }}
           ms
         </p>
-        <p
-          v-for="(h, index) in histories"
-          :key="index"
-          class="text-gray-500 last:text-white"
-        >
-          {{ historyToLog(h) }}
-        </p>
+        <ul class="pb-2">
+          <li
+            v-for="(h, index) in histories"
+            :key="index"
+            class="px-2 text-gray-500 last:text-white"
+          >
+            {{ historyToLog(h) }}
+          </li>
+        </ul>
       </div>
     </section>
   </aside>
