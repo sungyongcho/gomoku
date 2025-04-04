@@ -49,7 +49,7 @@ watch(
 );
 </script>
 <template>
-  <aside class="flex flex-col items-center gap-5 p-2">
+  <aside class="flex flex-col items-center gap-5 p-2 -sm:gap-3">
     <section class="flex w-full items-center justify-between gap-10">
       <button
         class="flex flex-col items-center justify-center"
@@ -68,7 +68,9 @@ watch(
 
       <div class="flex flex-col items-center">
         <span class="text-2xl">vs</span>
-        <span>Turn: {{ Math.floor(histories.length / 2) }}</span>
+        <span class="text-center text-sm">
+          Turn {{ Math.floor(histories.length / 2) }}
+        </span>
       </div>
 
       <button
