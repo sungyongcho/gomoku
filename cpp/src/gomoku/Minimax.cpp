@@ -8,6 +8,7 @@
 namespace Minimax {
 
 static const uint64_t rowMask = ((uint64_t)1 << BOARD_SIZE) - 1;
+static std::pair<int, int> killerMoves[MAX_DEPTH][2];
 
 // Horizontal shifts for a row.
 inline uint64_t shiftRowLeft(uint64_t row) { return (row << 1) & rowMask; }
@@ -83,45 +84,65 @@ void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, in
   std::cout << std::flush;
 }
 
+void initKillerMoves() {
+  for (int d = 0; d < MAX_DEPTH; ++d) {
+    killerMoves[d][0] = std::make_pair(-1, -1);
+    killerMoves[d][1] = std::make_pair(-1, -1);
+  }
+}
+
+// Helper: check if a move is a killer move for a given depth.
+bool isKillerMove(int depth, const std::pair<int, int> &move) {
+  return (killerMoves[depth][0] == move || killerMoves[depth][1] == move);
+}
+
 struct MoveComparatorMax {
   const Board *board;
   int player;
-  MoveComparatorMax(const Board *b, int p) : board(b), player(p) {}
+  int depth;  // Current search depth
+  MoveComparatorMax(const Board *b, int p, int d) : board(b), player(p), depth(d) {}
 
   bool operator()(const std::pair<int, int> &m1, const std::pair<int, int> &m2) const {
-    // For move ordering, we can use a lightweight evaluation.
-    // Here, we call evaluatePosition on clones of the board.
+    // Give a bonus if the move is a killer move.
+    int bonus1 = isKillerMove(depth, m1) ? 1000 : 0;
+    int bonus2 = isKillerMove(depth, m2) ? 1000 : 0;
+
+    // Evaluate each move with a shallow evaluation and add the bonus.
     Board *child1 = Board::cloneBoard(board);
     child1->setValueBit(m1.first, m1.second, player);
-    int score1 = Evaluation::evaluatePosition(child1, player, m1.first, m1.second);
+    int score1 = Evaluation::evaluatePosition(child1, player, m1.first, m1.second) + bonus1;
     delete child1;
 
     Board *child2 = Board::cloneBoard(board);
     child2->setValueBit(m2.first, m2.second, player);
-    int score2 = Evaluation::evaluatePosition(child2, player, m2.first, m2.second);
+    int score2 = Evaluation::evaluatePosition(child2, player, m2.first, m2.second) + bonus2;
     delete child2;
 
-    return score1 > score2;  // For maximizer: higher score first.
+    return score1 > score2;  // Higher score first.
   }
 };
 
 struct MoveComparatorMin {
   const Board *board;
   int player;
-  MoveComparatorMin(const Board *b, int p) : board(b), player(p) {}
+  int depth;
+  MoveComparatorMin(const Board *b, int p, int d) : board(b), player(p), depth(d) {}
 
   bool operator()(const std::pair<int, int> &m1, const std::pair<int, int> &m2) const {
+    int bonus1 = isKillerMove(depth, m1) ? 1000 : 0;
+    int bonus2 = isKillerMove(depth, m2) ? 1000 : 0;
+
     Board *child1 = Board::cloneBoard(board);
     child1->setValueBit(m1.first, m1.second, player);
-    int score1 = Evaluation::evaluatePosition(child1, player, m1.first, m1.second);
+    int score1 = Evaluation::evaluatePosition(child1, player, m1.first, m1.second) + bonus1;
     delete child1;
 
     Board *child2 = Board::cloneBoard(board);
     child2->setValueBit(m2.first, m2.second, player);
-    int score2 = Evaluation::evaluatePosition(child2, player, m2.first, m2.second);
+    int score2 = Evaluation::evaluatePosition(child2, player, m2.first, m2.second) + bonus2;
     delete child2;
 
-    return score1 < score2;  // For minimizer: lower score first.
+    return score1 < score2;  // Lower score first for minimizer.
   }
 };
 
@@ -278,7 +299,8 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
 
   if (isMaximizing) {
-    MoveComparatorMax cmp(board, currentPlayer);
+    // Use the new comparator that takes depth.
+    MoveComparatorMax cmp(board, currentPlayer, depth);
     std::sort(moves.begin(), moves.end(), cmp);
     bestEval = std::numeric_limits<int>::min();
     for (size_t i = 0; i < moves.size(); ++i) {
@@ -292,10 +314,17 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
         bestMove = moves[i];
       }
       alpha = std::max(alpha, eval);
-      if (beta <= alpha) break;  // Beta cutoff.
+      if (beta <= alpha) {
+        // On cutoff, record the move as a killer move for this depth if not already recorded.
+        if (killerMoves[depth][0] != moves[i] && killerMoves[depth][1] != moves[i]) {
+          killerMoves[depth][1] = killerMoves[depth][0];
+          killerMoves[depth][0] = moves[i];
+        }
+        break;  // Beta cutoff.
+      }
     }
   } else {
-    MoveComparatorMin cmp(board, currentPlayer);
+    MoveComparatorMin cmp(board, currentPlayer, depth);
     std::sort(moves.begin(), moves.end(), cmp);
     bestEval = std::numeric_limits<int>::max();
     for (size_t i = 0; i < moves.size(); ++i) {
@@ -309,7 +338,14 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
         bestMove = moves[i];
       }
       beta = std::min(beta, eval);
-      if (beta <= alpha) break;  // Alpha cutoff.
+      if (beta <= alpha) {
+        // On cutoff, record the move as a killer move for this depth if not already recorded.
+        if (killerMoves[depth][0] != moves[i] && killerMoves[depth][1] != moves[i]) {
+          killerMoves[depth][1] = killerMoves[depth][0];
+          killerMoves[depth][0] = moves[i];
+        }
+        break;  // Alpha cutoff.
+      }
     }
   }
 
@@ -336,7 +372,7 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   if (moves.empty()) return bestMove;
 
   // Order moves for the maximizing player.
-  MoveComparatorMax cmp(board, currentPlayer);
+  MoveComparatorMax cmp(board, currentPlayer, depth);
   std::sort(moves.begin(), moves.end(), cmp);
 
   // Evaluate each candidate move.
@@ -384,7 +420,7 @@ std::pair<int, int> getBestMovePV(Board *board, int depth, std::pair<int, int> &
   }
 
   // Now sort the candidate moves using your comparator.
-  MoveComparatorMax cmp(board, currentPlayer);
+  MoveComparatorMax cmp(board, currentPlayer, depth);
   std::sort(moves.begin(), moves.end(), cmp);
 
   // Evaluate each candidate move.
@@ -428,6 +464,7 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
 
   // Optionally, clear the transposition table.
   transTable.clear();
+  initKillerMoves();
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
     // Check elapsed time.
