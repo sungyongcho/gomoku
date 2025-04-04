@@ -135,8 +135,10 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
   } else if (((backward & 0x03) == opponent &&
               ((forward & 0xF0) >> 4) == pack_cells_2(player, EMPTY_SPACE)) ||
              (((forward & 0xC0) >> 6) == opponent &&
-              (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player)))
+              (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player))) {
     continuous = 0;
+    block = 0;
+  }
   // TODO: block sharpning
 
   return continuousScores[continuous + 1] + blockScores[block + 1];
@@ -209,14 +211,19 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
                                                                 : board->getLastPlayerScore();
   // double goalRatio = board->getGoal();
+
+  if (checkCapture(forward, player) > 0) activeCaptureScore++;
+  if (checkCapture(backward, player) > 0) activeCaptureScore++;
+
+  if (checkCapture(forward, player) < 0) opponentCaptureScore++;
+  if (checkCapture(backward, player) < 0) opponentCaptureScore++;
+
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
-    if (activeCaptureScore == board->getGoal() - 1) return GOMOKU;
-    int captureMultiplier = (activeCaptureScore == 0 ? 1 : activeCaptureScore);
-    score += static_cast<int>(CAPTURE_SCORE * captureMultiplier);
+    if (activeCaptureScore >= board->getGoal()) return GOMOKU;
+    score += static_cast<int>(CAPTURE_SCORE * std::pow(10, activeCaptureScore));
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
-    if (opponentCaptureScore == board->getGoal() - 1) return blockScores[5] - 1;
-    int blockMultiplier = (opponentCaptureScore == 0 ? 1 : opponentCaptureScore);
-    score += static_cast<int>(CAPTURE_SCORE * blockMultiplier);
+    if (opponentCaptureScore >= board->getGoal()) return blockScores[5];
+    score += static_cast<int>(CAPTURE_SCORE * std::pow(10, opponentCaptureScore));
   }
 
   return score;
