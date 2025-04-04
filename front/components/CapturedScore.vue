@@ -18,7 +18,9 @@ const { settings } = storeToRefs(useGameStore());
   >
     <div class="flex flex-col items-center justify-center">
       <div class="flex items-end rounded-lg bg-black p-2 text-white">
-        <span class="mr-1 text-3xl">{{ player1TotalCaptured }}</span>
+        <span class="mr-1 text-3xl -sm:text-xl">{{
+          player1TotalCaptured
+        }}</span>
         <small class="text-sm text-gray-300">
           /{{ settings.totalPairCaptured }}
         </small>
@@ -29,7 +31,9 @@ const { settings } = storeToRefs(useGameStore());
 
     <div class="flex flex-col items-center justify-center">
       <div class="flex items-end rounded-lg bg-black p-2 text-white">
-        <span class="mr-1 text-3xl">{{ player2TotalCaptured }}</span>
+        <span class="mr-1 text-3xl -sm:text-xl">{{
+          player2TotalCaptured
+        }}</span>
         <small class="text-sm text-gray-300">
           /{{ settings.totalPairCaptured }}
         </small>

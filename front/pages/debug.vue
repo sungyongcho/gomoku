@@ -171,7 +171,7 @@ onUnmounted(() => {
       <div>
         <GoBoard @put="onPutStone" @evaluate="onEvaluateStone" />
 
-        <div class="mt-3 flex w-full justify-center gap-3">
+        <div class="mt-3 flex w-full flex-wrap justify-center gap-3">
           <Button
             label="Undo a move"
             icon="pi pi-undo"
@@ -195,7 +195,7 @@ onUnmounted(() => {
           />
         </div>
       </div>
-      <InfoBoard />
+      <InfoBoard class="-lg:hidden" />
     </div>
   </main>
 </template>

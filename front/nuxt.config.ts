@@ -54,7 +54,12 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-01-09",
   ssr: false,
   devtools: { enabled: false },
-  modules: ["@nuxtjs/tailwindcss", "@primevue/nuxt-module", "@pinia/nuxt"],
+  modules: [
+    "@nuxtjs/tailwindcss",
+    "@primevue/nuxt-module",
+    "@pinia/nuxt",
+    "@vueuse/nuxt",
+  ],
   primevue: {
     options: {
       ripple: true,

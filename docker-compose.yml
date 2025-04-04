@@ -21,7 +21,7 @@ services:
     build:
       context: ./cpp
     volumes:
-      - ./cpp:/app  # Bind-mount source code for hot reload
+      - ./cpp:/app # Bind-mount source code for hot reload
     ports:
       - "8005:8005"
 
