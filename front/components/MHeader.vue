@@ -15,33 +15,41 @@ const { isAiThinking } = storeToRefs(useGameStore());
 </script>
 
 <template>
-  <header class="w-full bg-black p-4">
+  <header class="w-full bg-black">
     <div
-      class="mx-auto flex max-w-[1280px] items-center justify-center -lg:justify-between -sm:flex-col -sm:gap-3"
+      class="mx-auto flex max-w-[1280px] items-center -lg:flex-col -sm:gap-3"
     >
-      <nuxt-link to="/" class="text-2xl font-extrabold uppercase text-white">
-        omok
-      </nuxt-link>
+      <div class="flex w-full justify-between">
+        <nuxt-link
+          to="/"
+          class="px-4 py-2 text-2xl font-extrabold uppercase text-white -sm:text-sm"
+        >
+          omok
+        </nuxt-link>
 
-      <div class="text-white">
-        <section class="flex items-center gap-4 -sm:gap-2 lg:hidden">
-          <div class="flex items-center justify-center gap-2">
+        <MobileInfoBoard class="lg:hidden" />
+      </div>
+
+      <div class="shrink-0 py-2 text-white">
+        <section class="flex items-center gap-2 -sm:gap-2 lg:hidden">
+          <div class="flex items-center justify-center">
             <button
               :disabled="!debug"
-              :class="{
-                ['border-yellow-500']: turn === 'X',
-              }"
-              class="flex flex-col-reverse items-center border-2 border-transparent p-2"
+              class="flex flex-col-reverse items-center border-2 border-transparent"
               @click="turn = 'X'"
             >
-              <span class="text-sm">Player1</span>
               <InfoAvatar
                 :image="player1Image"
                 :loading="isAiThinking && turn === 'X'"
+                color="black"
+                :active="turn === 'X'"
               />
             </button>
 
-            <div class="ml-2 rounded-lg border-2 border-white px-2 py-1">
+            <div
+              class="ml-1 rounded-lg border-2 border-white px-2 py-1 -sm:px-1 -sm:py-0"
+              :class="{ ['!border-yellow-500']: turn === 'X' }"
+            >
               <span class="text-lg">
                 {{ player1TotalCaptured }}
               </span>
@@ -53,8 +61,11 @@ const { isAiThinking } = storeToRefs(useGameStore());
 
           <span class="text-2xl">vs</span>
 
-          <div class="flex items-center justify-center gap-2">
-            <div class="mr-2 rounded-lg border-2 border-white px-2 py-1">
+          <div class="flex items-center justify-center">
+            <div
+              class="mr-1 rounded-lg border-2 border-white px-2 py-1 -sm:px-1 -sm:py-0"
+              :class="{ ['!border-yellow-500']: turn === 'O' }"
+            >
               <span class="text-lg">
                 {{ player2TotalCaptured }}
               </span>
@@ -63,17 +74,15 @@ const { isAiThinking } = storeToRefs(useGameStore());
               </span>
             </div>
             <button
-              class="flex flex-col-reverse items-center border-2 border-transparent p-2"
+              class="flex flex-col-reverse items-center border-2 border-transparent"
               :disabled="!debug"
-              :class="{ ['!border-yellow-500']: turn === 'O' }"
               @click="turn = 'O'"
             >
-              <span class="text-sm">{{
-                settings.isPlayer2AI ? "AI" : "Player2"
-              }}</span>
               <InfoAvatar
                 :image="settings.isPlayer2AI ? aiImage : player2Image"
                 :loading="isAiThinking && turn === 'O'"
+                color="white"
+                :active="turn === 'O'"
               />
             </button>
           </div>

@@ -52,13 +52,13 @@ const lastHistory = computed(() => histories.value.at(-1));
     />
     <small
       v-if="x == 0"
-      class="absolute -left-1/2 w-1/2 text-center text-[13px] font-bold"
+      class="absolute -left-1/2 w-1/2 text-center text-[13px] font-bold -sm:text-[10px]"
     >
       {{ y + 1 }}
     </small>
     <small
       v-if="y == 0"
-      class="absolute -top-1/2 h-1/2 text-center text-[13px] font-bold"
+      class="absolute -top-1/2 h-1/2 text-center text-[13px] font-bold -sm:text-[10px]"
     >
       {{ String.fromCharCode("A".charCodeAt(0) + x) }}
     </small>

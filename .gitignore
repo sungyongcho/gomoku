@@ -3,3 +3,4 @@ Miniconda3-latest-MacOSX-arm64.sh
 **/__pycache__/
 /cpp/server
 *.o
+url.txt

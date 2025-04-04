@@ -17,8 +17,9 @@ const historyEl = ref<HTMLElement>();
 const route = useRoute();
 const isDebug = computed(() => route.name === "debug");
 const exportedData = ref("");
-const { text, copy, copied, isSupported } = useClipboard({
+const { copy, copied, isSupported } = useClipboard({
   source: exportedData,
+  legacy: true,
 });
 
 const onClickExport = () => {
@@ -48,13 +49,10 @@ watch(
 );
 </script>
 <template>
-  <aside class="flex w-[300px] flex-col items-center gap-5">
-    <section class="flex w-full items-center justify-between gap-10 -lg:hidden">
+  <aside class="flex flex-col items-center gap-5 p-2">
+    <section class="flex w-full items-center justify-between gap-10">
       <button
-        class="flex flex-col items-center justify-center border-4 border-transparent p-2"
-        :class="{
-          ['border-yellow-500']: turn === 'X',
-        }"
+        class="flex flex-col items-center justify-center"
         :disabled="!isDebug"
         @click="turn = 'X'"
       >
@@ -62,14 +60,19 @@ watch(
           :image="player1Image"
           :loading="isAiThinking && turn === 'X'"
           size="xlarge"
+          color="black"
+          :active="turn === 'X'"
         />
         <span>Player1</span>
       </button>
 
-      <span class="text-2xl">vs</span>
+      <div class="flex flex-col items-center">
+        <span class="text-2xl">vs</span>
+        <span>Turn: {{ Math.floor(histories.length / 2) }}</span>
+      </div>
 
       <button
-        class="flex flex-col items-center justify-center border-4 border-transparent p-2"
+        class="flex flex-col items-center justify-center p-2"
         :class="{
           ['border-yellow-500']: turn === 'O',
         }"
@@ -80,19 +83,23 @@ watch(
           :image="settings.isPlayer2AI ? aiImage : player2Image"
           :loading="isAiThinking && turn === 'O'"
           size="xlarge"
+          color="white"
+          :active="turn === 'O'"
         />
         <span> {{ settings.isPlayer2AI ? "AI" : "Player2" }}</span>
       </button>
     </section>
 
     <CapturedScore
-      class="w-full -lg:hidden"
+      class="w-full"
       :player1-total-captured="player1TotalCaptured"
       :player2-total-captured="player2TotalCaptured"
     />
 
-    <section class="w-full -lg:hidden">
-      <div class="mb-1 flex items-center justify-between pl-1 text-sm">
+    <section class="w-full">
+      <div
+        class="flex items-center justify-between rounded-t-md bg-gray-200 p-2 text-sm"
+      >
         <p class="text-md font-bold">Game history</p>
 
         <ClientOnly>
@@ -110,16 +117,9 @@ watch(
       </div>
       <div
         ref="historyEl"
-        class="relative h-[50vh] w-full overflow-y-auto rounded-md bg-black text-sm"
+        class="h-[50vh] w-full overflow-y-auto bg-black text-sm"
       >
-        <p
-          class="sticky left-0 top-0 w-full rounded-t border-[4px] border-black bg-gray-300 px-2 text-black"
-        >
-          AI Average Response Time:
-          {{ aiAverageResponseTime }}
-          ms
-        </p>
-        <ul class="pb-2">
+        <ul class="py-2">
           <li
             v-for="(h, index) in histories"
             :key="index"
@@ -129,6 +129,13 @@ watch(
           </li>
         </ul>
       </div>
+      <p
+        class="left-0 top-0 m-0 w-full rounded-b-md bg-gray-200 p-2 px-2 text-sm font-bold text-black"
+      >
+        AI Average Time:
+        {{ aiAverageResponseTime }}
+        ms
+      </p>
     </section>
   </aside>
 </template>
