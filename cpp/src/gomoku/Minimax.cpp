@@ -370,27 +370,78 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   return bestMove;
 }
 
+std::pair<int, int> getBestMovePV(Board *board, int depth, std::pair<int, int> &pvMove) {
+  int currentPlayer = board->getNextPlayer();
+  std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
+  if (moves.empty()) return std::make_pair(-1, -1);
+
+  // If a PV move exists and is valid, bring it to the front.
+  if (pvMove.first != -1 && pvMove.second != -1) {
+    std::vector<std::pair<int, int> >::iterator it = std::find(moves.begin(), moves.end(), pvMove);
+    if (it != moves.end()) {
+      std::iter_swap(moves.begin(), it);
+    }
+  }
+
+  // Now sort the candidate moves using your comparator.
+  MoveComparatorMax cmp(board, currentPlayer);
+  std::sort(moves.begin(), moves.end(), cmp);
+
+  // Evaluate each candidate move.
+  int bestScore = std::numeric_limits<int>::min();
+  std::pair<int, int> bestMove = std::make_pair(-1, -1);
+  for (size_t i = 0; i < moves.size(); ++i) {
+    Board *child = Board::cloneBoard(board);
+
+    // Optional: get an immediate evaluation.
+    int immediateScore =
+        Evaluation::evaluatePosition(child, currentPlayer, moves[i].first, moves[i].second);
+
+    // Apply the move.
+    child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
+    if (Rules::detectCaptureStones(*child, moves[i].first, moves[i].second, currentPlayer))
+      child->applyCapture(true);
+
+    // Use your minimax function (with transposition table and iterative deepening) for deeper
+    // evaluation.
+    int minimaxScore =
+        minimax(child, depth - 1, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(),
+                OPPONENT(currentPlayer), moves[i].first, moves[i].second, false);
+    delete child;
+
+    int totalScore = immediateScore + minimaxScore;
+    if (totalScore > bestScore) {
+      bestScore = totalScore;
+      bestMove = moves[i];
+    }
+  }
+
+  // Update the PV move for future iterations.
+  pvMove = bestMove;
+  return bestMove;
+}
+
 std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLimitSeconds) {
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
+  std::pair<int, int> pvMove = std::make_pair(-1, -1);  // Initially no PV move.
   std::clock_t startTime = std::clock();
 
-  // Optionally clear the transposition table before starting.
+  // Optionally, clear the transposition table.
   transTable.clear();
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
     // Check elapsed time.
     double elapsedTime = static_cast<double>(std::clock() - startTime) / CLOCKS_PER_SEC;
     if (elapsedTime > timeLimitSeconds) {
-      // std::cout << "Time limit reached at depth " << depth << ".\n";
+      // Time limit reached; break out.
       break;
     }
-    bestMove = getBestMove(board, depth);
-
-    // std::cout << "Depth " << depth << " best move: (" << bestMove.first << ", " <<
-    // bestMove.second
-    //           << ") - Elapsed: " << elapsedTime << " s\n";
+    bestMove = getBestMovePV(board, depth, pvMove);
+    // bestMove = getBestMove(board, depth);
+    // Optionally print debug info:
+    // std::cout << "Depth " << depth << " best move: (" << bestMove.first << ", "
+    //           << bestMove.second << ") - Elapsed: " << elapsedTime << " s\n";
   }
-
   return bestMove;
 }
 

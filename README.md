@@ -146,3 +146,7 @@ response_error.json (backend 착수 에러)
 
 ## 3/27/25 -2
 - 33
+
+## 4/4/25
+- PV move ordering is implemented but processing time is bigger when depth = 10, but when depth = 8 performance is good and it's under 500ms
+-
