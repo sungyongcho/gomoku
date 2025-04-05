@@ -248,7 +248,7 @@ export const useGameStore = defineStore("game", () => {
     { x, y }: { x: number; y: number },
     stone: Stone,
     executionTime?: { s: number; ms: number; ns: number },
-  ) => {
+  ): Promise<boolean> => {
     // Calculate captured stone
     const capturedStones = getCapturedStones({
       x,
@@ -263,7 +263,7 @@ export const useGameStore = defineStore("game", () => {
       checkDoubleThree({ x, y, stone, boardData: boardData.value })
     ) {
       doAlert("Caution", "Double-three is not allowed", "Warn");
-      return;
+      return false;
     }
 
     // Update board
@@ -297,6 +297,7 @@ export const useGameStore = defineStore("game", () => {
 
     await nextTick();
     checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
+    return true;
   };
 
   const exportData = (): string => {
