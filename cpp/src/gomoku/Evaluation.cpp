@@ -73,6 +73,8 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
   int backwardContEmpty = 0;
   int block = 0;
 
+  // bool forwardClosed = true;
+  // bool backwardClosed = true;
   if (forward == pack_cells_4(player, player, player, player)) {
     // forwardContinuous += 4;
     // return gomoku
@@ -141,7 +143,7 @@ int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsign
   }
   // TODO: block sharpning
 
-  return continuousScores[continuous + 1] + blockScores[block];
+  return continuousScores[continuous + 1] + blockScores[block + 1];
 }
 
 void initCombinedPatternScoreTables() {
@@ -212,18 +214,21 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
                                                                 : board->getLastPlayerScore();
   // double goalRatio = board->getGoal();
 
-  if (checkCapture(forward, player) > 0) activeCaptureScore++;
-  if (checkCapture(backward, player) > 0) activeCaptureScore++;
+  // if (checkCapture(forward, player) > 0) activeCaptureScore++;
+  // if (checkCapture(backward, player) > 0) activeCaptureScore++;
 
-  if (checkCapture(forward, player) < 0) opponentCaptureScore++;
-  if (checkCapture(backward, player) < 0) opponentCaptureScore++;
+  // if (checkCapture(forward, player) < 0) opponentCaptureScore++;
+  // if (checkCapture(backward, player) < 0) opponentCaptureScore++;
+
+  activeCaptureScore = activeCaptureScore / 2 + 1;
+  opponentCaptureScore = opponentCaptureScore / 2 + 1;
 
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
-    if (activeCaptureScore >= board->getGoal()) score += GOMOKU;
-    score += static_cast<int>(CAPTURE_SCORE * std::pow(10, activeCaptureScore));
+    if (activeCaptureScore == board->getGoal() - 1) return GOMOKU;
+    score += continuousScores[2] * activeCaptureScore;
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
-    if (opponentCaptureScore >= board->getGoal()) score += blockScores[5];
-    score += static_cast<int>(CAPTURE_SCORE * std::pow(10, opponentCaptureScore));
+    if (opponentCaptureScore == board->getGoal() - 1) return GOMOKU - 1;
+    score += blockScores[2] * opponentCaptureScore;
   }
 
   return score;
