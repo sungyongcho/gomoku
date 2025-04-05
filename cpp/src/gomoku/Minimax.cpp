@@ -48,7 +48,9 @@ std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board) {
     uint64_t candidates = neighbor[row] & (~occupancy[row]) & rowMask;
     for (int col = 0; col < BOARD_SIZE; col++) {
       if (candidates & (1ULL << col)) {
-        if (!Rules::detectDoublethreeBit(*board, col, row, board->getNextPlayer()))
+        bool isDoubleThree = Rules::detectDoublethreeBit(*board, col, row, board->getNextPlayer());
+        if (!isDoubleThree ||
+            Rules::detectCaptureStonesNotStore(*board, col, row, board->getNextPlayer()))
           moves.push_back(std::make_pair(col, row));
       }
     }
