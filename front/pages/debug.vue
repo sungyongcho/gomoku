@@ -151,7 +151,7 @@ onUnmounted(() => {
 
     <!-- Board & History -->
     <div
-      class="flex max-w-[1280px] items-center justify-center gap-10 -lg:flex-col-reverse"
+      class="mx-auto flex h-[calc(100vh-48px)] max-w-[1280px] items-center justify-center gap-10 -lg:h-auto -lg:flex-col-reverse"
     >
       <div>
         <GoBoard @put="onPutStone" @evaluate="onEvaluateStone" />
