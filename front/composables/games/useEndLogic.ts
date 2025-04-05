@@ -65,6 +65,8 @@ export const useEndLogic = () => {
     // Filter lines with 5 or more stoneslength >= 5);
     const oppositeStone = getOppositeStone(turn);
 
+    if (winLines.length === 0) return {};
+
     // Check non-breakable line exist
     for (const winLine of winLines) {
       const inclination = {
@@ -75,7 +77,6 @@ export const useEndLogic = () => {
         .filter(({ x, y }) => x !== inclination.dx || y !== inclination.dy)
         .filter(({ x, y }) => x !== -inclination.dx || y !== -inclination.dy);
 
-      let isBreakable = false;
       for (const stoneOnLine of winLine) {
         for (const { x: _dx, y: _dy } of nonParallelDirections) {
           // Pattern1. _$OX
@@ -104,24 +105,17 @@ export const useEndLogic = () => {
                 boardData[st.y][st.x].stone === expected[idx],
             )
           ) {
-            isBreakable = true;
-            break;
+            return {};
           }
         }
-        if (isBreakable) {
-          break;
-        }
-      }
-
-      if (!isBreakable) {
-        return {
-          result: GAME_END_SCENARIO.FIVE_OR_MORE_STONES,
-          winner: turn,
-        };
       }
     }
 
-    return {};
+    // Non breakable 5 or more stones
+    return {
+      result: GAME_END_SCENARIO.FIVE_OR_MORE_STONES,
+      winner: turn,
+    };
   };
 
   const checkFiveStones = ({ x, y, stone, boardData }: BoardInput): boolean => {
@@ -149,11 +143,12 @@ export const useEndLogic = () => {
       for (let x = 0; x < boardData[y].length; x++) {
         if (boardData[y][x].stone !== currentTurn) continue;
 
-        if (checkFiveStones({ x, y, stone: currentTurn, boardData }))
+        if (checkFiveStones({ x, y, stone: currentTurn, boardData })) {
           return {
             result: GAME_END_SCENARIO.FIVE_OR_MORE_STONES,
             winner: currentTurn,
           };
+        }
       }
     }
     return {};

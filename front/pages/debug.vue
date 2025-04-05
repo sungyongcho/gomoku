@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useWebSocket } from "@vueuse/core";
-import { useMouse } from "@vueuse/core";
 
 import type {
   RequestType,
@@ -22,6 +21,12 @@ const {
   player2TotalCaptured,
   isAiThinking,
 } = storeToRefs(useGameStore());
+const { deleteLastHistory, initGame, debugAddStoneToBoardData } =
+  useGameStore();
+
+const lastHistory = computed(() => histories.value.at(-1));
+const { doAlert } = useAlertStore();
+
 const { data, send, close } = useWebSocket("ws://localhost:8005/ws/debug", {
   autoReconnect: {
     retries: 3,
@@ -37,11 +42,6 @@ const { data, send, close } = useWebSocket("ws://localhost:8005/ws/debug", {
   },
 });
 
-const { x, y } = useMouse({ touch: false });
-const lastHistory = computed(() => histories.value.at(-1));
-const { deleteLastHistory, initGame, debugAddStoneToBoardData } =
-  useGameStore();
-const { doAlert } = useAlertStore();
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   debugAddStoneToBoardData({ x, y }, turn.value);
 };
@@ -144,25 +144,10 @@ onUnmounted(() => {
 </script>
 <template>
   <main
-    class="flex h-[calc(100vh-80px)] w-full items-start justify-center -lg:h-[calc(100vh-68px)] lg:items-center"
+    class="relative h-[calc(100vh-80px)] w-full items-start justify-center -lg:h-[calc(100vh-68px)] lg:items-center"
   >
     <!-- Eval Stone -->
-    <div
-      v-if="evalScores.length"
-      class="shadow-3xl fixed left-0 top-0 z-[100] flex flex-col gap-2 rounded-md bg-white p-2 shadow-xl"
-      :style="{ transform: `translate(${x + 20}px, ${y - 30}px)` }"
-    >
-      <div v-for="s in evalScores" class="flex items-center gap-2">
-        <i
-          class="pi"
-          :class="{
-            ['pi-circle-fill']: s.player === 'X',
-            ['pi-circle']: s.player === 'O',
-          }"
-        ></i>
-        <EvalScoreGage v-model="s.rating" />
-      </div>
-    </div>
+    <EvalTooltip />
 
     <!-- Board & History -->
     <div

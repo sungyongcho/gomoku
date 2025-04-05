@@ -41,6 +41,7 @@ watch(
   () => histories.value?.length,
   () => {
     nextTick(() => {
+      if (!historyEl.value) return;
       const scrollHeight = historyEl.value!.scrollHeight;
       historyEl.value!.scroll(0, scrollHeight);
     });
