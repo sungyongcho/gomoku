@@ -17,7 +17,6 @@
 #define BLOCK_LINE_3 100
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
-#define OPEN_SINGLE_STONE 10
 #define CAPTURE_SCORE 100
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
