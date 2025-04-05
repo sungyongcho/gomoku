@@ -47,6 +47,18 @@ bool Rules::detectCaptureStones(Board &board, int x, int y, int player) {
   return foundCapture;
 }
 
+bool Rules::detectCaptureStonesNotStore(Board &board, int x, int y, int player) {
+  // Loop over the 8 directions.
+  for (size_t i = 0; i < 8; ++i) {
+    int dx = DIRECTIONS[i][0];
+    int dy = DIRECTIONS[i][1];
+    if (bitmask_check_capture(board, x, y, player, dx, dy)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool is_within_bounds(int x, int y, int offset_x, int offset_y) {
   int new_x = x + offset_x;
   int new_y = y + offset_y;
