@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useWebSocket } from "@vueuse/core";
+import { useWebSocket, type WebSocketStatus } from "@vueuse/core";
 
 import type {
   RequestType,
@@ -27,26 +27,37 @@ const { deleteLastHistory, initGame, addStoneToBoardData } = useGameStore();
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert } = useAlertStore();
 
-const { data, send, close } = useWebSocket("ws://localhost:8005/ws/debug", {
-  autoReconnect: {
-    retries: 3,
-    delay: 500,
-    onFailed() {
-      doAlert(
-        "Error",
-        "WebSocket connection failed. Please refresh the page to retry",
-        "Warn",
-      );
-      isAiThinking.value = false;
+const { data, send, close, status } = useWebSocket(
+  `ws://${window.location.hostname}:8005/ws/debug`,
+  {
+    autoReconnect: {
+      retries: 3,
+      delay: 500,
+      onFailed() {
+        doAlert(
+          "Error",
+          "WebSocket connection failed. Please refresh the page to retry",
+          "Warn",
+        );
+        isAiThinking.value = false;
+      },
     },
   },
-});
+);
 
 const onPutStone = async ({ x, y }: { x: number; y: number }) => {
   const isSuccessToPutStone = await addStoneToBoardData({ x, y }, turn.value);
   await nextTick();
 
   if (isSuccessToPutStone && settings.value.isPlayer2AI && !gameOver.value) {
+    if (status.value === "CLOSED") {
+      doAlert(
+        "Error",
+        "WebSocket connection failed. refresh the page to retry",
+        "Warn",
+      );
+      return;
+    }
     onSendStone();
   }
 };
