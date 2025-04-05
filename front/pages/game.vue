@@ -20,6 +20,7 @@ const {
   player1TotalCaptured,
   player2TotalCaptured,
   isAiThinking,
+  gameOver,
 } = storeToRefs(useGameStore());
 const { deleteLastHistory, initGame, addStoneToBoardData } = useGameStore();
 
@@ -41,9 +42,11 @@ const { data, send, close } = useWebSocket("ws://localhost:8005/ws/debug", {
   },
 });
 
-const onPutStone = ({ x, y }: { x: number; y: number }) => {
-  addStoneToBoardData({ x, y }, turn.value);
-  if (settings.value.isPlayer2AI) {
+const onPutStone = async ({ x, y }: { x: number; y: number }) => {
+  await addStoneToBoardData({ x, y }, turn.value);
+  await nextTick();
+
+  if (settings.value.isPlayer2AI && !gameOver.value) {
     onSendStone();
   }
 };

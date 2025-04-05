@@ -190,7 +190,7 @@ export const useGameStore = defineStore("game", () => {
     }
   };
 
-  const debugAddStoneToBoardData = (
+  const debugAddStoneToBoardData = async (
     { x, y }: { x: number; y: number },
     stone: Stone,
     executionTime?: { s: number; ms: number; ns: number },
@@ -240,12 +240,11 @@ export const useGameStore = defineStore("game", () => {
     playStoneSound();
     changeTurn();
 
-    nextTick(() => {
-      checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
-    });
+    await nextTick();
+    checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
   };
 
-  const addStoneToBoardData = (
+  const addStoneToBoardData = async (
     { x, y }: { x: number; y: number },
     stone: Stone,
     executionTime?: { s: number; ms: number; ns: number },
@@ -296,9 +295,8 @@ export const useGameStore = defineStore("game", () => {
     playStoneSound();
     changeTurn();
 
-    nextTick(() => {
-      checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
-    });
+    await nextTick();
+    checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
   };
 
   const exportData = (): string => {
