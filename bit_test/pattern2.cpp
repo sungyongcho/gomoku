@@ -1,130 +1,69 @@
 #include <iostream>
-using namespace std;
+#include <string>
 
-#define EMPTY_SPACE 0
-#define GOMOKU 10000
 #define SIDE_WINDOW_SIZE 4
 
-// Returns the opponent of the given player.
-#define OPPONENT(p) ((p) == 1 ? 2 : 1)
-
-inline unsigned int pack_cells_4(unsigned int a, unsigned int b, unsigned int c, unsigned int d) {
-  return (a << 6) | (b << 4) | (c << 2) | d;
+// Converts an integer to its 8-bit binary representation as a string.
+std::string toBinary8(int side) {
+  std::string bin;
+  for (int i = 7; i >= 0; --i) {
+    bin.push_back((side & (1 << i)) ? '1' : '0');
+  }
+  return bin;
 }
 
-inline unsigned int pack_cells_3(unsigned int a, unsigned int b, unsigned int c) {
-  return (a << 4) | (b << 2) | c;
+// Converts a binary string (assumed to be of length SIDE_WINDOW_SIZE) to an integer.
+int binaryToInt(const std::string& bits) {
+  int value = 0;
+  for (std::string::size_type i = 0; i < bits.size(); ++i) {
+    value = value * 2 + (bits[i] - '0');
+  }
+  return value;
 }
 
-inline unsigned int pack_cells_2(unsigned int a, unsigned int b) { return (a << 2) | b; }
+// Slides a window of size SIDE_WINDOW_SIZE over the 8-bit binary representation of 'side'.
+// If the window value equals 'player', prints "matches" next to the pattern.
+// The parameter 'reverse' determines if the sliding should be in reverse order.
+void slideWindow(int side, int player, bool reverse) {
+  std::string bin = toBinary8(side);
+  int total = bin.size();
+  int windowCount = total - SIDE_WINDOW_SIZE + 1;
 
-inline unsigned int pack_cells_1(unsigned int a) { return a; }
-
-// Sample scoring arrays (you can adjust these as needed)
-int continuousScores[5] = {0, 1, 10, 100, 1000};
-int blockScores[5] = {0, 1, 5, 50, 500};
-
-// to remove
-void printPattern(unsigned int pattern, int numCells) {
-  for (int i = 0; i < numCells; ++i) {
-    // Calculate shift so that the leftmost cell is printed first.
-    int shift = 2 * (numCells - 1 - i);
-    int cell = (pattern >> shift) & 0x3;
-    std::cout << cell << " ";
+  if (!reverse) {
+    for (int i = 0; i < windowCount; ++i) {
+      std::string before = bin.substr(0, i);
+      std::string window = bin.substr(i, SIDE_WINDOW_SIZE);
+      std::string after = bin.substr(i + SIDE_WINDOW_SIZE);
+      std::cout << before << "[" << window << "]" << after;
+      if (binaryToInt(window) == player) {
+        std::cout << " matches";
+      }
+      std::cout << std::endl;
+    }
+  } else {
+    for (int i = windowCount - 1; i >= 0; --i) {
+      std::string before = bin.substr(0, i);
+      std::string window = bin.substr(i, SIDE_WINDOW_SIZE);
+      std::string after = bin.substr(i + SIDE_WINDOW_SIZE);
+      std::cout << before << "[" << window << "]" << after;
+      if (binaryToInt(window) == player) {
+        std::cout << " matches";
+      }
+      std::cout << std::endl;
+    }
   }
-  std::cout << std::endl;
-}
-
-int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsigned int player) {
-  unsigned int opponent = OPPONENT(player);
-  int continuous = 0;
-  int forwardContinuous = 0;
-  int forwardContEmpty = 0;
-  int backwardContinuous = 0;
-  int backwardContEmpty = 0;
-  int block = 0;
-
-  if (forward == pack_cells_4(player, player, player, player)) {
-    cout << "here4" << endl;
-    return GOMOKU;
-  } else if (((forward & 0xFC) >> 2) == pack_cells_3(player, player, player)) {
-    cout << "here3" << endl;
-    forwardContinuous += 3;
-  } else if (((forward & 0xF0) >> 4) == pack_cells_2(player, player)) {
-    cout << "here2" << endl;
-    forwardContinuous += 2;
-  } else if (((forward & 0xC0) >> 6) == player) {
-    cout << "here1" << endl;
-    forwardContinuous += 1;
-  } else if (forward == pack_cells_4(opponent, opponent, opponent, opponent))
-    block += 4;
-  else if (((forward & 0xFC) >> 2) == pack_cells_3(opponent, opponent, opponent))
-    block += 3;
-  else if (((forward & 0xF0) >> 4) == pack_cells_2(opponent, opponent))
-    block += 2;
-  else if (((forward & 0xC0) >> 6) == opponent)
-    block += 1;
-
-  // Extend forward continuous pattern into empty spaces.
-  for (int i = 4 - forwardContinuous; i > 0; i--) {
-    if (((forward >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
-      forwardContEmpty += 1;
-    else
-      break;
-  }
-
-  if (backward == pack_cells_4(player, player, player, player)) {
-    return GOMOKU;
-  } else if ((backward & 0x3F) == pack_cells_3(player, player, player)) {
-    backwardContinuous += 3;
-  } else if ((backward & 0x0F) == pack_cells_2(player, player)) {
-    backwardContinuous += 2;
-  } else if ((backward & 0x03) == player) {
-    backwardContinuous += 1;
-  } else if (backward == pack_cells_4(opponent, opponent, opponent, opponent))
-    block += 4;
-  else if ((backward & 0x3F) == pack_cells_3(opponent, opponent, opponent))
-    block += 3;
-  else if ((backward & 0x0F) == pack_cells_2(opponent, opponent))
-    block += 2;
-  else if ((backward & 0x03) == opponent)
-    block += 1;
-
-  // Count empty spaces in the backward direction.
-  for (int i = backwardContinuous; i < SIDE_WINDOW_SIZE; i++) {
-    if (((backward >> (i * 2)) & 0x03) == EMPTY_SPACE)
-      backwardContEmpty += 1;
-    else
-      break;
-  }
-  printPattern(forward, 4);
-  printPattern(backward, 4);
-  cout << "forward continous: " << forwardContinuous << " " << forwardContEmpty << endl;
-  cout << "backward continous: " << backwardContinuous << " " << backwardContEmpty << endl;
-
-  continuous = forwardContinuous + backwardContinuous;
-  if (continuous > 4) continuous = 4;
-
-  cout << continuous << endl;
-  if ((SIDE_WINDOW_SIZE - continuous) > (forwardContEmpty + backwardContEmpty)) continuous = 0;
-  if (block > 4) block = 4;
-
-  return continuousScores[continuous] + blockScores[block];
 }
 
 int main() {
-  unsigned int player = 1;  // Assume player 1 for testing
-  unsigned int opponent = OPPONENT(player);
-  int score;
-  int score_opponent;
+  int side = 0xA3;  // Example 8-bit number (163 in decimal)
+  int player = 5;   // Example player value (0 to 15 for 4 bits)
+  bool reverse = false;
 
-  // Test case 1: Forward is four in a row for player -> should return GOMOKU
-  unsigned int forward = pack_cells_4(opponent, EMPTY_SPACE, EMPTY_SPACE, EMPTY_SPACE);
-  unsigned int backward = pack_cells_4(EMPTY_SPACE, player, opponent, opponent);
-  // score = evaluateContinousPattern(backward, forward, player);
-  score_opponent = evaluateContinousPattern(backward, forward, opponent);
-
-  cout << "Test case 1 (GOMOKU): score = " << 0 << " " << score_opponent << endl;
+  // Slide in forward direction.
+  slideWindow(side, player, reverse);
+  std::cout << "\nReverse:" << std::endl;
+  // Slide in reverse direction.
+  slideWindow(side, player, true);
 
   return 0;
 }
