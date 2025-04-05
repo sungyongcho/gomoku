@@ -27,20 +27,23 @@ const { deleteLastHistory, initGame, debugAddStoneToBoardData } =
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert } = useAlertStore();
 
-const { data, send, close } = useWebSocket("ws://localhost:8005/ws/debug", {
-  autoReconnect: {
-    retries: 3,
-    delay: 500,
-    onFailed() {
-      doAlert(
-        "Error",
-        "WebSocket connection failed. Please refresh the page to retry",
-        "Warn",
-      );
-      isAiThinking.value = false;
+const { data, send, close, status } = useWebSocket(
+  `ws://${window.location.hostname}:8005/ws/debug`,
+  {
+    autoReconnect: {
+      retries: 3,
+      delay: 500,
+      onFailed() {
+        doAlert(
+          "Error",
+          "WebSocket connection failed. Please refresh the page to retry",
+          "Warn",
+        );
+        isAiThinking.value = false;
+      },
     },
   },
-});
+);
 
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   debugAddStoneToBoardData({ x, y }, turn.value);
@@ -76,6 +79,15 @@ const onSendData = (
 };
 
 const onSendStone = () => {
+  if (status.value === "CLOSED") {
+    doAlert(
+      "Error",
+      "WebSocket connection failed. refresh the page to retry",
+      "Warn",
+    );
+    return;
+  }
+
   onSendData(
     "move",
     lastHistory.value?.coordinate ? lastHistory.value.coordinate : undefined,
