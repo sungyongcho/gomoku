@@ -146,6 +146,7 @@ export const useGameStore = defineStore("game", () => {
 
   const checkGameOverBeforeChangeTurn = (situation: GameSituation) => {
     const perfectFiveEnded = isPerfectFiveEnded(situation);
+
     if (perfectFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
       gameOver.value = true;
       return doAlert(
@@ -210,7 +211,7 @@ export const useGameStore = defineStore("game", () => {
       return;
     }
 
-    // // Update board
+    // Update board
     updateBoard({ x, y, boardData: boardData.value, stone }, capturedStones);
 
     // Add to history
@@ -237,12 +238,10 @@ export const useGameStore = defineStore("game", () => {
     checkGameOverBeforeChangeTurn(situation);
 
     playStoneSound();
-    if (!settings.value.isDebugTurnLocked) {
-      changeTurn();
-    }
+    changeTurn();
 
     nextTick(() => {
-      checkGameOverAfterChangeTurn(situation);
+      checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
     });
   };
 
@@ -298,7 +297,7 @@ export const useGameStore = defineStore("game", () => {
     changeTurn();
 
     nextTick(() => {
-      checkGameOverAfterChangeTurn(situation);
+      checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
     });
   };
 
