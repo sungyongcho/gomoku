@@ -28,17 +28,21 @@ const onMouseLeave = () => {
   // clear previous evaluation
   emit("evaluate", undefined);
 };
-const { turn, gameOver, histories, isAiThinking } = storeToRefs(useGameStore());
+const { turn, gameOver, histories, isAiThinking, settings } =
+  storeToRefs(useGameStore());
 const lastHistory = computed(() => histories.value.at(-1));
 </script>
 
 <template>
   <button
     class="relative flex h-[calc(min(78vw,78vh)/19)] w-[calc(min(78vw,78vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-130px,90vh-130px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)] [&_.previewStone]:hover:block"
+    :class="{
+      ['cursor-wait']: isAiThinking,
+    }"
     @click="onClickCell"
     @contextmenu.prevent="onEvaluate"
     @mouseleave="onMouseLeave"
-    :disabled="stone !== '.' || gameOver ? true : false"
+    :disabled="stone !== '.' || gameOver || isAiThinking"
   >
     <hr
       v-if="x < 18"
@@ -72,8 +76,9 @@ const lastHistory = computed(() => histories.value.at(-1));
           lastHistory?.coordinate.x === x && lastHistory?.coordinate.y === y,
       }"
     ></span>
+    <!-- preview stone -->
     <span
-      v-else-if="!gameOver"
+      v-else-if="!gameOver && !isAiThinking"
       class="previewStone absolute z-10 hidden h-[calc(min(70vw,70vh)/19)] w-[calc(min(70vw,70vh)/19)] rounded-[50%] opacity-50 -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
       :class="{ 'bg-white': turn == 'O', 'bg-black': turn == 'X' }"
     ></span>
