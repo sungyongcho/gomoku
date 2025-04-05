@@ -43,10 +43,10 @@ const { data, send, close } = useWebSocket("ws://localhost:8005/ws/debug", {
 });
 
 const onPutStone = async ({ x, y }: { x: number; y: number }) => {
-  await addStoneToBoardData({ x, y }, turn.value);
+  const isSuccessToPutStone = await addStoneToBoardData({ x, y }, turn.value);
   await nextTick();
 
-  if (settings.value.isPlayer2AI && !gameOver.value) {
+  if (isSuccessToPutStone && settings.value.isPlayer2AI && !gameOver.value) {
     onSendStone();
   }
 };
