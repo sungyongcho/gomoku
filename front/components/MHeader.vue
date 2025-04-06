@@ -8,6 +8,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  nonGamePage: {
+    type: Boolean,
+    default: false,
+  },
 });
 const { player1TotalCaptured, player2TotalCaptured, settings, turn } =
   storeToRefs(useGameStore());
@@ -23,14 +27,15 @@ const { isAiThinking } = storeToRefs(useGameStore());
         <nuxt-link
           to="/"
           class="px-4 py-2 text-2xl font-extrabold uppercase text-white -sm:text-sm"
+          :class="{ '!text-2xl': nonGamePage }"
         >
           omok
         </nuxt-link>
 
-        <MobileInfoBoard class="lg:hidden" />
+        <MobileInfoBoard v-if="!nonGamePage" class="lg:hidden" />
       </div>
 
-      <div class="shrink-0 py-2 text-white">
+      <div class="shrink-0 py-2 text-white" v-if="!nonGamePage">
         <section class="flex items-center gap-2 -sm:gap-2 lg:hidden">
           <div class="flex items-center justify-center">
             <button
