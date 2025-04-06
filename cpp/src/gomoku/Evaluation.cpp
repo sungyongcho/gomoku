@@ -425,10 +425,10 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   opponentCaptureScore = opponentCaptureScore / 2 + 1;
 
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
-    if (activeCaptureScore == board->getGoal() - 1) return GOMOKU;
+    if (activeCaptureScore == board->getGoal()) return GOMOKU;
     score += static_cast<int>(continuousScores[2] * std::pow(10, activeCaptureScore));
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
-    if (opponentCaptureScore == board->getGoal() - 1) return GOMOKU - 1;
+    if (opponentCaptureScore == board->getGoal()) return GOMOKU - 1;
     score += static_cast<int>(blockScores[2] * std::pow(10, opponentCaptureScore));
   }
 
