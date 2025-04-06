@@ -8,11 +8,14 @@ const onClickBack = () => {
 
 <template>
   <main class="h-full min-h-screen w-full bg-black text-white">
-    <div class="mx-auto w-full max-w-[1280px] p-4">
+    <div class="mx-auto w-full max-w-[1280px] p-4 pb-0">
       <button @click="onClickBack">
         <i class="pi pi-arrow-left"></i> go back
       </button>
-
+    </div>
+    <div
+      class="mx-auto grid w-full max-w-[1280px] grid-cols-2 gap-4 p-4 pb-20 pt-0 -sm:grid-cols-1"
+    >
       <section
         class="mt-6 rounded-lg border-2 bg-white p-4 text-black [&_b]:font-bold"
       >
