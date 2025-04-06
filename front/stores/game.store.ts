@@ -144,21 +144,32 @@ export const useGameStore = defineStore("game", () => {
     changeTurn(lastHistory.stone);
   };
 
-  const checkGameOverBeforeChangeTurn = (situation: GameSituation) => {
-    const perfectFiveEnded = isPerfectFiveEnded(situation);
-
-    if (perfectFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
-      gameOver.value = true;
-      return doAlert(
-        "Game Over",
-        `${perfectFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
-        "Info",
-      );
-    }
-  };
-
   // Check end condition after change turn
-  const checkGameOverAfterChangeTurn = (situation: GameSituation) => {
+  const checkGameOver = (situation: GameSituation) => {
+    // Check perfect five win
+    for (let y = 0; y < boardData.value.length; y++) {
+      for (let x = 0; x < boardData.value[y].length; x++) {
+        const stone = boardData.value[y][x].stone;
+        if (stone === ".") continue;
+
+        const perfectFiveEnded = isPerfectFiveEnded({
+          ...situation,
+          x,
+          y,
+          turn: stone,
+        });
+
+        if (perfectFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
+          gameOver.value = true;
+          return doAlert(
+            "Game Over",
+            `${perfectFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
+            "Info",
+          );
+        }
+      }
+    }
+
     // Check capture points
     const captureEnded = isCaptureEnded(situation);
     if (captureEnded.result === GAME_END_SCENARIO.PAIR_CAPTURED) {
@@ -224,8 +235,6 @@ export const useGameStore = defineStore("game", () => {
       },
     };
 
-    checkGameOverBeforeChangeTurn(situation);
-
     playStoneSound();
 
     const oppositeStone = getOppositeStone(stone);
@@ -234,9 +243,13 @@ export const useGameStore = defineStore("game", () => {
     }
 
     await nextTick();
-    checkGameOverAfterChangeTurn({ ...situation, turn: oppositeStone });
+    checkGameOver({ ...situation, turn: oppositeStone });
   };
 
+  // Add stone to board
+  // Return true or false to determine whether we send data to AI
+  // If return true, means we success to put stone, so we need to send
+  // If return false, means we fail to put stone, so we don't need to send
   const addStoneToBoardData = async (
     { x, y }: { x: number; y: number },
     stone: Stone,
@@ -283,13 +296,11 @@ export const useGameStore = defineStore("game", () => {
       },
     };
 
-    checkGameOverBeforeChangeTurn(situation);
-
     playStoneSound();
     changeTurn();
 
     await nextTick();
-    checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
+    checkGameOver({ ...situation, turn: turn.value });
     return true;
   };
 
