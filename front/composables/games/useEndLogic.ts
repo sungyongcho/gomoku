@@ -105,17 +105,29 @@ export const useEndLogic = () => {
                 boardData[st.y][st.x].stone === expected[idx],
             )
           ) {
-            return {};
+            // Breakable stones exist
+            stoneOnLine.stone = ".";
           }
         }
       }
     }
 
-    // Non breakable 5 or more stones
-    return {
-      result: GAME_END_SCENARIO.FIVE_OR_MORE_STONES,
-      winner: turn,
-    };
+    // Check still 5 stones exist in serial
+    for (const winLine of winLines) {
+      let cnt = 0;
+      for (const stoneOnLine of winLine) {
+        if (stoneOnLine.stone === turn) cnt++;
+        else cnt = 0;
+      }
+      if (cnt >= 5)
+        return {
+          result: GAME_END_SCENARIO.FIVE_OR_MORE_STONES,
+          winner: turn,
+        };
+    }
+
+    // Perfect 5 stones not exist
+    return {};
   };
 
   const checkFiveStones = ({ x, y, stone, boardData }: BoardInput): boolean => {
@@ -133,25 +145,6 @@ export const useEndLogic = () => {
       if (stonesInLine.length >= 5) return true;
     }
     return false;
-  };
-
-  const isCurrentTurnFiveEnded = (situation: GameSituation) => {
-    const currentTurn = situation.turn;
-    const boardData = situation.boardData;
-
-    for (let y = 0; y < boardData.length; y++) {
-      for (let x = 0; x < boardData[y].length; x++) {
-        if (boardData[y][x].stone !== currentTurn) continue;
-
-        if (checkFiveStones({ x, y, stone: currentTurn, boardData })) {
-          return {
-            result: GAME_END_SCENARIO.FIVE_OR_MORE_STONES,
-            winner: currentTurn,
-          };
-        }
-      }
-    }
-    return {};
   };
 
   const isDrawEnded = (situation: GameSituation): GameResult => {
@@ -174,7 +167,6 @@ export const useEndLogic = () => {
 
   return {
     isCaptureEnded,
-    isCurrentTurnFiveEnded,
     isDrawEnded,
     isPerfectFiveEnded,
   };
