@@ -150,18 +150,27 @@ void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, 
 bool isCaptureVulnerable(int forward, int backward, int player) {
   int opponent = player == 1 ? 2 : 1;
 
-  if (((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) && (backward & 0x03 == EMPTY_SPACE))
+  if (((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) &&
+      (backward & 0x03 == EMPTY_SPACE)) {
+    std::cout << "1" << std::endl;
     return true;
-  if (((forward & 0xC0) >> 6) == opponent && (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player))
+  }
+  if (((forward & 0xC0) >> 6) == opponent &&
+      (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player)) {
+    std::cout << "2" << std::endl;
     return true;
-
+  }
   if (((backward & 0x0F) == pack_cells_2(opponent, player)) &&
-      (((forward & 0xC0) >> 6) == EMPTY_SPACE))
+      (((forward & 0xC0) >> 6) == EMPTY_SPACE)) {
+    std::cout << "3" << std::endl;
     return true;
+  }
 
   if (((backward & 0x03) == opponent) &&
-      (((forward & 0x0F) >> 4) == pack_cells_2(player, EMPTY_SPACE)))
+      (((forward & 0x0F) >> 4) == pack_cells_2(player, EMPTY_SPACE))) {
+    std::cout << "4" << std::endl;
     return true;
+  }
 
   return false;
 }
@@ -222,8 +231,8 @@ void printAxis(int forward, int backward) {
 }
 
 int main() {
-  int forward = 0b10010010;
-  int backward = 0b00011010;
+  int forward = 0b01010100;
+  int backward = 0b00000000;
   int player = 1;
 
   int forwardContinuous = 0;
@@ -263,20 +272,29 @@ int main() {
   if (totalContinuous < 4) {
     // 2. for condition where total continous are less than equal to
     // if both ends are closed, it is meaningless to place the stone.
-    if (backwardClosedEnd == true && forwardClosedEnd == true) totalContinuous = 0;
+    if (backwardClosedEnd == true && forwardClosedEnd == true) {
+      std::cout << "here1" << std::endl;
+      totalContinuous = 0;
+    }
 
     // 3. if the total continuous + continuous empty => potential growth for gomoku is less then
     // five, don't need to extend the line
-    else if ((totalContinuous + forwardContinuousEmpty < 5) ||
-             (totalContinuous + backwardContinuousEmpty < 5) ||
-             (totalContinuous + backwardContinuousEmpty + forwardContinuousEmpty < 5))
+    else if (!((totalContinuous + forwardContinuousEmpty) >= 5 ||
+               (totalContinuous + backwardContinuousEmpty) >= 5 ||
+               (totalContinuous + backwardContinuousEmpty + forwardContinuousEmpty) >= 5)) {
+      std::cout << "here2 " << totalContinuous << std::endl;
       totalContinuous = 0;
+    }
 
     // 4. prevent from opponent to capture (needs to check if necessary)
     // separated if condition because it needs to check all above then add
-    if (isCaptureWarning(forward, player, false) || isCaptureWarning(backward, player, true))
+    if (isCaptureWarning(forward, player, false) || isCaptureWarning(backward, player, true)) {
+      std::cout << "here3" << std::endl;
       totalContinuous = forwardContinuous + backwardContinuous;
+    }
   }
+
+  if (isCaptureVulnerable(forward, backward, player)) totalContinuous = 0;
 
   score += continuousScores[totalContinuous + 1];
 
@@ -312,8 +330,8 @@ int main() {
     if (forwardBlockClosedEnd && backwardBlockClosedEnd) totalBlockCont = 0;
     // 3. for each side, if one side continous but that side is already closed,
     // it doesn't need to be blocked 'yet', so heuristics can go for better score moves.
-    else if (forwardBlockClosedEnd && (forwardBlockContinuous == totalBlockCont) ||
-             backwardBlockClosedEnd && (backwardBlockContinuous == totalBlockCont)) {
+    else if ((forwardBlockClosedEnd && (forwardBlockContinuous == totalBlockCont)) ||
+             (backwardBlockClosedEnd && (backwardBlockContinuous == totalBlockCont))) {
       totalBlockCont = 0;
       // 3-2. but if it can be captured, add up the score (check)
       if (forwardBlockContinuous == 2) totalBlockCont += 1;

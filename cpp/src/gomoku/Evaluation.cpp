@@ -64,86 +64,287 @@ void printPattern(unsigned int pattern, int numCells) {
  * if for opponent, subtract for opponent. ps1. assuming middle is always empty. ps2. there are
  * three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
  */
-int evaluateContinousPattern(unsigned int backward, unsigned int forward, unsigned int player) {
-  unsigned int opponent = OPPONENT(player);
-  int continuous = 0;
+// int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsigned int player) {
+//   unsigned int opponent = OPPONENT(player);
+//   int continuous = 0;
+//   int forwardContinuous = 0;
+//   int forwardContEmpty = 0;
+//   int backwardContinuous = 0;
+//   int backwardContEmpty = 0;
+//   int block = 0;
+
+//   // bool forwardClosed = true;
+//   // bool backwardClosed = true;
+//   if (forward == pack_cells_4(player, player, player, player)) {
+//     // forwardContinuous += 4;
+//     // return gomoku
+//     return GOMOKU;
+//   } else if (((forward & 0xFC) >> 2) == pack_cells_3(player, player, player)) {
+//     forwardContinuous += 3;
+//   } else if (((forward & 0xF0) >> 4) == pack_cells_2(player, player)) {
+//     forwardContinuous += 2;
+//   } else if (((forward & 0xC0) >> 6) == player) {
+//     forwardContinuous += 1;
+//   } else if (forward == pack_cells_4(opponent, opponent, opponent, opponent))
+//     block += 4;
+//   else if (((forward & 0xFC) >> 2) == pack_cells_3(opponent, opponent, opponent))
+//     block += 3;
+//   else if (((forward & 0xF0) >> 4) == pack_cells_2(opponent, opponent))
+//     block += 2;
+//   else if (((forward & 0xC0) >> 6) == opponent)
+//     block += 1;
+//   for (int i = SIDE_WINDOW_SIZE - forwardContinuous; i > 0; i--) {
+//     if (((forward >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
+//       forwardContEmpty += 1;
+//     else
+//       break;
+//   }
+
+//   if (backward == pack_cells_4(player, player, player, player)) {
+//     return GOMOKU;
+//     // backwardContinuous += 4;
+//   } else if ((backward & 0x3F) == pack_cells_3(player, player, player)) {
+//     backwardContinuous += 3;
+//   } else if ((backward & 0x0F) == pack_cells_2(player, player)) {
+//     backwardContinuous += 2;
+//   } else if ((backward & 0x03) == player) {
+//     backwardContinuous += 1;
+//   } else if (backward == pack_cells_4(opponent, opponent, opponent, opponent))
+//     block += 4;
+//   else if ((backward & 0x3F) == pack_cells_3(opponent, opponent, opponent))
+//     block += 3;
+//   else if ((backward & 0x0F) == pack_cells_2(opponent, opponent))
+//     block += 2;
+//   else if ((backward & 0x03) == opponent)
+//     block += 1;
+
+//   for (int i = backwardContinuous; i < SIDE_WINDOW_SIZE; i++) {
+//     if (((backward >> (i * 2)) & 0x03) == EMPTY_SPACE)
+//       backwardContEmpty += 1;
+//     else
+//       break;
+//   }
+//   continuous = forwardContinuous + backwardContinuous;
+//   if (continuous > 4) continuous = 4;
+//   if (block > 4) block = 4;
+//   if ((SIDE_WINDOW_SIZE - continuous) >= (forwardContEmpty + backwardContEmpty)) continuous = 0;
+//   if ((((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) &&
+//        ((backward & 0x03) == EMPTY_SPACE)) ||
+//       (((backward & 0x0F)) == pack_cells_2(opponent, player) &&
+//        ((forward & 0xC0) >> 6) == EMPTY_SPACE)) {
+//     continuous = 0;
+//     block = 0;
+//   } else if (((backward & 0x03) == opponent &&
+//               ((forward & 0xF0) >> 4) == pack_cells_2(player, EMPTY_SPACE)) ||
+//              (((forward & 0xC0) >> 6) == opponent &&
+//               (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player))) {
+//     continuous = 0;
+//     block = 0;
+//   }
+//   // TODO: block sharpning
+
+//   return continuousScores[continuous + 1] + blockScores[block + 1];
+// }
+
+void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
+                           int &continuousEmpty) {
+  int opponent = player == 1 ? 2 : 1;
+  (void)reverse;
+  int player_count = 0;
+  int closed = 0;
+  int player_begin = 0;
+
+  if (!reverse) {
+    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+      int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
+      if (target_bit == player) {
+        if (continuous == i) continuous++;
+        if (player_begin == 0) player_begin = i + 1;
+        player_count++;
+      } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
+        if (closed == 0) closed = i + 1;
+      }
+    }
+    for (int i = SIDE_WINDOW_SIZE - continuous; i > 0; i--) {
+      if (((side >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
+        continuousEmpty += 1;
+      else
+        break;
+    }
+  } else {
+    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+      int target_bit = ((side >> (i * 2)) & 0x03);
+      if (target_bit == player) {
+        if (continuous == i) continuous++;
+        if (player_begin == 0) player_begin = i + 1;
+        player_count++;
+      } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
+        if (closed == 0) closed = i + 1;
+      }
+    }
+    for (int i = continuous; i < SIDE_WINDOW_SIZE; i++) {
+      if (((side >> (i * 2)) & 0x03) == EMPTY_SPACE)
+        continuousEmpty += 1;
+      else
+        break;
+    }
+  }
+  // std::cout << "----------------" << std::endl;
+  // std::cout << "player_count: " << player_count << std::endl;
+  // std::cout << "continuous: " << continuous << std::endl;
+  // std::cout << "closed: " << closed << std::endl;
+  // std::cout << "player_begin: " << player_begin << std::endl;
+  // std::cout << "continuousEmpty: " << continuousEmpty << std::endl;
+  // std::cout << "----------------" << std::endl;
+
+  if (player_count == continuous) {
+    if (closed - continuous == 1) {
+      isClosedEnd = true;
+    }
+  }
+}
+
+void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd) {
+  int opponent = player == 1 ? 2 : 1;
+  int blockContinuousEmpty = 0;
+  int closed = 0;
+
+  if (!reverse) {
+    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+      int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
+      if (target_bit == opponent) {
+        if (blockContinuous == i) blockContinuous++;
+      } else if (target_bit == player || target_bit == OUT_OF_BOUNDS) {
+        if (closed == 0) closed = i + 1;
+      }
+    }
+    for (int i = SIDE_WINDOW_SIZE - blockContinuous; i > 0; i--) {
+      if (((side >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
+        blockContinuousEmpty += 1;
+      else
+        break;
+    }
+  } else {
+    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+      int target_bit = ((side >> (i * 2)) & 0x03);
+      if (target_bit == opponent) {
+        if (blockContinuous == i) blockContinuous++;
+      } else if (target_bit == player || target_bit == OUT_OF_BOUNDS) {
+        if (closed == 0) closed = i + 1;
+      }
+    }
+    for (int i = blockContinuous; i < SIDE_WINDOW_SIZE; i++) {
+      if (((side >> (i * 2)) & 0x03) == EMPTY_SPACE)
+        blockContinuousEmpty += 1;
+      else
+        break;
+    }
+  }
+
+  if (closed - blockContinuous == 1) {
+    isClosedEnd = true;
+  }
+}
+
+bool isCaptureWarning(int side, int player, bool reverse) {
+  int opponent = player == 1 ? 2 : 1;
+
+  // check forward
+  if (!reverse) {
+    if (((side & 0xFC) >> 2) == pack_cells_3(player, player, opponent)) return true;
+  } else {
+    if ((side & 0x3F) == pack_cells_3(opponent, player, player)) return true;
+  }
+  return false;
+}
+
+bool isCaptureVulnerable(int forward, int backward, int player) {
+  int opponent = player == 1 ? 2 : 1;
+
+  if (((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) &&
+      ((backward & 0x03) == EMPTY_SPACE))
+    return true;
+  if (((forward & 0xC0) >> 6) == opponent &&
+      ((backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player)))
+    return true;
+
+  if (((backward & 0x0F) == pack_cells_2(opponent, player)) &&
+      (((forward & 0xC0) >> 6) == EMPTY_SPACE))
+    return true;
+
+  if (((backward & 0x03) == opponent) &&
+      (((forward & 0x0F) >> 4) == pack_cells_2(player, EMPTY_SPACE)))
+    return true;
+
+  return false;
+}
+
+int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsigned int player) {
   int forwardContinuous = 0;
-  int forwardContEmpty = 0;
+  bool forwardClosedEnd = false;
+  int forwardContinuousEmpty = 0;
+
   int backwardContinuous = 0;
-  int backwardContEmpty = 0;
-  int block = 0;
+  bool backwardClosedEnd = false;
+  int backwardContinuousEmpty = 0;
+  slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
+                        forwardContinuousEmpty);
+  slideWindowContinuous(backward, player, true, backwardContinuous, backwardClosedEnd,
+                        backwardContinuousEmpty);
 
-  // bool forwardClosed = true;
-  // bool backwardClosed = true;
-  if (forward == pack_cells_4(player, player, player, player)) {
-    // forwardContinuous += 4;
-    // return gomoku
-    return GOMOKU;
-  } else if (((forward & 0xFC) >> 2) == pack_cells_3(player, player, player)) {
-    forwardContinuous += 3;
-  } else if (((forward & 0xF0) >> 4) == pack_cells_2(player, player)) {
-    forwardContinuous += 2;
-  } else if (((forward & 0xC0) >> 6) == player) {
-    forwardContinuous += 1;
-  } else if (forward == pack_cells_4(opponent, opponent, opponent, opponent))
-    block += 4;
-  else if (((forward & 0xFC) >> 2) == pack_cells_3(opponent, opponent, opponent))
-    block += 3;
-  else if (((forward & 0xF0) >> 4) == pack_cells_2(opponent, opponent))
-    block += 2;
-  else if (((forward & 0xC0) >> 6) == opponent)
-    block += 1;
-  for (int i = SIDE_WINDOW_SIZE - forwardContinuous; i > 0; i--) {
-    if (((forward >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
-      forwardContEmpty += 1;
-    else
-      break;
+  int totalContinuous = forwardContinuous + backwardContinuous;
+
+  // 1.if continous on both side, it'll be gomoku (5 in a row)
+  if (totalContinuous >= 4) totalContinuous = 4;
+
+  if (totalContinuous < 4) {
+    // 2. for condition where total continous are less than equal to
+    // if both ends are closed, it is meaningless to place the stone.
+    if (backwardClosedEnd == true && forwardClosedEnd == true) totalContinuous = 0;
+
+    // 3. if the total continuous + continuous empty => potential growth for gomoku is less then
+    // five, don't need to extend the line
+    else if (!((totalContinuous + forwardContinuousEmpty) >= 5 ||
+               (totalContinuous + backwardContinuousEmpty) >= 5 ||
+               (totalContinuous + backwardContinuousEmpty + forwardContinuousEmpty) >= 5))
+      totalContinuous = 0;
+
+    // 4. prevent from opponent to capture (needs to check if necessary)
+    // separated if condition because it needs to check all above then add
+    if (isCaptureWarning(forward, player, false) || isCaptureWarning(backward, player, true))
+      totalContinuous = forwardContinuous + backwardContinuous;
   }
 
-  if (backward == pack_cells_4(player, player, player, player)) {
-    return GOMOKU;
-    // backwardContinuous += 4;
-  } else if ((backward & 0x3F) == pack_cells_3(player, player, player)) {
-    backwardContinuous += 3;
-  } else if ((backward & 0x0F) == pack_cells_2(player, player)) {
-    backwardContinuous += 2;
-  } else if ((backward & 0x03) == player) {
-    backwardContinuous += 1;
-  } else if (backward == pack_cells_4(opponent, opponent, opponent, opponent))
-    block += 4;
-  else if ((backward & 0x3F) == pack_cells_3(opponent, opponent, opponent))
-    block += 3;
-  else if ((backward & 0x0F) == pack_cells_2(opponent, opponent))
-    block += 2;
-  else if ((backward & 0x03) == opponent)
-    block += 1;
+  if (isCaptureVulnerable(forward, backward, player)) totalContinuous = 0;
 
-  for (int i = backwardContinuous; i < SIDE_WINDOW_SIZE; i++) {
-    if (((backward >> (i * 2)) & 0x03) == EMPTY_SPACE)
-      backwardContEmpty += 1;
-    else
-      break;
-  }
-  continuous = forwardContinuous + backwardContinuous;
-  if (continuous > 4) continuous = 4;
-  if (block > 4) block = 4;
-  if ((SIDE_WINDOW_SIZE - continuous) >= (forwardContEmpty + backwardContEmpty)) continuous = 0;
-  if ((((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) &&
-       ((backward & 0x03) == EMPTY_SPACE)) ||
-      (((backward & 0x0F)) == pack_cells_2(opponent, player) &&
-       ((forward & 0xC0) >> 6) == EMPTY_SPACE)) {
-    continuous = 0;
-    block = 0;
-  } else if (((backward & 0x03) == opponent &&
-              ((forward & 0xF0) >> 4) == pack_cells_2(player, EMPTY_SPACE)) ||
-             (((forward & 0xC0) >> 6) == opponent &&
-              (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player))) {
-    continuous = 0;
-    block = 0;
-  }
-  // TODO: block sharpning
+  int forwardBlockContinuous = 0;
+  bool forwardBlockClosedEnd = false;
 
-  return continuousScores[continuous + 1] + blockScores[block + 1];
+  int backwardBlockContinuous = 0;
+  bool backwardBlockClosedEnd = false;
+  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd);
+  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd);
+
+  int totalBlockCont = forwardBlockContinuous + backwardBlockContinuous;
+  // 1.if continous opponent is bigger or equal, should block asap
+  if (totalBlockCont >= 4) totalBlockCont = 4;
+
+  if (totalBlockCont < 4) {
+    // 2. if both end is blocked by player and continous is less then three, there is no need to
+    // block
+    if (forwardBlockClosedEnd && backwardBlockClosedEnd) totalBlockCont = 0;
+    // 3. for each side, if one side continous but that side is already closed,
+    // it doesn't need to be blocked 'yet', so heuristics can go for better score moves.
+    else if ((forwardBlockClosedEnd && (forwardBlockContinuous == totalBlockCont)) ||
+             (backwardBlockClosedEnd && (backwardBlockContinuous == totalBlockCont))) {
+      totalBlockCont = 0;
+      // 3-2. but if it can be captured, add up the score (check)
+      if (forwardBlockContinuous == 2) totalBlockCont += 1;
+      if (backwardBlockContinuous == 2) totalBlockCont += 1;
+    }
+  }
+
+  return continuousScores[totalContinuous + 1] + blockScores[totalBlockCont + 1];
 }
 
 void initCombinedPatternScoreTables() {
@@ -166,8 +367,8 @@ void initCombinedPatternScoreTables() {
       // and then the forward side occupies the lowest 2*SIDE_WINDOW_SIZE bits.
       unsigned int pattern = (backward << (2 * (SIDE_WINDOW_SIZE + 1))) |
                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forward;
-      patternScoreTablePlayerOne[pattern] = evaluateContinousPattern(backward, forward, PLAYER_1);
-      patternScoreTablePlayerTwo[pattern] = evaluateContinousPattern(backward, forward, PLAYER_2);
+      patternScoreTablePlayerOne[pattern] = evaluateContinuousPattern(backward, forward, PLAYER_1);
+      patternScoreTablePlayerTwo[pattern] = evaluateContinuousPattern(backward, forward, PLAYER_2);
     }
   }
 }
@@ -214,21 +415,21 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
                                                                 : board->getLastPlayerScore();
   // double goalRatio = board->getGoal();
 
-  // if (checkCapture(forward, player) > 0) activeCaptureScore++;
-  // if (checkCapture(backward, player) > 0) activeCaptureScore++;
+  if (checkCapture(forward, player) > 0) activeCaptureScore++;
+  if (checkCapture(backward, player) > 0) activeCaptureScore++;
 
-  // if (checkCapture(forward, player) < 0) opponentCaptureScore++;
-  // if (checkCapture(backward, player) < 0) opponentCaptureScore++;
+  if (checkCapture(forward, player) < 0) opponentCaptureScore++;
+  if (checkCapture(backward, player) < 0) opponentCaptureScore++;
 
   activeCaptureScore = activeCaptureScore / 2 + 1;
   opponentCaptureScore = opponentCaptureScore / 2 + 1;
 
   if (checkCapture(forward, player) > 0 || checkCapture(backward, player) > 0) {
     if (activeCaptureScore == board->getGoal() - 1) return GOMOKU;
-    score += continuousScores[2] * activeCaptureScore;
+    score += static_cast<int>(continuousScores[2] * std::pow(10, activeCaptureScore));
   } else if (checkCapture(forward, player) < 0 || checkCapture(backward, player) < 0) {
     if (opponentCaptureScore == board->getGoal() - 1) return GOMOKU - 1;
-    score += blockScores[2] * opponentCaptureScore;
+    score += static_cast<int>(blockScores[2] * std::pow(10, opponentCaptureScore));
   }
 
   return score;
