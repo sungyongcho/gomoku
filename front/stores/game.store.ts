@@ -26,10 +26,10 @@ export const useGameStore = defineStore("game", () => {
   const { doAlert } = useAlertStore();
   const { playStoneSound, playUndoSound } = useSound();
   const {
+    getOppositeStone,
     getCapturedStones,
     checkDoubleThree,
     isCaptureEnded,
-    isCurrentTurnFiveEnded,
     isDrawEnded,
     isPerfectFiveEnded,
   } = useGameLogic();
@@ -160,24 +160,12 @@ export const useGameStore = defineStore("game", () => {
   // Check end condition after change turn
   const checkGameOverAfterChangeTurn = (situation: GameSituation) => {
     // Check capture points
-    situation.turn = turn.value;
     const captureEnded = isCaptureEnded(situation);
     if (captureEnded.result === GAME_END_SCENARIO.PAIR_CAPTURED) {
       gameOver.value = true;
       return doAlert(
         "Game Over",
         `${captureEnded.winner === "X" ? "Black" : "White"} Win - Captured ${situation.captured.goal}`,
-        "Info",
-      );
-    }
-
-    // Check current turn's five stones or more
-    const currentTurnFiveEnded = isCurrentTurnFiveEnded(situation);
-    if (currentTurnFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
-      gameOver.value = true;
-      return doAlert(
-        "Game Over",
-        `${currentTurnFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
         "Info",
       );
     }
@@ -193,6 +181,7 @@ export const useGameStore = defineStore("game", () => {
   const debugAddStoneToBoardData = async (
     { x, y }: { x: number; y: number },
     stone: Stone,
+    askAi: boolean,
     executionTime?: { s: number; ms: number; ns: number },
   ) => {
     // Calculate captured stone
@@ -238,10 +227,14 @@ export const useGameStore = defineStore("game", () => {
     checkGameOverBeforeChangeTurn(situation);
 
     playStoneSound();
-    changeTurn();
+
+    const oppositeStone = getOppositeStone(stone);
+    if (askAi || !settings.value.isDebugTurnLocked) {
+      changeTurn();
+    }
 
     await nextTick();
-    checkGameOverAfterChangeTurn({ ...situation, turn: turn.value });
+    checkGameOverAfterChangeTurn({ ...situation, turn: oppositeStone });
   };
 
   const addStoneToBoardData = async (

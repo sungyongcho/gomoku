@@ -46,7 +46,7 @@ const { data, send, close, status } = useWebSocket(
 );
 
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
-  debugAddStoneToBoardData({ x, y }, turn.value);
+  debugAddStoneToBoardData({ x, y }, turn.value, false);
 };
 
 const onSendData = (
@@ -136,6 +136,7 @@ watch(data, (rawData) => {
     debugAddStoneToBoardData(
       res.lastPlay.coordinate,
       res.lastPlay.stone,
+      true, // isAi
       res.executionTime,
     );
   } catch (error) {

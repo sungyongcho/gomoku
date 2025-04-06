@@ -17,7 +17,9 @@ const { settings } = storeToRefs(useGameStore());
     class="flex items-center justify-between gap-10 rounded-md border-2 p-2"
   >
     <div class="flex flex-col items-center justify-center">
-      <div class="flex items-end rounded-lg bg-black p-2 text-white">
+      <div
+        class="flex h-[52px] w-[52px] items-end rounded-lg bg-black p-2 text-white"
+      >
         <span class="mr-1 text-3xl -sm:text-xl">{{
           player1TotalCaptured
         }}</span>
@@ -30,7 +32,9 @@ const { settings } = storeToRefs(useGameStore());
     <span class="text-body text-center">Pair captured</span>
 
     <div class="flex flex-col items-center justify-center">
-      <div class="flex items-end rounded-lg bg-black p-2 text-white">
+      <div
+        class="flex h-[52px] w-[52px] items-end rounded-lg bg-black p-2 text-white"
+      >
         <span class="mr-1 text-3xl -sm:text-xl">{{
           player2TotalCaptured
         }}</span>
