@@ -435,6 +435,24 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   return score;
 }
 
+int checkVPattern(Board *board, int player, int x, int y, int begin) {
+  int result = 0;
+  int opponent = OPPONENT(player);
+
+  int i = begin % 8;
+
+  int right = board->getValueBit(x + DIRECTIONS[i][0], y + DIRECTIONS[i][1]);
+  int center = board->getValueBit(x + DIRECTIONS[i + 1][0], y + DIRECTIONS[i + 1][1]);
+  int left = board->getValueBit(x + DIRECTIONS[i + 2][0], y + DIRECTIONS[i + 2][1]);
+
+  // std::cout << right << " " << center << " " << left << std::endl;
+
+  if (right == opponent && left == opponent) {
+    if (center == EMPTY_SPACE) result += continuousScores[3];
+  }
+  return result;
+}
+
 int evaluatePosition(Board *&board, int player, int x, int y) {
   int totalScore = 0;
 
@@ -442,8 +460,11 @@ int evaluatePosition(Board *&board, int player, int x, int y) {
 
   for (int i = 0; i < 4; ++i) {
     totalScore += evaluateCombinedAxis(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+    if (totalScore >= GOMOKU) return totalScore;
   }
-
+  for (int i = 1; i < 8; i += 2) {
+    totalScore += checkVPattern(board, player, x, y, i);
+  }
   return totalScore;
 }
 
