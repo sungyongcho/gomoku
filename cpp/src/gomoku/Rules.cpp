@@ -193,7 +193,7 @@ bool check_middle_bit_case_2(unsigned int forward, unsigned int backward, int pl
   return false;
 }
 
-bool check_middle_bit(Board &board, int x, int y, int dx, int dy, int player, int opponent) {
+bool check_middle_bit_1(Board &board, int x, int y, int dx, int dy, int player, int opponent) {
   // make sure to understand only '3' cells are getting acqured and partial
   // functions inside will shift values.
   unsigned int forward = board.extractLineAsBits(x, y, dx, dy, 3);
@@ -203,6 +203,18 @@ bool check_middle_bit(Board &board, int x, int y, int dx, int dy, int player, in
     return false;  // out-of-bounds
 
   if (check_middle_bit_case_1(forward, backward, player, opponent)) return true;
+
+  return false;
+}
+
+bool check_middle_bit_2(Board &board, int x, int y, int dx, int dy, int player) {
+  // make sure to understand only '3' cells are getting acqured and partial
+  // functions inside will shift values.
+  unsigned int forward = board.extractLineAsBits(x, y, dx, dy, 3);
+  unsigned int backward = board.extractLineAsBits(x, y, -dx, -dy, 3);
+
+  if (Board::getCellCount(forward, 3) != 3 || Board::getCellCount(backward, 3) != 3)
+    return false;  // out-of-bounds
 
   if (check_middle_bit_case_2(forward, backward, player)) return true;
 
@@ -222,7 +234,14 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player) {
       ++count;
       continue;
     }
-    if (i < 4 && check_middle_bit(board, x, y, dx, dy, player, opponent)) ++count;
+    if (i < 4 && check_middle_bit_1(board, x, y, dx, dy, player, opponent)) {
+      ++count;
+      continue;
+    }
+    if (check_middle_bit_2(board, x, y, dx, dy, player)) {
+      ++count;
+      continue;
+    }
   }
   return (count >= 2);
 }
