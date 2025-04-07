@@ -1,5 +1,6 @@
 import { map, pipe, range, toArray } from "@fxts/core";
 import { useStorage } from "@vueuse/core";
+import { cloneDeep } from "lodash";
 
 import {
   type BoardInput,
@@ -61,16 +62,85 @@ export const useGameStore = defineStore("game", () => {
   };
   const turn = useStorage<Stone>("turn", "X"); // Player1 = 'X', Player2 = 'O'
   const histories = useStorage<History[]>("histories", []);
+  const currentHistoryIndex = ref(0);
+  const onNextHistory = () => {
+    const nextHistory = histories.value.at(currentHistoryIndex.value + 1);
+    if (!nextHistory) return;
+
+    // Apply captured stones
+    if (nextHistory.capturedStones) {
+      nextHistory.capturedStones.forEach(({ x, y, stone }) => {
+        readOnlyBoardData.value[y][x].stone = ".";
+      });
+    }
+    readOnlyBoardData.value[nextHistory.coordinate.y][
+      nextHistory.coordinate.x
+    ].stone = nextHistory.stone;
+
+    currentHistoryIndex.value++;
+    playStoneSound();
+    changeTurn(nextHistory.stone);
+  };
+  const onPrevHistory = () => {
+    const currentHistory = histories.value.at(currentHistoryIndex.value);
+    if (!currentHistory) return;
+
+    // Recover captured stones
+    if (currentHistory.capturedStones) {
+      currentHistory.capturedStones.forEach(({ x, y, stone }) => {
+        readOnlyBoardData.value[y][x].stone = stone;
+      });
+    }
+
+    // Undo last move
+    readOnlyBoardData.value[currentHistory.coordinate.y][
+      currentHistory.coordinate.x
+    ].stone = ".";
+
+    // Delete last history
+    currentHistoryIndex.value--;
+    gameOver.value = false;
+    playUndoSound();
+    changeTurn(currentHistory.stone);
+  };
+
+  const readOnlyHistories = computed(() =>
+    histories.value.slice(0, currentHistoryIndex.value + 1),
+  );
+
+  // Auto selected history
+  const _histories = computed(() => {
+    return historyMode.value ? readOnlyHistories.value : histories.value;
+  });
+
   const evalScores = ref<[StoneEval, StoneEval] | []>([]);
   const gameOver = useStorage<boolean>("gameOver", false);
+  const historyMode = useStorage<boolean>("historyMode", false);
+
   const isAiThinking = ref(false);
   const boardData = useStorage<{ stone: Stone }[][]>(
     "boardData",
     initialBoard(),
   );
+  const readOnlyBoardData = useStorage<{ stone: Stone }[][]>(
+    "readOnlyBoardData",
+    initialBoard(),
+  );
+
+  watch(
+    historyMode,
+    (isHistoryMode) => {
+      if (isHistoryMode) {
+        currentHistoryIndex.value = histories.value.length - 1;
+        readOnlyBoardData.value = cloneDeep(toRaw(boardData.value));
+      }
+    },
+    { immediate: true },
+  );
+
   const player1TotalCaptured = computed(() => {
     return (
-      histories.value
+      _histories.value
         .filter((h: History) => h.stone === "X")
         .reduce((acc: number, h: History) => {
           if (!h.capturedStones?.length) return acc;
@@ -81,7 +151,7 @@ export const useGameStore = defineStore("game", () => {
 
   const player2TotalCaptured = computed(() => {
     return (
-      histories.value
+      _histories.value
         .filter((h: History) => h.stone === "O")
         .reduce((acc: number, h: History) => {
           if (!h.capturedStones?.length) return acc;
@@ -331,8 +401,14 @@ export const useGameStore = defineStore("game", () => {
   return {
     settings,
     turn,
-    histories,
+    _histories,
+    histories, // game mode history
+    readOnlyHistories, // history mode history
+    historyMode,
+    onPrevHistory,
+    onNextHistory,
     boardData,
+    readOnlyBoardData,
     gameOver,
     initGame,
     changeTurn,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useWebSocket, type WebSocketStatus } from "@vueuse/core";
+import { useWebSocket } from "@vueuse/core";
 
 import type {
   RequestType,
@@ -13,6 +13,7 @@ definePageMeta({
 
 const {
   histories,
+  _histories,
   turn,
   boardData,
   settings,
@@ -20,9 +21,16 @@ const {
   player1TotalCaptured,
   player2TotalCaptured,
   isAiThinking,
+  historyMode,
   gameOver,
 } = storeToRefs(useGameStore());
-const { deleteLastHistory, initGame, addStoneToBoardData } = useGameStore();
+const {
+  deleteLastHistory,
+  initGame,
+  addStoneToBoardData,
+  onPrevHistory,
+  onNextHistory,
+} = useGameStore();
 
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert } = useAlertStore();
@@ -173,13 +181,30 @@ onUnmounted(() => {
         <GoBoard @put="onPutStone" @evaluate="onEvaluateStone" />
 
         <div class="mt-3 flex w-full flex-wrap justify-center gap-3">
-          <Button
-            label="Undo a move"
-            icon="pi pi-undo"
-            :disabled="histories.length < 1"
-            @click="deleteLastHistory"
-          />
-          <Button label="Restart" icon="pi pi-play" @click="onRestart" />
+          <template v-if="!historyMode">
+            <Button
+              label="Undo a move"
+              icon="pi pi-undo"
+              :disabled="histories.length < 1"
+              @click="deleteLastHistory"
+            />
+            <Button label="Restart" icon="pi pi-play" @click="onRestart" />
+          </template>
+          <template v-else>
+            <Button
+              label="Prev"
+              icon="pi pi-arrow-left"
+              :disabled="_histories.length === 0"
+              @click="onPrevHistory"
+            />
+            <Button
+              label="Next"
+              icon-pos="right"
+              icon="pi pi-arrow-right"
+              @click="onNextHistory"
+              :disabled="_histories.length === histories.length"
+            />
+          </template>
         </div>
       </div>
       <InfoBoard class="-lg:hidden" />

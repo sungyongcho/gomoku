@@ -5,11 +5,12 @@ import aiImage from "~/assets/ai.webp";
 import { useClipboard } from "@vueuse/core";
 
 const {
-  histories,
+  _histories,
   player1TotalCaptured,
   player2TotalCaptured,
   settings,
   turn,
+  historyMode,
   isAiThinking,
 } = storeToRefs(useGameStore());
 const { historyToLog, exportData } = useGameStore();
@@ -27,7 +28,7 @@ const onClickExport = () => {
   copy(url);
 };
 const aiHistories = computed(() => {
-  return histories.value.filter((h) => !!h.executionTime?.ms);
+  return _histories.value.filter((h) => !!h.executionTime?.ms);
 });
 
 const aiAverageResponseTime = computed(() => {
@@ -38,7 +39,7 @@ const aiAverageResponseTime = computed(() => {
 });
 
 watch(
-  () => histories.value?.length,
+  () => [_histories.value?.length],
   () => {
     nextTick(() => {
       if (!historyEl.value) return;
@@ -70,7 +71,7 @@ watch(
       <div class="flex flex-col items-center">
         <span class="text-2xl">vs</span>
         <span class="text-center text-sm">
-          Turn {{ Math.floor(histories.length / 2) }}
+          Turn {{ Math.floor(_histories.length / 2) }}
         </span>
       </div>
 
@@ -103,8 +104,13 @@ watch(
       <div
         class="flex items-center justify-between rounded-t-md bg-gray-200 p-2 text-sm"
       >
-        <p class="text-md font-bold">Game history</p>
-
+        <button
+          class="text-md rounded-md bg-gray-200 px-2 py-1 text-black hover:bg-gray-300"
+          :class="{ ['bg-yellow-400 hover:bg-yellow-500']: historyMode }"
+          @click="historyMode = !historyMode"
+        >
+          Game history
+        </button>
         <ClientOnly>
           <button
             v-if="isSupported"
@@ -124,7 +130,7 @@ watch(
       >
         <ul class="py-2">
           <li
-            v-for="(h, index) in histories"
+            v-for="(h, index) in _histories"
             :key="index"
             class="px-2 text-gray-500 last:text-white"
           >

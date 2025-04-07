@@ -28,9 +28,9 @@ const onMouseLeave = () => {
   // clear previous evaluation
   emit("evaluate", undefined);
 };
-const { turn, gameOver, histories, isAiThinking, settings } =
+const { turn, gameOver, histories, isAiThinking, _histories } =
   storeToRefs(useGameStore());
-const lastHistory = computed(() => histories.value.at(-1));
+const lastHistory = computed(() => _histories.value.at(-1));
 </script>
 
 <template>
