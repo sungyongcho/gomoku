@@ -435,20 +435,22 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   return score;
 }
 
-int checkVPattern(Board *board, int player, int x, int y, int begin) {
+int checkVPattern(Board *board, int player, int x, int y, int i) {
   int result = 0;
   int opponent = OPPONENT(player);
 
-  int i = begin % 8;
+  // int i = begin % 8;
 
-  int right = board->getValueBit(x + DIRECTIONS[i][0], y + DIRECTIONS[i][1]);
-  int center = board->getValueBit(x + DIRECTIONS[i + 1][0], y + DIRECTIONS[i + 1][1]);
-  int left = board->getValueBit(x + DIRECTIONS[i + 2][0], y + DIRECTIONS[i + 2][1]);
+  int right = board->getValueBit(x + DIRECTIONS[i % 8][0], y + DIRECTIONS[i % 8][1]);
+  int center = board->getValueBit(x + DIRECTIONS[(i + 1) % 8][0], y + DIRECTIONS[(i + 1) % 8][1]);
+  int left = board->getValueBit(x + DIRECTIONS[(i + 2) % 8][0], y + DIRECTIONS[(i + 2) % 8][1]);
 
+  if (!(right == opponent && left == opponent)) return result;
   // std::cout << right << " " << center << " " << left << std::endl;
 
   if (right == opponent && left == opponent) {
-    if (center == EMPTY_SPACE) result += continuousScores[3];
+    if (center == EMPTY_SPACE || center == opponent)
+      result += (continuousScores[2] * 2 + blockScores[2]) + 1;
   }
   return result;
 }
