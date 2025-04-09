@@ -231,9 +231,9 @@ void printAxis(int forward, int backward) {
 }
 
 int main() {
-  int forward = 0b01010100;
-  int backward = 0b00000000;
   int player = 1;
+  int forward = 0b01010100;
+  int backward = 0b00100101;
 
   int forwardContinuous = 0;
   bool forwardClosedEnd = false;
