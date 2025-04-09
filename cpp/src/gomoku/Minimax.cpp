@@ -112,12 +112,12 @@ struct MoveComparatorMax {
     // Evaluate each move with a shallow evaluation and add the bonus.
     Board *child1 = Board::cloneBoard(board);
     child1->setValueBit(m1.first, m1.second, player);
-    int score1 = Evaluation::evaluatePosition(child1, player, m1.first, m1.second) + bonus1;
+    int score1 = Evaluation::evaluatePositionHard(child1, player, m1.first, m1.second) + bonus1;
     delete child1;
 
     Board *child2 = Board::cloneBoard(board);
     child2->setValueBit(m2.first, m2.second, player);
-    int score2 = Evaluation::evaluatePosition(child2, player, m2.first, m2.second) + bonus2;
+    int score2 = Evaluation::evaluatePositionHard(child2, player, m2.first, m2.second) + bonus2;
     delete child2;
 
     return score1 > score2;  // Higher score first.
@@ -136,12 +136,12 @@ struct MoveComparatorMin {
 
     Board *child1 = Board::cloneBoard(board);
     child1->setValueBit(m1.first, m1.second, player);
-    int score1 = Evaluation::evaluatePosition(child1, player, m1.first, m1.second) + bonus1;
+    int score1 = Evaluation::evaluatePositionHard(child1, player, m1.first, m1.second) + bonus1;
     delete child1;
 
     Board *child2 = Board::cloneBoard(board);
     child2->setValueBit(m2.first, m2.second, player);
-    int score2 = Evaluation::evaluatePosition(child2, player, m2.first, m2.second) + bonus2;
+    int score2 = Evaluation::evaluatePositionHard(child2, player, m2.first, m2.second) + bonus2;
     delete child2;
 
     return score1 < score2;  // Lower score first for minimizer.
@@ -154,13 +154,13 @@ struct MoveComparatorMin {
 //   // Terminal condition: if we've reached the maximum search depth.
 //   if (depth == 0) {
 //     // Evaluate board based on the last move (played by opponent of currentPlayer)
-//     return Evaluation::evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
+//     return Evaluation::evaluatePositionHard(board, OPPONENT(currentPlayer), lastX, lastY);
 //   }
 
 //   // Generate candidate moves.
 //   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
 //   if (moves.empty())
-//     return Evaluation::evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
+//     return Evaluation::evaluatePositionHard(board, OPPONENT(currentPlayer), lastX, lastY);
 
 //   if (isMaximizing) {
 //     MoveComparatorMax cmp(board, currentPlayer);
@@ -228,7 +228,7 @@ struct MoveComparatorMin {
 
 //     // Evaluate the board immediately after applying move (and potential capture).
 //     int immediateScore =
-//         Evaluation::evaluatePosition(child, currentPlayer, moves[i].first, moves[i].second);
+//         Evaluation::evaluatePositionHard(child, currentPlayer, moves[i].first, moves[i].second);
 //     // Apply the move for currentPlayer.
 //     child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
 
@@ -279,7 +279,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 
   // Terminal condition: if we've reached maximum depth.
   if (depth == 0) {
-    int eval = Evaluation::evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
+    int eval = Evaluation::evaluatePositionHard(board, OPPONENT(currentPlayer), lastX, lastY);
     TTEntry entry = {eval, depth, std::make_pair(-1, -1), EXACT};
     transTable[hash] = entry;
     return eval;
@@ -288,7 +288,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   // Generate candidate moves.
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) {
-    int eval = Evaluation::evaluatePosition(board, OPPONENT(currentPlayer), lastX, lastY);
+    int eval = Evaluation::evaluatePositionHard(board, OPPONENT(currentPlayer), lastX, lastY);
     TTEntry entry = {eval, depth, std::make_pair(-1, -1), EXACT};
     transTable[hash] = entry;
     return eval;
@@ -383,7 +383,7 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
 
     // Optionally, get an immediate evaluation (if useful).
     int immediateScore =
-        Evaluation::evaluatePosition(child, currentPlayer, moves[i].first, moves[i].second);
+        Evaluation::evaluatePositionHard(child, currentPlayer, moves[i].first, moves[i].second);
 
     // Apply the move.
     child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
@@ -433,7 +433,7 @@ std::pair<int, int> getBestMovePV(Board *board, int depth, std::pair<int, int> &
 
     // Optional: get an immediate evaluation.
     int immediateScore =
-        Evaluation::evaluatePosition(child, currentPlayer, moves[i].first, moves[i].second);
+        Evaluation::evaluatePositionHard(child, currentPlayer, moves[i].first, moves[i].second);
 
     // Apply the move.
     child->setValueBit(moves[i].first, moves[i].second, currentPlayer);

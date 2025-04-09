@@ -41,9 +41,22 @@ static const int continuousScores[6] = {
 static const int blockScores[6] = {
     0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
+bool isValidBackwardPattern(unsigned int sidePattern);
+
+bool isValidForwardPattern(unsigned int sidePattern);
+void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
+                           int &continuousEmpty);
+void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd);
+
 void initCombinedPatternScoreTables();
 
+int checkCapture(unsigned int side, unsigned int player);
+
+unsigned int reversePattern(unsigned int pattern, int windowSize);
+
 int evaluatePosition(Board *&board, int player, int x, int y);
+
+int evaluatePositionHard(Board *&board, int player, int x, int y);
 
 int getEvaluationRating(int score);
 
