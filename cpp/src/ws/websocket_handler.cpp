@@ -216,8 +216,8 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           return -1;
         }
         // p1 mapped as x and p2 mapped as o
-        int x_scores = Evaluation::evaluatePosition(pBoard, PLAYER_1, eval_x, eval_y);
-        int o_scores = Evaluation::evaluatePosition(pBoard, PLAYER_2, eval_x, eval_y);
+        int x_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_1, eval_x, eval_y);
+        int o_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_2, eval_x, eval_y);
 
         int x_rating = Evaluation::getEvaluationRating(x_scores);
         int o_rating = Evaluation::getEvaluationRating(o_scores);
