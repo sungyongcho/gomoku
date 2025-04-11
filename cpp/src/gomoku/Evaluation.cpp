@@ -311,7 +311,8 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
 
     // 4. prevent from opponent to capture (needs to check if necessary)
     // separated if condition because it needs to check all above then add
-    if (isCaptureWarning(forward, player, false) || isCaptureWarning(backward, player, true))
+    if (totalContinuous == 0 &&
+        (isCaptureWarning(forward, player, false) || isCaptureWarning(backward, player, true)))
       totalContinuous = forwardContinuous + backwardContinuous;
   }
 

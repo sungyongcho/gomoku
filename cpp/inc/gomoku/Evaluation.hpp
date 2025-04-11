@@ -49,6 +49,7 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
 void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd);
 
 void initCombinedPatternScoreTables();
+void initCombinedPatternScoreTablesHard();
 
 int checkCapture(unsigned int side, unsigned int player);
 
