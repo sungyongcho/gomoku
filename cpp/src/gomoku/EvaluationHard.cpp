@@ -67,19 +67,24 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   if (totalContinuous >= 4) totalContinuous = 4;
 
   if (totalContinuous == 3) {
-    returnValue.score += CONTINUOUS_LINE_4;
-    if (!forwardClosedEnd && !backwardClosedEnd) returnValue.counts.openFourCount += 1;
-    // else if (!forwardClosedEnd || !backwardClosedEnd)
-    //   returnValue.counts.threatCount += 1;
+    if (!forwardClosedEnd && !backwardClosedEnd) {
+      returnValue.counts.openFourCount += 1;
+      returnValue.counts.threatCount += 1;
+    } else if (!forwardClosedEnd || !backwardClosedEnd) {
+      returnValue.counts.threatCount += 1;
+      returnValue.counts.closedFourCount += 1;
+    }
   }
 
   if (totalContinuous == 2) {
     if (!forwardClosedEnd && !backwardClosedEnd) {
       // open three
       returnValue.counts.threatCount += 1;
+      returnValue.counts.openThreeCount += 1;
     } else if (!forwardClosedEnd || !backwardClosedEnd) {
       // closed three
       returnValue.counts.threatCount += 1;
+      returnValue.counts.closedThreeCount += 1;
     }
   }
 
@@ -183,10 +188,16 @@ int evaluatePositionHard(Board *&board, int player, int x, int y) {
     total += evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
   }
 
-  if (total.counts.openFourCount >= 2) {
+  if (total.counts.openFourCount > 2) {
     total.score += FORCED_WIN_SEQUENCE;
     total.score += DOUBLE_OPEN_FOUR;
   }
+
+  if (total.counts.openFourCount == 1) total.score += OPEN_FOUR;
+  if (total.counts.closedFourCount == 1) total.score += CLOSED_FOUR;
+
+  if (total.counts.openThreeCount == 1) total.score += OPEN_THREE;
+  if (total.counts.closedThreeCount == 1) total.score += CLOSED_THREE;
 
   if (total.counts.threatCount >= 2) total.score += DOUBLE_THREAT;
 

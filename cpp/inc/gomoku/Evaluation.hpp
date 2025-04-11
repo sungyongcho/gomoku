@@ -8,7 +8,7 @@
 #include "Gomoku.hpp"
 
 #define GOMOKU 10000000
-#define CAPTURE_WIN 10000000
+#define CAPTURE_WIN 11000000
 #define FORCED_WIN_SEQUENCE 950000
 #define DOUBLE_OPEN_FOUR 950000
 #define OPEN_FOUR 700000
@@ -47,6 +47,9 @@ namespace Evaluation {
 
 struct PatternCounts {
   int openFourCount;        // Used for forced win / double open four detection.
+  int closedFourCount;      // Used for forced win / double open four detection.
+  int openThreeCount;       // Used for forced win / double open four detection.
+  int closedThreeCount;     // Used for forced win / double open four detection.
   int threatCount;          // Counts open/closed three threats.
   int captureCount;         // Counts capture opportunities ("OXXO").
   int defensiveBlockCount;  // Counts when this move blocks an opponent pattern.
