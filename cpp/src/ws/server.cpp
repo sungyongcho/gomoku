@@ -16,7 +16,7 @@ Server::Server(int port) {
     exit(1);
   }
   // Minimax::initCombinedPatternScoreTablesToRemove();
-  Evaluation::initCombinedPatternScoreTables();
+  // Evaluation::initCombinedPatternScoreTables();
   Evaluation::initCombinedPatternScoreTablesHard();
   std::cout << "WebSocket Server running on ws://localhost:" << port << "/ws/debug" << std::endl;
 }
