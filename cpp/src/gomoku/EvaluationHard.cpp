@@ -188,6 +188,10 @@ int evaluatePositionHard(Board *&board, int player, int x, int y) {
     total += evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
   }
 
+  for (int i = 1; i < 8; i += 2) {
+    total.score += checkVPattern(board, player, x, y, i);
+  }
+
   if (total.counts.openFourCount > 2) {
     total.score += FORCED_WIN_SEQUENCE;
     total.score += DOUBLE_OPEN_FOUR;

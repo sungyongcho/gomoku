@@ -108,6 +108,7 @@ void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, 
 void initCombinedPatternScoreTables();
 void initCombinedPatternScoreTablesHard();
 
+int checkVPattern(Board *board, int player, int x, int y, int i);
 int checkCapture(unsigned int side, unsigned int player);
 
 unsigned int reversePattern(unsigned int pattern, int windowSize);
