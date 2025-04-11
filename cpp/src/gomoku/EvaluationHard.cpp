@@ -61,9 +61,9 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
 
     // 3. prevent from opponent to capture (needs to check if necessary)
     // separated if condition because it needs to check all above then add
-    if (totalContinuous == 0 &&
-        (isCaptureWarning(forward, player, false) || isCaptureWarning(backward, player, true)))
-      totalContinuous = forwardContinuous + backwardContinuous;
+    // if (totalContinuous == 0 &&
+    //     (isCaptureWarning(forward, player, false) || isCaptureWarning(backward, player, true)))
+    //   totalContinuous = forwardContinuous + backwardContinuous;
   }
 
   if (isCaptureVulnerable(forward, backward, player)) totalContinuous = 0;
