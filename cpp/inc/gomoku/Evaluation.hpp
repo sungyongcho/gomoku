@@ -29,7 +29,7 @@
 #define BLOCK_LINE_3 100
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
-#define CAPTURE_SCORE 100
+#define CAPTURE_SCORE 200000
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
 #define INVALID_PATTERN -1337
