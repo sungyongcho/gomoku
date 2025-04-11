@@ -215,6 +215,8 @@ int evaluatePositionHard(Board *&board, int player, int x, int y) {
 
   if (total.counts.defensiveBlockCount >= 2) total.score = COUNTER_THREAT;
 
+  if (total.counts.defensiveBlockCount == 1) total.score = DEFENSIVE_BLOCK;
+
   // int boardCenter = BOARD_SIZE / 2;
   // int posBonus = SCORE_POSITIONAL_ADVANTAGE - (abs(x - boardCenter) + abs(y - boardCenter)) *
   // 1000; totalScore += posBonus;
