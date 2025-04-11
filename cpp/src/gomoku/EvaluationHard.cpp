@@ -46,7 +46,11 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   if (totalContinuous < 4) {
     // 1. for condition where total continous are less than equal to
     // if both ends are closed, it is meaningless to place the stone.
-    if (backwardClosedEnd == true && forwardClosedEnd == true) totalContinuous = 0;
+    if (backwardClosedEnd == true && forwardClosedEnd == true) {
+      // std::cout << "check here " << std::endl;
+      totalContinuous = 0;
+
+    }
 
     // 2. if the total continuous + continuous empty => potential growth for gomoku is less then
     // five, don't need to extend the line
@@ -197,19 +201,19 @@ int evaluatePositionHard(Board *&board, int player, int x, int y) {
     total.score += DOUBLE_OPEN_FOUR;
   }
 
-  if (total.counts.openFourCount == 1) total.score += OPEN_FOUR;
-  if (total.counts.closedFourCount == 1) total.score += CLOSED_FOUR;
+  if (total.counts.openFourCount == 1) total.score = OPEN_FOUR;
+  if (total.counts.closedFourCount == 1) total.score = CLOSED_FOUR;
 
-  if (total.counts.openThreeCount == 1) total.score += OPEN_THREE;
-  if (total.counts.closedThreeCount == 1) total.score += CLOSED_THREE;
+  if (total.counts.openThreeCount == 1) total.score = OPEN_THREE;
+  if (total.counts.closedThreeCount == 1) total.score = CLOSED_THREE;
 
-  if (total.counts.threatCount >= 2) total.score += DOUBLE_THREAT;
+  if (total.counts.threatCount >= 2) total.score = DOUBLE_THREAT;
 
-  if (total.counts.threatCount >= 3) total.score += FORK;
+  if (total.counts.threatCount >= 3) total.score = FORK;
 
   // if (total.counts.captureCount >= 2) total.score += SCORE_CHAIN_CAPTURE_SETUP;
 
-  if (total.counts.defensiveBlockCount >= 2) total.score += COUNTER_THREAT;
+  if (total.counts.defensiveBlockCount >= 2) total.score = COUNTER_THREAT;
 
   // int boardCenter = BOARD_SIZE / 2;
   // int posBonus = SCORE_POSITIONAL_ADVANTAGE - (abs(x - boardCenter) + abs(y - boardCenter)) *
@@ -221,16 +225,13 @@ int evaluatePositionHard(Board *&board, int player, int x, int y) {
                                                                 : board->getLastPlayerScore();
   if (total.counts.captureCount > 0) {
     if (activeCaptureScore + total.counts.captureCount >= board->getGoal()) return CAPTURE_WIN;
-    total.score += static_cast<int>(continuousScores[2] *
-                                    std::pow(10, (activeCaptureScore + total.counts.captureCount)));
+    total.score += CAPTURE_SCORE * (activeCaptureScore + total.counts.captureCount);
   }
 
   if (total.counts.captureBlockCount > 0) {
     if (opponentCaptureScore + total.counts.captureBlockCount >= board->getGoal())
       return BLOCK_LINE_5;
-    total.score +=
-        static_cast<int>(continuousScores[2] *
-                         std::pow(10, (opponentCaptureScore + total.counts.captureBlockCount)));
+    total.score += CAPTURE_SCORE * (opponentCaptureScore + total.counts.captureBlockCount);
   }
   // totalScore += (activeCaptureScore - opponentCaptureScore) * SCORE_OPPORTUNISTIC_CAPTURE;
 
