@@ -207,7 +207,9 @@ int evaluatePositionHard(Board *&board, int player, int x, int y) {
   if (total.counts.openThreeCount == 1) total.score = OPEN_THREE;
   if (total.counts.closedThreeCount == 1) total.score = CLOSED_THREE;
 
-  if (total.counts.threatCount >= 2) total.score = DOUBLE_THREAT;
+  if ((total.counts.threatCount >= 2) &&
+      (total.counts.closedFourCount > 0 || total.counts.openThreeCount > 0))
+    total.score = DOUBLE_THREAT;
 
   if (total.counts.threatCount >= 3) total.score = FORK;
 
