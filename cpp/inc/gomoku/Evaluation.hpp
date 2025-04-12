@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <set>
 
 #include "Board.hpp"
 #include "Gomoku.hpp"
@@ -119,5 +120,6 @@ int evaluatePositionHard(Board *&board, int player, int x, int y);
 
 int getEvaluationRating(int score);
 
+void printPattern(unsigned int pattern, int numCells);
 }  // namespace Evaluation
 #endif  // EVALUATION_HPP

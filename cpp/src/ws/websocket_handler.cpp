@@ -171,21 +171,23 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         // // // Calculate elapsed time
         // double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+        pBoard->setLastEvalScore(Evaluation::evaluatePositionHard(
+            pBoard, pBoard->getLastPlayer(), pBoard->getLastX(), pBoard->getLastY()));
 
-        std::clock_t start = std::clock();  // Start time
+        // std::clock_t start = std::clock();  // Start time
 
-        std::pair<int, int> a =
-            Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH, 500);
-        // Minimax::iterativeDeepening(pBoard, 1, 500);
+        // std::pair<int, int> a =
+        //     Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH, 500);
+        // // Minimax::iterativeDeepening(pBoard, 1, 500);
 
-        std::clock_t end = std::clock();  // End time
-        pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
-        if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
-          pBoard->applyCapture(false);
-        }
+        // std::clock_t end = std::clock();  // End time
+        // pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
+        // if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
+        //   pBoard->applyCapture(false);
+        // }
 
-        // // Calculate elapsed time
-        double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+        // // // Calculate elapsed time
+        // double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
 
         // double elapsed_ms = executionTime * 1000.0;
         // double elapsed_ns = executionTime * 1e9;
@@ -199,7 +201,8 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         // Minimax::simulateAIBattle(pBoard, 5, 80);
 
-        responseSuccessMove(wsi, *pBoard, a.first, a.second, executionTime);
+        // responseSuccessMove(wsi, *pBoard, a.first, a.second, executionTime);
+        responseSuccessMove(wsi, *pBoard, -1, -1, 0);
         delete pBoard;
         return 0;
       } else if (type == "evaluate") {

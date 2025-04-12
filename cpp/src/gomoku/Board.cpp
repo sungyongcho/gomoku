@@ -6,6 +6,9 @@ Board::Board()
       next_player(PLAYER_2),  // Default next player
       last_player_score(0),
       next_player_score(0),
+      last_x(-1),
+      last_y(-1),
+      lastEvalScore(-1),
       currentHash(0) {
   // Reset the bitboards to start with an empty board.
   resetBitboard();
@@ -24,6 +27,9 @@ Board::Board(const Board &other)
       next_player(other.next_player),
       last_player_score(other.last_player_score),
       next_player_score(other.next_player_score),
+      last_x(-1),
+      last_y(-1),
+      lastEvalScore(-1),
       captured_stones(other.captured_stones),
       currentHash(other.currentHash) {
   for (int i = 0; i < BOARD_SIZE; ++i) {
@@ -34,12 +40,14 @@ Board::Board(const Board &other)
 
 Board::Board(const std::vector<std::vector<char> > &board_data, int goal,
              const std::string &last_stone, const std::string &next_stone, int last_score,
-             int next_score)
+             int next_score, int last_x, int last_y)
     : goal(goal),
       last_player(last_stone == "X" ? PLAYER_1 : PLAYER_2),
       next_player(next_stone == "X" ? PLAYER_1 : PLAYER_2),
       last_player_score(last_score),
-      next_player_score(next_score) {
+      next_player_score(next_score),
+      last_x(last_x),
+      last_y(last_y) {
   this->resetBitboard();
   this->initBitboardFromData(board_data);
 
@@ -173,6 +181,12 @@ int Board::getLastPlayer() { return this->last_player; }
 int Board::getNextPlayerScore() { return this->next_player_score; }
 
 int Board::getLastPlayerScore() { return this->last_player_score; }
+
+void Board::setLastEvalScore(int score) { this->lastEvalScore = score; }
+
+int Board::getLastX() { return this->last_x; }
+int Board::getLastY() { return this->last_y; }
+int Board::getLastEvalScore() { return this->lastEvalScore; }
 
 int Board::getGoal() { return this->goal; }
 
