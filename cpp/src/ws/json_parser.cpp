@@ -126,8 +126,8 @@ ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std
     return ERROR_INVALID_SCORES;
   }
 
-  pBoard =
-      new Board(board_data, goal, last_player, next_player, last_player_score, next_player_score);
+  pBoard = new Board(board_data, goal, last_player, next_player, last_player_score,
+                     next_player_score, *last_x, *last_y);
 
   std::cout << "Parsed Board State:\n" << std::endl;
   pBoard->printBitboard();
@@ -184,8 +184,8 @@ ParseResult parseEvaluateRequest(const rapidjson::Document &doc, Board *&pBoard,
     return ERROR_INVALID_SCORES;
   }
 
-  pBoard =
-      new Board(board_data, goal, last_player, next_player, last_player_score, next_player_score);
+  pBoard = new Board(board_data, goal, last_player, next_player, last_player_score,
+                     next_player_score, *eval_x, *eval_y);
 
   return PARSE_OK;
 }

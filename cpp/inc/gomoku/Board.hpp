@@ -27,6 +27,9 @@ class Board {
   int next_player;
   int last_player_score;
   int next_player_score;
+  int last_x;
+  int last_y;
+  int lastEvalScore;
 
   uint64_t last_player_board[BOARD_SIZE];
   uint64_t next_player_board[BOARD_SIZE];
@@ -44,7 +47,7 @@ class Board {
   Board();
   Board(const Board &other);
   Board(const std::vector<std::vector<char> > &board_data, int goal, const std::string &last_stone,
-        const std::string &next_stone, int last_score, int next_score);
+        const std::string &next_stone, int last_score, int next_score, int last_x, int last_y);
 
   std::pair<int, int> getCurrentScore();
   uint64_t *getBitboardByPlayer(int player);
@@ -65,6 +68,11 @@ class Board {
   int getLastPlayer();
   int getNextPlayer();
 
+  int getLastX();
+  int getLastY();
+  int getLastEvalScore();
+
+  void setLastEvalScore(int score);
   int getLastPlayerScore();
   int getNextPlayerScore();
 
