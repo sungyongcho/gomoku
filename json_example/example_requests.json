@@ -16,6 +16,10 @@
 {
   "type": "evaluate",
   "nextPlayer": "X",
+  "lastPlay": {
+    "coordinate": { "x": 9, "y": 10 },
+    "stone": "X"
+  },
   "board": [],
   "coordinate": { "x": 9, "y": 10 },
   "goal": 5,
