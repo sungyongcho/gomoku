@@ -66,7 +66,10 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     //   totalContinuous = forwardContinuous + backwardContinuous;
   }
 
-  if (isCaptureVulnerable(forward, backward, player)) totalContinuous = 0;
+  if (isCaptureVulnerable(forward, backward, player)) {
+    returnValue.counts.captureVulnerable += 1;
+    totalContinuous = 0;
+  }
 
   if (totalContinuous >= 4) totalContinuous = 4;
 
@@ -118,8 +121,27 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   }
 
   // TODO add more condition
-  if (totalBlockCont == 3 && !forwardBlockClosedEnd && !backwardBlockClosedEnd)
-    returnValue.counts.defensiveBlockCount += 1;
+  if (totalBlockCont == 3) {
+    if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
+      returnValue.counts.defensiveBlockCount += 1;
+      returnValue.counts.openFourBlockCount += 1;
+    } else if (!forwardBlockClosedEnd || !backwardBlockClosedEnd) {
+      returnValue.counts.defensiveBlockCount += 1;
+      returnValue.counts.closedFourBlockCount += 1;
+    }
+  }
+
+  if (totalBlockCont == 2) {
+    if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
+      // open three
+      returnValue.counts.defensiveBlockCount += 1;
+      returnValue.counts.openThreeBlockCount += 1;
+    } else if (!forwardClosedEnd || !backwardClosedEnd) {
+      // closed three
+      returnValue.counts.defensiveBlockCount += 1;
+      returnValue.counts.closedThreeBlockCount += 1;
+    }
+  }
 
   if (checkCapture(forward, player) > 0) returnValue.counts.captureCount += 1;
   if (checkCapture(reversePattern(backward, SIDE_WINDOW_SIZE), player) > 0)
@@ -392,21 +414,25 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   if (total.counts.openThreeCount == 1) total.score = OPEN_THREE;
   if (total.counts.closedThreeCount == 1) total.score = CLOSED_THREE;
 
-  if ((total.counts.threatCount >= 2) &&
-      (total.counts.closedFourCount > 0 || total.counts.openThreeCount > 0))
-    total.score = DOUBLE_THREAT;
+  // if ((total.counts.threatCount >= 2) &&
+  //     (total.counts.closedFourCount > 0 || total.counts.openThreeCount > 0))
+  if ((total.counts.threatCount >= 2)) total.score += DOUBLE_THREAT;
 
-  if (total.counts.threatCount >= 3) total.score = FORK;
+  if (total.counts.threatCount >= 3) total.score += FORK;
 
   // if (total.counts.captureCount >= 2) total.score += SCORE_CHAIN_CAPTURE_SETUP;
 
-  if (total.counts.defensiveBlockCount >= 2) total.score = COUNTER_THREAT;
+  if (total.counts.openFourBlockCount) total.score += BLOCK_LINE_4;
 
-  if (total.counts.defensiveBlockCount == 1) total.score = DEFENSIVE_BLOCK;
+  if (total.counts.defensiveBlockCount >= 2) total.score += COUNTER_THREAT;
 
-  // int boardCenter = BOARD_SIZE / 2;
-  // int posBonus = SCORE_POSITIONAL_ADVANTAGE - (abs(x - boardCenter) + abs(y - boardCenter)) *
-  // 1000; totalScore += posBonus;
+  if (total.counts.captureVulnerable > 0) {
+    if (total.score <= BLOCK_LINE_3) total.score = 0;
+  }
+
+  int boardCenter = BOARD_SIZE / 2;
+  int posBonus = SCORE_POSITIONAL_ADVANTAGE - (abs(x - boardCenter) + abs(y - boardCenter)) * 1000;
+  total.score += posBonus;
 
   int activeCaptureScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
                                                               : board->getNextPlayerScore();

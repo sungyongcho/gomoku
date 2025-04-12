@@ -172,22 +172,6 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         // // Calculate elapsed time
         // double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
 
-        pBoard->setLastEvalScore(Evaluation::evaluatePositionHard(
-            pBoard, pBoard->getLastPlayer(), pBoard->getLastX(), pBoard->getLastY()));
-
-        std::vector<std::pair<int, int> > capturable;
-        std::cout << "==========" << std::endl;
-        if (pBoard->getLastEvalScore() == OPEN_THREE || pBoard->getLastEvalScore() == CLOSED_FOUR ||
-            pBoard->getLastEvalScore() == OPEN_FOUR) {
-          std::vector<std::pair<int, int> > capturable =
-              Evaluation::getThresholdOpponentTotal(pBoard);
-          for (unsigned int i = 0; i < capturable.size(); i++) {
-            std::cout << Board::convertIndexToCoordinates(capturable[i].first, capturable[i].second)
-                      << std::endl;
-          }
-        }
-        std::cout << "==========" << std::endl;
-
         std::clock_t start = std::clock();  // Start time
 
         std::pair<int, int> a =
