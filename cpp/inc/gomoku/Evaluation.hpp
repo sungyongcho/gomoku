@@ -31,6 +31,7 @@
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
 #define CAPTURE_SCORE 200000
+#define CAPTURE_THREAT 100000
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
 #define INVALID_PATTERN -1337
@@ -47,20 +48,33 @@
 namespace Evaluation {
 
 struct PatternCounts {
-  int openFourCount;        // Used for forced win / double open four detection.
-  int closedFourCount;      // Used for forced win / double open four detection.
-  int openThreeCount;       // Used for forced win / double open four detection.
-  int closedThreeCount;     // Used for forced win / double open four detection.
-  int threatCount;          // Counts open/closed three threats.
-  int captureCount;         // Counts capture opportunities ("OXXO").
-  int defensiveBlockCount;  // Counts when this move blocks an opponent pattern.
+  int openFourCount;          // Used for forced win / double open four detection.
+  int closedFourCount;        // Used for forced win / double open four detection.
+  int openThreeCount;         // Used for forced win / double open four detection.
+  int closedThreeCount;       // Used for forced win / double open four detection.
+  int threatCount;            // Counts open/closed three threats.
+  int captureCount;           // Counts capture opportunities ("OXXO").
+  int defensiveBlockCount;    // Counts when this move blocks an opponent pattern.
+  int openFourBlockCount;     // Used for forced win / double open four detection.
+  int closedFourBlockCount;   // Used for forced win / double open four detection.
+  int openThreeBlockCount;    // Used for forced win / double open four detection.
+  int closedThreeBlockCount;  // Used for forced win / double open four detection.
+  int captureVulnerable;
   int captureBlockCount;
 
   PatternCounts()
       : openFourCount(0),
+        closedFourCount(0),
+        openThreeCount(0),
+        closedThreeCount(0),
         threatCount(0),
         captureCount(0),
         defensiveBlockCount(0),
+        openFourBlockCount(0),     // Used for forced win / double open four detection.
+        closedFourBlockCount(0),   // Used for forced win / double open four detection.
+        openThreeBlockCount(0),    // Used for forced win / double open four detection.
+        closedThreeBlockCount(0),  // Used for forced win / double open four detection.
+        captureVulnerable(0),
         captureBlockCount(0) {}
 };
 
@@ -75,9 +89,17 @@ struct EvaluationEntry {
   EvaluationEntry &operator+=(const EvaluationEntry &other) {
     score += other.score;
     counts.openFourCount += other.counts.openFourCount;
+    counts.closedFourCount += other.counts.closedFourCount;
+    counts.openThreeCount += other.counts.openThreeCount;
+    counts.closedThreeCount += other.counts.closedThreeCount;
     counts.threatCount += other.counts.threatCount;
     counts.captureCount += other.counts.captureCount;
     counts.defensiveBlockCount += other.counts.defensiveBlockCount;
+    counts.openFourBlockCount += other.counts.openFourBlockCount;
+    counts.closedFourBlockCount += other.counts.closedFourBlockCount;
+    counts.openThreeBlockCount += other.counts.openThreeBlockCount;
+    counts.closedThreeBlockCount += other.counts.closedThreeBlockCount;
+    counts.captureVulnerable += other.counts.captureVulnerable;
     counts.captureBlockCount += other.counts.captureBlockCount;
     return *this;
   }
