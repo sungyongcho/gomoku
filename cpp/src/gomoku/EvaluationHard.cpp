@@ -267,7 +267,9 @@ std::vector<std::pair<int, int> > getNearbyPositions(
   // Convert the set back to a vector.
   return std::vector<std::pair<int, int> >(uniqueNeighbors.begin(), uniqueNeighbors.end());
 }
-std::vector<std::pair<int, int> > getThresholdOpponentNearby(Board* board) {
+std::vector<std::pair<int, int> > getThresholdOpponentTotal(Board* board) {
+  int capture_player = board->getLastPlayer();
+  int capture_opponent = OPPONENT(capture_player);
   int x = board->getLastX();
   int y = board->getLastY();
   std::vector<std::pair<int, int> > total;
@@ -284,13 +286,13 @@ std::vector<std::pair<int, int> > getThresholdOpponentNearby(Board* board) {
     // unsigned int combined =
     //     (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) | (0 << (2 * SIDE_WINDOW_SIZE)) | forward;
 
-    printPattern(forward, 4);
-    printPattern(revBackward, 4);
+    // printPattern(forward, 4);
+    // printPattern(revBackward, 4);
 
-    getForwardData(forward, board->getLastPlayer(), forwardCoords, forwardOpen);
-    getBackwardData(revBackward, board->getLastPlayer(), backwardCoords, backwardOpen);
+    getForwardData(forward, capture_player, forwardCoords, forwardOpen);
+    getBackwardData(revBackward, capture_player, backwardCoords, backwardOpen);
 
-    std::cout << forwardCoords.size() + backwardCoords.size() << std::endl;
+    // std::cout << forwardCoords.size() + backwardCoords.size() << std::endl;
 
     if (forwardOpen && backwardOpen && (forwardCoords.size() + backwardCoords.size() == 2)) {
       for (unsigned int i = 0; i < forwardCoords.size(); i++) {
@@ -325,6 +327,24 @@ std::vector<std::pair<int, int> > getThresholdOpponentNearby(Board* board) {
     total.push_back(std::make_pair(x, y));
   }
 
+  std::vector<std::pair<int, int> > capturable;
+  for (unsigned int i = 0; i < total.size(); i++) {
+    for (int j = 0; j < 8; j++) {
+      int dx = DIRECTIONS[j][0];
+      int dy = DIRECTIONS[j][1];
+      unsigned int backward_empty = board->getValueBit(total[i].first - dx, total[i].second - dy);
+      if (backward_empty != EMPTY_SPACE) continue;
+      unsigned int forward = board->extractLineAsBits(total[i].first, total[i].second, dx, dy, 2);
+      if (forward == pack_cells_2(capture_player, capture_opponent))
+        capturable.push_back(std::make_pair(total[i].first - dx, total[i].second - dy));
+    }
+  }
+
+  return capturable;
+}
+
+std::vector<std::pair<int, int> > getThresholdOpponentNearby(
+    Board* board, std::vector<std::pair<int, int> > total) {
   std::vector<std::pair<int, int> > nearby = getNearbyPositions(total);
 
   for (std::vector<std::pair<int, int> >::iterator it = nearby.begin(); it != nearby.end();) {
@@ -340,17 +360,18 @@ std::vector<std::pair<int, int> > getThresholdOpponentNearby(Board* board) {
 int evaluatePositionHard(Board*& board, int player, int x, int y) {
   EvaluationEntry total;
 
-  // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
-
-  if (board->getLastEvalScore() >= OPEN_THREE) {
-    std::vector<std::pair<int, int> > nearby = getThresholdOpponentNearby(board);
-    for (std::vector<std::pair<int, int> >::iterator it = nearby.begin(); it != nearby.end();) {
-      if (board->getValueBit(it->first, it->second) != EMPTY_SPACE)
-        it = nearby.erase(it);  // erase returns the next iterator
-      else
-        ++it;
-    }
-  }
+  // // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
+  // if (board->getLastEvalScore() == OPEN_THREE || board->getLastEvalScore() == CLOSED_FOUR ||
+  //     board->getLastEvalScore() == OPEN_FOUR) {
+  //   std::vector<std::pair<int, int> > total = getThresholdOpponentTotal(board);
+  //   for (std::vector<std::pair<int, int> >::iterator it = total.begin(); it != total.end();) {
+  //     if (it->first == x && it->second == y) {
+  //       board->setLastEvalScore(0);
+  //       return CAPTURE_LEADING;
+  //     }
+  //   }
+  //   board->setLastEvalScore(0);
+  // }
 
   for (int i = 0; i < 4; ++i) {
     total += evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);

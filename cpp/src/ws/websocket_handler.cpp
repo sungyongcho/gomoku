@@ -169,40 +169,53 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         //   pBoard->applyCapture(false);
         // }
 
-        // // // Calculate elapsed time
+        // // Calculate elapsed time
         // double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+
         pBoard->setLastEvalScore(Evaluation::evaluatePositionHard(
             pBoard, pBoard->getLastPlayer(), pBoard->getLastX(), pBoard->getLastY()));
 
-        // std::clock_t start = std::clock();  // Start time
+        std::vector<std::pair<int, int> > capturable;
+        std::cout << "==========" << std::endl;
+        if (pBoard->getLastEvalScore() == OPEN_THREE || pBoard->getLastEvalScore() == CLOSED_FOUR ||
+            pBoard->getLastEvalScore() == OPEN_FOUR) {
+          std::vector<std::pair<int, int> > capturable =
+              Evaluation::getThresholdOpponentTotal(pBoard);
+          for (unsigned int i = 0; i < capturable.size(); i++) {
+            std::cout << Board::convertIndexToCoordinates(capturable[i].first, capturable[i].second)
+                      << std::endl;
+          }
+        }
+        std::cout << "==========" << std::endl;
 
-        // std::pair<int, int> a =
-        //     Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH, 500);
-        // // Minimax::iterativeDeepening(pBoard, 1, 500);
+        std::clock_t start = std::clock();  // Start time
 
-        // std::clock_t end = std::clock();  // End time
-        // pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
-        // if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
-        //   pBoard->applyCapture(false);
-        // }
+        std::pair<int, int> a =
+            Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH, 500);
+        // Minimax::iterativeDeepening(pBoard, 1, 500);
 
-        // // // Calculate elapsed time
-        // double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+        std::clock_t end = std::clock();  // End time
+        pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
+        if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
+          pBoard->applyCapture(false);
+        }
 
-        // double elapsed_ms = executionTime * 1000.0;
-        // double elapsed_ns = executionTime * 1e9;
+        // // Calculate elapsed time
+        double executionTime = static_cast<double>(end - start) / CLOCKS_PER_SEC;
 
-        // std::cout << "Execution time: " << executionTime << " s, " << elapsed_ms << " ms, "
-        //           << elapsed_ns << " ns" << std::endl;
-        // // std::cout << a.first << ", " << a.second << std::endl;
-        // std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
-        // std::cout << "score: " << pBoard->getLastPlayerScore() << " , "
-        //           << pBoard->getNextPlayerScore() << std::endl;
+        double elapsed_ms = executionTime * 1000.0;
+        double elapsed_ns = executionTime * 1e9;
+
+        std::cout << "Execution time: " << executionTime << " s, " << elapsed_ms << " ms, "
+                  << elapsed_ns << " ns" << std::endl;
+        // std::cout << a.first << ", " << a.second << std::endl;
+        std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
+        std::cout << "score: " << pBoard->getLastPlayerScore() << " , "
+                  << pBoard->getNextPlayerScore() << std::endl;
 
         // Minimax::simulateAIBattle(pBoard, 5, 80);
 
-        // responseSuccessMove(wsi, *pBoard, a.first, a.second, executionTime);
-        responseSuccessMove(wsi, *pBoard, -1, -1, 0);
+        responseSuccessMove(wsi, *pBoard, a.first, a.second, executionTime);
         delete pBoard;
         return 0;
       } else if (type == "evaluate") {
@@ -218,6 +231,22 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           sendJsonResponse(wsi, error_response);
           return -1;
         }
+
+        pBoard->setLastEvalScore(Evaluation::evaluatePositionHard(
+            pBoard, pBoard->getLastPlayer(), pBoard->getLastX(), pBoard->getLastY()));
+
+        std::cout << "==========" << std::endl;
+        if (pBoard->getLastEvalScore() == OPEN_THREE || pBoard->getLastEvalScore() == CLOSED_FOUR ||
+            pBoard->getLastEvalScore() == OPEN_FOUR) {
+          std::vector<std::pair<int, int> > capturable =
+              Evaluation::getThresholdOpponentTotal(pBoard);
+          for (unsigned int i = 0; i < capturable.size(); i++) {
+            std::cout << Board::convertIndexToCoordinates(capturable[i].first, capturable[i].second)
+                      << std::endl;
+          }
+        }
+        std::cout << "==========" << std::endl;
+
         // p1 mapped as x and p2 mapped as o
         int x_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_1, eval_x, eval_y);
         int o_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_2, eval_x, eval_y);
