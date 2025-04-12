@@ -431,6 +431,8 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
 
   if (total.counts.openFourBlockCount) total.score += BLOCK_LINE_4;
 
+  if (total.counts.openThreeBlockCount) total.score += OPEN_THREE_BLOCK;
+
   if (total.counts.defensiveBlockCount >= 2) total.score += COUNTER_THREAT;
 
   if (total.counts.captureVulnerable > 0) {
