@@ -435,10 +435,6 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
 
   if (total.counts.defensiveBlockCount >= 2) total.score += COUNTER_THREAT;
 
-  if (total.counts.captureVulnerable > 0) {
-    if (total.score <= BLOCK_LINE_3) total.score = 0;
-  }
-
   if (total.counts.captureThreatCount > 0) {
     total.score += CAPTURE_THREAT * total.counts.captureThreatCount;
   }
@@ -462,6 +458,10 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
     total.score += CAPTURE_SCORE * (opponentCaptureScore + total.counts.captureBlockCount);
   }
   // totalScore += (activeCaptureScore - opponentCaptureScore) * SCORE_OPPORTUNISTIC_CAPTURE;
+
+  if (total.counts.captureVulnerable > 0) {
+    total.score = 0;
+  }
 
   return total.score;
 }
