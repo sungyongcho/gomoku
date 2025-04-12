@@ -425,15 +425,38 @@ std::pair<int, int> getBestMovePV(Board *board, int depth, std::pair<int, int> &
   MoveComparatorMax cmp(board, currentPlayer, depth);
   std::sort(moves.begin(), moves.end(), cmp);
 
+  std::vector<std::pair<int, int> > capturable;
+  std::cout << "==========" << std::endl;
+  if (board->getLastEvalScore() >= OPEN_THREE) {
+    capturable = Evaluation::getThresholdOpponentTotal(board);
+    for (unsigned int i = 0; i < capturable.size(); i++) {
+      std::cout << Board::convertIndexToCoordinates(capturable[i].first, capturable[i].second)
+                << std::endl;
+    }
+  }
+  std::cout << "==========" << std::endl;
+
   // Evaluate each candidate move.
   int bestScore = std::numeric_limits<int>::min();
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
   for (size_t i = 0; i < moves.size(); ++i) {
     Board *child = Board::cloneBoard(board);
 
+    int immediateScore = 0;
     // Optional: get an immediate evaluation.
-    int immediateScore =
-        Evaluation::evaluatePositionHard(child, currentPlayer, moves[i].first, moves[i].second);
+    if (capturable.size() > 0) {
+      std::cout << "helloooooooooooo" << std::endl;
+      std::vector<std::pair<int, int> >::iterator it =
+          std::find(capturable.begin(), capturable.end(), moves[i]);
+      if (it != capturable.end()) {
+        std::cout << "hi" << std::endl;
+        // capturable.clear();
+        // board->setLastEvalScore(0);
+        return moves[i];
+      }
+    } else
+      immediateScore =
+          Evaluation::evaluatePositionHard(child, currentPlayer, moves[i].first, moves[i].second);
 
     // Apply the move.
     child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
@@ -463,6 +486,9 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
   std::pair<int, int> pvMove = std::make_pair(-1, -1);  // Initially no PV move.
   std::clock_t startTime = std::clock();
+
+  board->setLastEvalScore(Evaluation::evaluatePositionHard(board, board->getLastPlayer(),
+                                                           board->getLastX(), board->getLastY()));
 
   // Optionally, clear the transposition table.
   transTable.clear();
