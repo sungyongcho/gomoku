@@ -106,7 +106,10 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   int totalBlockCont = forwardBlockContinuous + backwardBlockContinuous;
 
   // if continous opponent is bigger or equal, should block asap
-  if (totalBlockCont >= 4) totalBlockCont = 4;
+  if (totalBlockCont >= 4) {
+    returnValue.counts.immediateBlockCount += 1;
+    totalBlockCont = 4;
+  }
 
   if (totalBlockCont < 4) {
     // if both end is blocked by player and continous is less then three, there is no need to
@@ -410,6 +413,10 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
     total.score += checkVPattern(board, player, x, y, i);
   }
 
+  if (total.counts.immediateBlockCount > 0) {
+    return BLOCK_LINE_5;
+  }
+
   if (total.counts.openFourCount > 2) {
     total.score += FORCED_WIN_SEQUENCE;
     total.score += DOUBLE_OPEN_FOUR;
@@ -423,13 +430,13 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
 
   // if ((total.counts.threatCount >= 2) &&
   //     (total.counts.closedFourCount > 0 || total.counts.openThreeCount > 0))
-  if ((total.counts.threatCount >= 2)) total.score += DOUBLE_THREAT;
+  if ((total.counts.threatCount >= 2)) total.score = DOUBLE_THREAT;
 
-  if (total.counts.threatCount >= 3) total.score += FORK;
+  if (total.counts.threatCount >= 3) total.score = FORK;
 
   // if (total.counts.captureCount >= 2) total.score += SCORE_CHAIN_CAPTURE_SETUP;
 
-  if (total.counts.openFourBlockCount) total.score += BLOCK_LINE_4;
+  if (total.counts.openFourBlockCount) total.score = BLOCK_LINE_4;
 
   if (total.counts.openThreeBlockCount) total.score += OPEN_THREE_BLOCK;
 

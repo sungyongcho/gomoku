@@ -63,6 +63,7 @@ struct PatternCounts {
   int captureVulnerable;
   int captureBlockCount;
   int captureThreatCount;
+  int immediateBlockCount;
 
   PatternCounts()
       : openFourCount(0),
@@ -78,7 +79,8 @@ struct PatternCounts {
         closedThreeBlockCount(0),  // Used for forced win / double open four detection.
         captureVulnerable(0),
         captureBlockCount(0),
-        captureThreatCount(0) {}
+        captureThreatCount(0),
+        immediateBlockCount(0) {}
 };
 
 struct EvaluationEntry {
@@ -105,6 +107,7 @@ struct EvaluationEntry {
     counts.captureVulnerable += other.counts.captureVulnerable;
     counts.captureBlockCount += other.counts.captureBlockCount;
     counts.captureThreatCount += other.counts.captureThreatCount;
+    counts.immediateBlockCount += other.counts.immediateBlockCount;
     return *this;
   }
 };
