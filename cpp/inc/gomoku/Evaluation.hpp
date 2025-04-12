@@ -31,7 +31,7 @@
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
 #define CAPTURE_SCORE 200000
-#define CAPTURE_THREAT 100000
+#define CAPTURE_THREAT 50000
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
 #define INVALID_PATTERN -1337
@@ -61,6 +61,7 @@ struct PatternCounts {
   int closedThreeBlockCount;  // Used for forced win / double open four detection.
   int captureVulnerable;
   int captureBlockCount;
+  int captureThreatCount;
 
   PatternCounts()
       : openFourCount(0),
@@ -75,7 +76,8 @@ struct PatternCounts {
         openThreeBlockCount(0),    // Used for forced win / double open four detection.
         closedThreeBlockCount(0),  // Used for forced win / double open four detection.
         captureVulnerable(0),
-        captureBlockCount(0) {}
+        captureBlockCount(0),
+        captureThreatCount(0) {}
 };
 
 struct EvaluationEntry {
@@ -101,6 +103,7 @@ struct EvaluationEntry {
     counts.closedThreeBlockCount += other.counts.closedThreeBlockCount;
     counts.captureVulnerable += other.counts.captureVulnerable;
     counts.captureBlockCount += other.counts.captureBlockCount;
+    counts.captureThreatCount += other.counts.captureThreatCount;
     return *this;
   }
 };

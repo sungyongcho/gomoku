@@ -143,6 +143,13 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     }
   }
 
+  if (!forwardBlockClosedEnd && forwardBlockContinuous == 2) {
+    returnValue.counts.captureThreatCount += 1;
+  }
+  if (!backwardClosedEnd && backwardContinuous == 2) {
+    returnValue.counts.captureThreatCount += 1;
+  }
+
   if (checkCapture(forward, player) > 0) returnValue.counts.captureCount += 1;
   if (checkCapture(reversePattern(backward, SIDE_WINDOW_SIZE), player) > 0)
     returnValue.counts.captureCount += 1;
@@ -428,6 +435,10 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
 
   if (total.counts.captureVulnerable > 0) {
     if (total.score <= BLOCK_LINE_3) total.score = 0;
+  }
+
+  if (total.counts.captureThreatCount > 0) {
+    total.score += CAPTURE_THREAT * total.counts.captureThreatCount;
   }
 
   int boardCenter = BOARD_SIZE / 2;
