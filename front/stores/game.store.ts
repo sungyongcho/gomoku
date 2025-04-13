@@ -34,7 +34,7 @@ export const useGameStore = defineStore("game", () => {
     isDrawEnded,
     isPerfectFiveEnded,
   } = useGameLogic();
-  const settings = useStorage("settings", {
+  const settings = useStorage<Settings>("settings", {
     capture: true,
     doubleThree: true,
     totalPairCaptured: 5,
@@ -122,6 +122,18 @@ export const useGameStore = defineStore("game", () => {
     "boardData",
     initialBoard(),
   );
+
+  const getPlayerTotalCaptured = (histories: History[], stone: Stone) => {
+    return (
+      histories
+        .filter((h: History) => h.stone === stone)
+        .reduce((acc: number, h: History) => {
+          if (!h.capturedStones?.length) return acc;
+          return h.capturedStones?.length / 2 + acc;
+        }, 0) + settings.value.advantage1
+    );
+  };
+
   const readOnlyBoardData = useStorage<{ stone: Stone }[][]>(
     "readOnlyBoardData",
     initialBoard(),
@@ -139,25 +151,11 @@ export const useGameStore = defineStore("game", () => {
   );
 
   const player1TotalCaptured = computed(() => {
-    return (
-      _histories.value
-        .filter((h: History) => h.stone === "X")
-        .reduce((acc: number, h: History) => {
-          if (!h.capturedStones?.length) return acc;
-          return h.capturedStones?.length / 2 + acc;
-        }, 0) + settings.value.advantage1
-    );
+    return getPlayerTotalCaptured(_histories.value, "X");
   });
 
   const player2TotalCaptured = computed(() => {
-    return (
-      _histories.value
-        .filter((h: History) => h.stone === "O")
-        .reduce((acc: number, h: History) => {
-          if (!h.capturedStones?.length) return acc;
-          return h.capturedStones?.length / 2 + acc;
-        }, 0) + settings.value.advantage2
-    );
+    return getPlayerTotalCaptured(_histories.value, "O");
   });
 
   const initGame = () => {
@@ -446,5 +444,7 @@ export const useGameStore = defineStore("game", () => {
     exportUrl,
     importData,
     exportJson,
+    initialBoard,
+    getPlayerTotalCaptured,
   };
 });

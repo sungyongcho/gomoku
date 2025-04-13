@@ -11,18 +11,15 @@ definePageMeta({
   layout: "game",
 });
 
+const { isAiThinking } = storeToRefs(useGameStore());
+
 const {
-  histories,
-  turn,
-  boardData,
-  settings,
-  evalScores,
-  player1TotalCaptured,
-  player2TotalCaptured,
-  isAiThinking,
-  gameOver,
-} = storeToRefs(useGameStore());
-const { deleteLastHistory, initGame, addStoneToBoardData } = useGameStore();
+  deleteLastHistory,
+  initGame,
+  addStoneToBoardData,
+  initialBoard,
+  getPlayerTotalCaptured,
+} = useGameStore();
 
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert } = useAlertStore();
@@ -45,103 +42,112 @@ const { data, send, close, status } = useWebSocket(
   },
 );
 
-const onPutStone = async ({ x, y }: { x: number; y: number }) => {
-  const isSuccessToPutStone = await addStoneToBoardData({ x, y }, turn.value);
-  await nextTick();
-
-  if (isSuccessToPutStone && settings.value.isPlayer2AI && !gameOver.value) {
-    if (status.value === "CLOSED") {
-      doAlert(
-        "Error",
-        "WebSocket connection failed. refresh the page to retry",
-        "Warn",
-      );
-      return;
-    }
-    onSendStone();
-  }
-};
-
-const onSendData = (
-  type: RequestType,
-  coordinate?: { x: number; y: number },
-) => {
+const onSendData = (type: RequestType, testCase: TestCase) => {
   isAiThinking.value = true;
+  const lastPlay = testCase.histories.at(-1);
   send(
     JSON.stringify({
       type,
-      difficulty: settings.value.difficulty,
-      nextPlayer: lastHistory.value?.stone === "X" ? "O" : "X",
-      goal: settings.value.totalPairCaptured,
-      lastPlay: coordinate
+      difficulty: "hard",
+      nextPlayer: lastPlay ? (lastPlay?.stone === "X" ? "O" : "X") : "O",
+      goal: 5,
+      lastPlay: lastPlay
         ? {
             coordinate: {
-              x: coordinate.x,
-              y: coordinate.y,
+              x: lastPlay.coordinate.x,
+              y: lastPlay.coordinate.y,
             },
-            stone: lastHistory.value?.stone,
+            stone: lastPlay.stone,
           }
         : undefined,
-      board: boardData.value.map((row) => row.map((col) => col.stone)),
+      board: testCase.boardData.map((row) => row.map((col) => col.stone)),
       scores: [
-        { player: "X", score: player1TotalCaptured.value },
-        { player: "O", score: player2TotalCaptured.value },
+        { player: "X", score: getPlayerTotalCaptured(testCase.histories, "X") },
+        { player: "O", score: getPlayerTotalCaptured(testCase.histories, "O") },
       ],
     } as SocketMoveRequest),
   );
 };
 
-const onSendStone = () => {
-  onSendData(
-    "move",
-    lastHistory.value?.coordinate ? lastHistory.value.coordinate : undefined,
+const activeIndex = ref();
+const testCases = ref<TestCase>([]);
+
+const loadTestCases = () => {
+  const files = import.meta.glob(
+    "@/assets/testCases/**/+(init|expected).json",
+    {
+      eager: true,
+      import: "default", // JSON은 default export
+    },
   );
-};
-const onEvaluateStone = (coordinate: undefined | { x: number; y: number }) => {
-  if (coordinate) {
-    onSendData("evaluate", coordinate);
-  } else {
-    // hide eval
-    evalScores.value = [];
-    data.value = null;
+
+  const result: Record<
+    string,
+    {
+      init?: TestCase;
+      expected?: TestCase;
+    }
+  > = {};
+
+  for (const path in files) {
+    const match = path.match(/testCases\/([^/]+)\/(init|expected)\.json$/);
+    if (!match) continue;
+
+    const [, testName, type] = match;
+    if (!result[testName]) {
+      result[testName] = {};
+    }
+    result[testName][type] = files[path];
   }
+
+  Object.keys(result).forEach((testName) => {
+    result[testName]["evaluated"] = {
+      ...result[testName]["init"],
+      boardData: initialBoard(),
+      histories: [],
+      turn: "X",
+    };
+  });
+
+  return result;
 };
 
-const onRestart = () => {
-  initGame();
-  send(JSON.stringify({ type: "reset" }));
-};
+onMounted(() => {
+  testCases.value = loadTestCases();
+});
 
-const purgeState = () => {
-  isAiThinking.value = false;
-  data.value = null;
+onUnmounted(() => {
+  close();
+});
+
+const triggeredTestLabel = ref("");
+const onTest = (label: string, idx: number) => {
+  const initState = testCases.value[label]["init"];
+  const histories = initState.histories;
+  triggeredTestLabel.value = label;
+  onSendData("move", initState);
 };
 
 watch(data, (rawData) => {
   if (!data.value) return;
+  if (!triggeredTestLabel.value) return;
 
   try {
     const res: SocketMoveResponse =
       typeof rawData === "string" ? JSON.parse(rawData) : rawData;
 
-    if (res.type === "evaluate") {
-      evalScores.value = res.evalScores;
-      purgeState();
-      return;
-    }
-
     if (res.type === "error") {
       console.error(res);
       doAlert("Caution", res.error, "Warn");
-      purgeState();
       return;
     }
 
-    addStoneToBoardData(
-      res.lastPlay.coordinate,
-      res.lastPlay.stone,
-      res.executionTime,
-    );
+    testCases.value[triggeredTestLabel.value]["evaluated"] = {
+      ...testCases.value[triggeredTestLabel.value]["init"],
+      boardData: res.board.map((row) => row.map((col) => ({ stone: col }))),
+    };
+
+    triggeredTestLabel.value = "";
   } catch (error) {
     console.error("Error processing WebSocket data:", error);
     doAlert(
@@ -149,19 +155,86 @@ watch(data, (rawData) => {
       "An unexpected error occurred while processing data.",
       "Warn",
     );
-  } finally {
-    purgeState();
   }
-});
-
-onUnmounted(() => {
-  close();
 });
 </script>
 <template>
-  <main
-    class="relative h-[calc(100vh-80px)] w-full items-start justify-center -lg:h-[calc(100vh-68px)] lg:items-center"
-  >
-    <div>test</div>
+  <main class="relative">
+    <section class="mx-auto mt-10 max-w-[1200px] px-6 -sm:my-[80px]">
+      <h1 class="flex items-center gap-4 text-4xl">
+        <Button size="small" class="leading-none">
+          Trigger All Tests <i class="pi pi-bolt"></i>
+        </Button>
+
+        Evaluation test cases
+      </h1>
+
+      <div class="card">
+        <Accordion v-model="activeIndex">
+          <AccordionPanel
+            v-for="([label, testCaseData], testIndex) in Object.entries(
+              testCases,
+            )"
+            @click="activeIndex = testIndex"
+            :key="testIndex"
+            :value="testIndex"
+          >
+            <AccordionHeader>
+              <div class="flex items-center gap-8">
+                <Badge
+                  value="Passed"
+                  severity="success"
+                  v-if="
+                    JSON.stringify(testCaseData.evaluated.boardData) ===
+                    JSON.stringify(testCaseData.expected.boardData)
+                  "
+                />
+                <Badge value="Not Passed" severity="danger" v-else />
+
+                <Button
+                  size="small"
+                  severity="secondary"
+                  icon="pi pi-bolt"
+                  @click.stop="onTest(label, testIndex)"
+                  :loading="triggeredTestLabel === label"
+                  :disabled="triggeredTestLabel === label"
+                  label="Test"
+                />
+                <span>
+                  {{ label }}
+                </span>
+              </div>
+            </AccordionHeader>
+            <AccordionContent>
+              <div class="flex items-center justify-between">
+                <figure class="w-[30%]">
+                  <p class="text-center">Initial Board</p>
+                  <TestBoard
+                    :testData="testCaseData.init"
+                    :load="testIndex === activeIndex"
+                  />
+                </figure>
+
+                <figure class="w-[30%]">
+                  <p class="text-center">Evaluated Board</p>
+                  <TestBoard
+                    :testData="testCaseData.evaluated"
+                    :load="testIndex === activeIndex"
+                  />
+                </figure>
+
+                <figure class="w-[30%]">
+                  <p class="text-center">Expected Board</p>
+                  <TestBoard
+                    :testData="testCaseData.expected"
+                    :load="testIndex === activeIndex"
+                  />
+                </figure>
+              </div>
+            </AccordionContent>
+          </AccordionPanel>
+        </Accordion>
+      </div>
+    </section>
   </main>
 </template>
