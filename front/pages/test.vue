@@ -8,7 +8,7 @@ import type {
 } from "~/types/game";
 
 definePageMeta({
-  layout: "game",
+  layout: "test",
 });
 
 const { isAiThinking } = storeToRefs(useGameStore());
@@ -43,7 +43,6 @@ const { data, send, close, status } = useWebSocket(
 );
 
 const onSendData = (type: RequestType, testCase: TestCase) => {
-  isAiThinking.value = true;
   const lastPlay = testCase.histories.at(-1);
   send(
     JSON.stringify({
@@ -155,6 +154,7 @@ watch(data, (rawData) => {
       "An unexpected error occurred while processing data.",
       "Warn",
     );
+    triggeredTestLabel.value = "";
   }
 });
 </script>
@@ -216,17 +216,17 @@ watch(data, (rawData) => {
                 </figure>
 
                 <figure class="w-[30%]">
-                  <p class="text-center">Evaluated Board</p>
+                  <p class="text-center">Expected Board</p>
                   <TestBoard
-                    :testData="testCaseData.evaluated"
+                    :testData="testCaseData.expected"
                     :load="testIndex === activeIndex"
                   />
                 </figure>
 
                 <figure class="w-[30%]">
-                  <p class="text-center">Expected Board</p>
+                  <p class="text-center">Evaluated Board</p>
                   <TestBoard
-                    :testData="testCaseData.expected"
+                    :testData="testCaseData.evaluated"
                     :load="testIndex === activeIndex"
                   />
                 </figure>
