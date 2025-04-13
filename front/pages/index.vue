@@ -51,6 +51,10 @@ const onGameDebug = () => {
         <Button @click="onHowToPlay" class="w-[220px]" size="large">
           <i class="pi pi-question-circle text-[20px]"></i> How to play
         </Button>
+
+        <Button @click="$router.push('/test')" class="w-[220px]" size="large">
+          <i class="pi pi-clipboard text-[20px]"></i> Evaluation Test
+        </Button>
       </div>
     </section>
 
