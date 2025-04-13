@@ -13,7 +13,7 @@ const {
   historyMode,
   isAiThinking,
 } = storeToRefs(useGameStore());
-const { historyToLog, exportData } = useGameStore();
+const { historyToLog, exportUrl, exportJson } = useGameStore();
 const historyEl = ref<HTMLElement>();
 const route = useRoute();
 const isDebug = computed(() => route.name === "debug");
@@ -23,13 +23,17 @@ const { copy, copied, isSupported } = useClipboard({
   legacy: true,
 });
 
-const onClickExport = () => {
-  const url = exportData();
+const onExportUrl = () => {
+  const url = exportUrl();
   copy(url);
 };
 const aiHistories = computed(() => {
   return _histories.value.filter((h) => !!h.executionTime?.ms);
 });
+
+const onExportJson = () => {
+  exportJson();
+};
 
 const aiAverageResponseTime = computed(() => {
   return (
@@ -112,16 +116,24 @@ watch(
           Game history
         </button>
         <ClientOnly>
-          <button
-            v-if="isSupported"
-            class="rounded-md bg-black px-2 py-1 text-white hover:bg-opacity-80"
-            @click="onClickExport"
-          >
-            <span v-if="!copied" class="flex items-center gap-1">
-              Export as url <i class="pi pi-link"></i>
-            </span>
-            <span v-else>Copied!</span>
-          </button>
+          <div class="flex gap-1">
+            <button
+              v-if="isSupported"
+              class="rounded-md bg-black px-2 py-1 text-white hover:bg-opacity-80"
+              @click="onExportUrl"
+            >
+              <span v-if="!copied" class="flex items-center gap-1">
+                url <i class="pi pi-link"></i>
+              </span>
+              <span v-else>Copied!</span>
+            </button>
+            <button
+              @click="onExportJson"
+              class="rounded-md bg-black px-2 py-1 text-white hover:bg-opacity-80"
+            >
+              json <i class="pi pi-download"></i>
+            </button>
+          </div>
         </ClientOnly>
       </div>
       <div

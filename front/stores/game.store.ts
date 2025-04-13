@@ -374,7 +374,7 @@ export const useGameStore = defineStore("game", () => {
     return true;
   };
 
-  const exportData = (): string => {
+  const exportUrl = (): string => {
     // boardData, histories, settings
     const route = useRoute();
     const data = {
@@ -387,6 +387,29 @@ export const useGameStore = defineStore("game", () => {
     const dataStr = JSON.stringify(data);
     const base64Encoded = btoa(dataStr);
     return `${window.location.origin}${route.fullPath}?data=${base64Encoded}`;
+  };
+
+  const exportJson = () => {
+    const data = {
+      boardData: boardData.value,
+      histories: histories.value,
+      settings: settings.value,
+      turn: turn.value,
+      gameOver: gameOver.value,
+    };
+    pipe(
+      data,
+      (d) =>
+        "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(d)),
+      (fileString) => {
+        const a = document.createElement("a");
+        a.setAttribute("href", fileString);
+        a.setAttribute("download", "game.json");
+        document.body.appendChild(a); // required for firefox
+        a.click();
+        a.remove();
+      },
+    );
   };
 
   const importData = (dataStr: string) => {
@@ -420,7 +443,8 @@ export const useGameStore = defineStore("game", () => {
     player2TotalCaptured,
     evalScores,
     isAiThinking,
-    exportData,
+    exportUrl,
     importData,
+    exportJson,
   };
 });
