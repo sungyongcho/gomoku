@@ -12,6 +12,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  testPage: {
+    type: Boolean,
+    default: false,
+  },
 });
 const { player1TotalCaptured, player2TotalCaptured, settings, turn } =
   storeToRefs(useGameStore());
@@ -35,7 +39,7 @@ const { isAiThinking } = storeToRefs(useGameStore());
         <MobileInfoBoard v-if="!nonGamePage" class="lg:hidden" />
       </div>
 
-      <div class="shrink-0 py-2 text-white" v-if="!nonGamePage">
+      <div class="shrink-0 py-2 text-white" v-if="!testPage && !nonGamePage">
         <section class="flex items-center gap-2 -sm:gap-2 lg:hidden">
           <div class="flex items-center justify-center">
             <button
