@@ -71,3 +71,26 @@ export type SocketMoveResponse = {
   evalScores: [StoneEval, StoneEval];
   error?: string;
 };
+
+export type TestCase = {
+  [key in string]: {
+    boardData: Stone[][];
+    gameOver: boolean;
+    histories: History[];
+    settings: Settings;
+    turn: Stone;
+  };
+};
+
+export type Settings = {
+  capture: boolean;
+  doubleThree: boolean;
+  totalPairCaptured: number;
+  firstMove: boolean;
+  advantage1: number;
+  advantage2: number;
+  isPlayer2AI: boolean;
+  isDebugTurnLocked: boolean;
+  difficulty: "easy" | "medium" | "hard"; // easy, medium, hard
+  ai: "minmax" | "alphago"; // minmax, alphago
+};

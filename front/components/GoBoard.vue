@@ -1,9 +1,15 @@
 <script setup lang="ts">
-const { boardData, historyMode, readOnlyBoardData } =
-  storeToRefs(useGameStore());
+const props = defineProps({
+  boardData: {
+    type: Array as PropType<Stone[][]>,
+    required: true,
+  },
+});
+
+const { historyMode, readOnlyBoardData } = storeToRefs(useGameStore());
 
 const _boardData = computed(() =>
-  historyMode.value ? readOnlyBoardData.value : boardData.value,
+  historyMode.value ? readOnlyBoardData.value : props.boardData,
 );
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   emit("put", { x, y });

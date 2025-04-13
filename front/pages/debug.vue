@@ -174,7 +174,11 @@ onUnmounted(() => {
       class="mx-auto flex h-[calc(100vh-48px)] max-w-[1280px] items-center justify-center gap-10 -lg:h-auto -lg:flex-col-reverse"
     >
       <div>
-        <GoBoard @put="onPutStone" @evaluate="onEvaluateStone" />
+        <GoBoard
+          @put="onPutStone"
+          @evaluate="onEvaluateStone"
+          :boardData="boardData"
+        />
 
         <div class="mt-3 flex w-full flex-wrap justify-center gap-3">
           <template v-if="!historyMode">
