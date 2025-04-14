@@ -3,4 +3,4 @@ cmake
 make
 libwebsockets-dev
 rapidjson-dev
-entr
+git

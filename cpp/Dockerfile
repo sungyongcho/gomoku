@@ -8,7 +8,12 @@ COPY install-dependencies.sh /tmp/install-dependencies.sh
 RUN chmod +x /tmp/install-dependencies.sh
 
 # Run the installation script
-RUN /tmp/install-dependencies.sh && rm -rf /var/lib/apt/lists/*
+WORKDIR /tmp
+RUN /tmp/install-dependencies.sh 
+RUN git clone https://github.com/eradman/entr && cd entr/ && ./configure && make test && make install
+# Fix file watcher on Mac (see: https://github.com/eradman/entr/issues/3)
+ENV ENTR_INOTIFY_WORKAROUND 1 
+RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
