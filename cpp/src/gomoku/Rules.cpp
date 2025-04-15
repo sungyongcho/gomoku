@@ -229,8 +229,8 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player) {
   int count = 0;
   for (int i = 0; i < 8; ++i) {
     int dx = DIRECTIONS[i][0], dy = DIRECTIONS[i][1];
-    // if (!is_within_bounds(x, y, dx, dy)) continue;
-    // if (board.getValueBit(x - dx, y - dy) == opponent) continue;
+    if (!is_within_bounds(x, y, dx, dy)) continue;
+    // if (board.getValueBit(x + dx, y + dy) == opponent) continue;
     if (check_edge_bit(board, x, y, dx, dy, player, opponent)) {
       ++count;
       continue;
