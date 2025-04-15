@@ -91,17 +91,18 @@ bool check_edge_bit_case_1(unsigned int forward, unsigned int backward, int play
   // Fallback expected pattern using only the first 3 forward cells
   // and the first backward cell.
   unsigned int cond1_fwd = pack_cells_3(player, player, EMPTY_SPACE);
-  unsigned int cond1_bkwd = pack_cells_1(EMPTY_SPACE);
+  // unsigned int cond1_bkwd = pack_cells_1(EMPTY_SPACE);
 
   unsigned int forward_three_cells = (forward >> 2) & 0x3F;
-  unsigned int backward_one_cell = (backward >> 2) & 0x03;
+  // unsigned int backward_one_cell = (backward >> 2) & 0x03;
 
   bool cond_1a = (cond_1a_fwd == forward) && (cond_1a_bkwd == backward);
   bool cond_1b = (cond_1b_fwd == forward);
 
-  if (!(cond_1a || cond_1b) && (cond1_fwd == forward_three_cells) &&
-      (cond1_bkwd == backward_one_cell))
-    return true;
+  // if (!(cond_1a || cond_1b) && (cond1_fwd == forward_three_cells) &&
+  //     (cond1_bkwd == backward_one_cell))
+  //   return true;
+  if (!(cond_1a || cond_1b) && (cond1_fwd == forward_three_cells)) return true;
 
   return false;
 }
@@ -228,8 +229,8 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player) {
   int count = 0;
   for (int i = 0; i < 8; ++i) {
     int dx = DIRECTIONS[i][0], dy = DIRECTIONS[i][1];
-    if (!is_within_bounds(x, y, dx, dy)) continue;
-    if (board.getValueBit(x - dx, y - dy) == opponent) continue;
+    // if (!is_within_bounds(x, y, dx, dy)) continue;
+    // if (board.getValueBit(x - dx, y - dy) == opponent) continue;
     if (check_edge_bit(board, x, y, dx, dy, player, opponent)) {
       ++count;
       continue;
