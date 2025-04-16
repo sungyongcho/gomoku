@@ -1,28 +1,26 @@
 FROM debian:latest
-
-# Copy dependencies and the install script
+# Copy dependencies and install script
 COPY dependencies.txt /tmp/dependencies.txt
 COPY install-dependencies.sh /tmp/install-dependencies.sh
 
-# Make the script executable
 RUN chmod +x /tmp/install-dependencies.sh
 
-# Run the installation script
 WORKDIR /tmp
 RUN /tmp/install-dependencies.sh
 RUN git clone https://github.com/eradman/entr && cd entr/ && ./configure && make test && make install
-# Fix file watcher on Mac (see: https://github.com/eradman/entr/issues/3)
+
 ENV ENTR_INOTIFY_WORKAROUND 1
 RUN rm -rf /var/lib/apt/lists/*
+
+# Install Valgrind
+RUN apt-get update && apt-get install -y valgrind
 
 WORKDIR /app
 COPY . .
 
 EXPOSE 8005
 
-# Compile the project before runtime for faster startup
 RUN make re
 
 CMD find src inc -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "Makefile" \) | \
-    entr -n -r /bin/sh -c "make re && ./server"
-
+    entr -n -r /bin/sh -c "make re_debug && valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./server_debug"

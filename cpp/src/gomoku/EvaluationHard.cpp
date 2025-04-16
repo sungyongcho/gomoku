@@ -27,7 +27,7 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
 
   int backwardContinuous = 0;
   bool backwardClosedEnd = false;
-  int backwardContinuousEmpty = 0; 
+  int backwardContinuousEmpty = 0;
 
   slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
                         forwardContinuousEmpty);
@@ -125,9 +125,10 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
 
   // TODO add more condition
   if (totalBlockCont == 3) {
-    if ((forwardBlockContinuous == 3 && !forwardBlockClosedEnd) || (backwardBlockContinuous == 3 && !backwardBlockClosedEnd)) {
+    if ((forwardBlockContinuous == 3 && !forwardBlockClosedEnd) ||
+        (backwardBlockContinuous == 3 && !backwardBlockClosedEnd)) {
       returnValue.counts.openThreeBlockCount += 1;
-      returnValue.counts.defensiveBlockCount += 1;        
+      returnValue.counts.defensiveBlockCount += 1;
     } else if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
       returnValue.counts.defensiveBlockCount += 1;
       returnValue.counts.openThreeBlockCount += 1;
