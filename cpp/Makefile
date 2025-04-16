@@ -1,45 +1,79 @@
 CXX = g++
-CXXFLAGS = -std=c++98 -Wall -Wextra -Werror -Iinc -Iinc/gomoku -Iinc/ws
+# Common flags
+COMMON_CXXFLAGS = -std=c++98 -Wall -Wextra -Werror -Iinc -Iinc/gomoku -Iinc/ws
 LDFLAGS = -lwebsockets -lpthread
 
-SRC_DIR = src
-BUILD_DIR = build
-INC_DIR = inc
+# Release and debug specific flags
+RELEASE_CXXFLAGS = $(COMMON_CXXFLAGS)
+DEBUG_CXXFLAGS = $(COMMON_CXXFLAGS) -g
 
-# Find all .cpp files in src/ and its subdirectories
-SRC = $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/*/*.cpp) $(wildcard $(SRC_DIR)/*/*/*.cpp)
+SRC_DIR = src
+# Two separate build directories
+BUILD_DIR = build
+DEBUG_BUILD_DIR = build_debug
+
+# Find all .cpp files (matches one, two, or three levels of directory depth)
+SRC = $(wildcard $(SRC_DIR)/*.cpp) \
+      $(wildcard $(SRC_DIR)/*/*.cpp) \
+      $(wildcard $(SRC_DIR)/*/*/*.cpp)
+
+# Object files for release and debug
 OBJ = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRC))
+DEBUG_OBJ = $(patsubst $(SRC_DIR)/%.cpp, $(DEBUG_BUILD_DIR)/%.o, $(SRC))
 
 TARGET = server
+DEBUG_TARGET = server_debug
 
+# Default target: release build
 all: $(TARGET)
 
-# Link all compiled object files to create the executable
 $(TARGET): $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJ) $(LDFLAGS)
+	$(CXX) $(RELEASE_CXXFLAGS) -o $(TARGET) $(OBJ) $(LDFLAGS)
 
-# Ensure subdirectories exist before compiling
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)/$(dir %)
-	@mkdir -p $(dir $@)   # Create subdirectory if it doesn't exist
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+# Debug target builds an executable with debugging symbols
+debug: $(DEBUG_TARGET)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/*/%.cpp | $(BUILD_DIR)/$(dir %)
-	@mkdir -p $(dir $@)   # Create subdirectory if it doesn't exist
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+$(DEBUG_TARGET): $(DEBUG_OBJ)
+	$(CXX) $(DEBUG_CXXFLAGS) -o $(DEBUG_TARGET) $(DEBUG_OBJ) $(LDFLAGS)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/*/*/%.cpp | $(BUILD_DIR)/$(dir %)
-	@mkdir -p $(dir $@)   # Create subdirectory if it doesn't exist
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+# Pattern rules for release objects (one level)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(RELEASE_CXXFLAGS) -c $< -o $@
 
-# Create subdirectories for object files
-$(BUILD_DIR)/%/:
-	mkdir -p $@
+# Two levels deep for release
+$(BUILD_DIR)/%.o: $(SRC_DIR)/*/%.cpp | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(RELEASE_CXXFLAGS) -c $< -o $@
 
-# Ensure the base build directory exists
+$(BUILD_DIR)/%.o: $(SRC_DIR)/*/*/%.cpp | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(RELEASE_CXXFLAGS) -c $< -o $@
+
+# Pattern rules for debug objects (one level)
+$(DEBUG_BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(DEBUG_BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(DEBUG_CXXFLAGS) -c $< -o $@
+
+# Two levels deep for debug
+$(DEBUG_BUILD_DIR)/%.o: $(SRC_DIR)/*/%.cpp | $(DEBUG_BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(DEBUG_CXXFLAGS) -c $< -o $@
+
+$(DEBUG_BUILD_DIR)/%.o: $(SRC_DIR)/*/*/%.cpp | $(DEBUG_BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CXX) $(DEBUG_CXXFLAGS) -c $< -o $@
+
+# Ensure build directories exist
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
+$(DEBUG_BUILD_DIR):
+	mkdir -p $(DEBUG_BUILD_DIR)
+
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET)
+	rm -rf $(BUILD_DIR) $(DEBUG_BUILD_DIR) $(TARGET) $(DEBUG_TARGET)
 
 re: clean all
+
+re_debug: clean debug

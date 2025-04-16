@@ -3,6 +3,7 @@
 
 #include <libwebsockets.h>
 
+#include <csignal>
 #include <cstring>
 #include <iostream>
 
@@ -14,7 +15,7 @@
 class Server {
  public:
   Server(int port);
-  void run();
+  void run(volatile std::sig_atomic_t &stopFlag);
 
  private:
   struct lws_context *context;
