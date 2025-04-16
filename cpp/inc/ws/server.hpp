@@ -6,6 +6,8 @@
 #include <csignal>
 #include <cstring>
 #include <iostream>
+#include <sstream>  // For stringstream
+#include <stdexcept>
 
 #include "Evaluation.hpp"
 #include "Gomoku.hpp"
