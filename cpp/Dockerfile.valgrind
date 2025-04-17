@@ -1,4 +1,5 @@
 FROM debian:latest
+
 # Copy dependencies and install script
 COPY dependencies.txt /tmp/dependencies.txt
 COPY install-dependencies.sh /tmp/install-dependencies.sh
@@ -9,7 +10,7 @@ WORKDIR /tmp
 RUN /tmp/install-dependencies.sh
 RUN git clone https://github.com/eradman/entr && cd entr/ && ./configure && make test && make install
 
-ENV ENTR_INOTIFY_WORKAROUND 1
+ENV ENTR_INOTIFY_WORKAROUND=1
 RUN rm -rf /var/lib/apt/lists/*
 
 # Install Valgrind
@@ -20,7 +21,8 @@ COPY . .
 
 EXPOSE 8005
 
-RUN make re
+# Initial debug build (only compiles what's changed)
+RUN make debug
 
 CMD find src inc -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "Makefile" \) | \
-    entr -n -r /bin/sh -c "make re_debug && valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./server_debug"
+    entr -n -r sh -c "make debug && valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./server_debug"
