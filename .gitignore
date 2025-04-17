@@ -4,3 +4,4 @@ Miniconda3-latest-MacOSX-arm64.sh
 /cpp/server
 *.o
 url.txt
+a.out
