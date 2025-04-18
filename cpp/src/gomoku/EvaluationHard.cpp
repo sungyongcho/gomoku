@@ -1,22 +1,5 @@
 #include "Evaluation.hpp"
 namespace Evaluation {
-const int SCORE_IMMEDIATE_WIN = 1000000;          /// 100%
-const int SCORE_IMMEDIATE_CAPTURE_WIN = 1000000;  /// 100%
-const int SCORE_FORCED_WIN_SEQUENCE = 950000;     // 95%
-const int SCORE_DOUBLE_OPEN_FOUR = 900000;        // 90%
-const int SCORE_OPEN_FOUR = 700000;               // 70%
-const int SCORE_CLOSED_FOUR = 400000;             // 40%
-const int SCORE_DOUBLE_THREAT = 800000;           // 80%
-const int SCORE_FORK = 750000;                    // 75%
-const int SCORE_CAPTURE_LEADING = 500001;         // 50%
-const int SCORE_OPPORTUNISTIC_CAPTURE = 300000;   // 30%
-const int SCORE_OPEN_THREE = 200000;              // 20%
-const int SCORE_CLOSED_THREE = 100000;            // 10%
-const int SCORE_DEFENSIVE_BLOCK = 350000;         // 35%
-const int SCORE_CHAIN_CAPTURE_SETUP = 250000;     // 25%
-const int SCORE_COUNTER_THREAT = 300000;          // 30%
-const int SCORE_POSITIONAL_ADVANTAGE = 150000;    // 15 %
-
 EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned int forward,
                                               unsigned int player) {
   EvaluationEntry returnValue;
