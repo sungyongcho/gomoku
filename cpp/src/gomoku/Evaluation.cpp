@@ -55,12 +55,12 @@ void printPattern(unsigned int pattern, int numCells) {
 }
 
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
-                           int &continuousEmpty) {
+                           int &continuousEmpty, int &emptyThenContinuous) {
   int opponent = player == 1 ? 2 : 1;
-  (void)reverse;
   int player_count = 0;
   int closed = 0;
   int player_begin = 0;
+  bool emptyPassed = false;
 
   if (!reverse) {
     for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
@@ -68,9 +68,12 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
       if (target_bit == player) {
         if (continuous == i) continuous++;
         if (player_begin == 0) player_begin = i + 1;
+        if (emptyPassed && emptyThenContinuous == i - 1) emptyThenContinuous++;
         player_count++;
       } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
         if (closed == 0) closed = i + 1;
+      } else if (target_bit == EMPTY_SPACE && !emptyPassed) {
+        emptyPassed = true;
       }
     }
     for (int i = SIDE_WINDOW_SIZE - continuous; i > 0; i--) {
@@ -191,14 +194,16 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
   int forwardContinuous = 0;
   bool forwardClosedEnd = false;
   int forwardContinuousEmpty = 0;
+  int forwardEmptyThenContinuous = 0;
 
   int backwardContinuous = 0;
   bool backwardClosedEnd = false;
   int backwardContinuousEmpty = 0;
+  int backwardEmptyThenContinuous = 0;
   slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
-                        forwardContinuousEmpty);
+                        forwardContinuousEmpty, forwardEmptyThenContinuous);
   slideWindowContinuous(backward, player, true, backwardContinuous, backwardClosedEnd,
-                        backwardContinuousEmpty);
+                        backwardContinuousEmpty, backwardEmptyThenContinuous);
 
   int totalContinuous = forwardContinuous + backwardContinuous;
 

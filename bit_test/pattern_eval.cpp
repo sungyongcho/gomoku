@@ -38,12 +38,13 @@ static const int blockScores[6] = {
 // brackets, then prints the window's bits (and "matches" if it equals 'player'). If 'reverse' is
 // true, the sliding is done in reverse order.
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
-                           int &continuousEmpty) {
+                           int &continuousEmpty, int &emptyThenContinuous) {
   int opponent = player == 1 ? 2 : 1;
   (void)reverse;
   int player_count = 0;
   int closed = 0;
   int player_begin = 0;
+  bool emptyPassed = false;
 
   if (!reverse) {
     for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
@@ -51,9 +52,12 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
       if (target_bit == player) {
         if (continuous == i) continuous++;
         if (player_begin == 0) player_begin = i + 1;
+        if (emptyPassed && emptyThenContinuous == i - 1) emptyThenContinuous++;
         player_count++;
       } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
         if (closed == 0) closed = i + 1;
+      } else if (target_bit == EMPTY_SPACE && !emptyPassed) {
+        emptyPassed = true;
       }
     }
     for (int i = SIDE_WINDOW_SIZE - continuous; i > 0; i--) {
@@ -93,7 +97,6 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
       isClosedEnd = true;
     }
   }
-  std::cout << "----------------" << std::endl;
 }
 
 void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd) {
@@ -232,36 +235,40 @@ void printAxis(int forward, int backward) {
 
 int main() {
   int player = 1;
-  int forward = 0b01010100;
+  int forward = 0b00010100;
   int backward = 0b00100101;
 
   int forwardContinuous = 0;
   bool forwardClosedEnd = false;
   int forwardContinuousEmpty = 0;
+  int forwardEmptyThenContinuous = 0;
 
   int backwardContinuous = 0;
   bool backwardClosedEnd = false;
   int backwardContinuousEmpty = 0;
+  int backwardEmptyThenContinuous = 0;
 
   int score = 0;
 
   printAxis(forward, backward);
   // Slide window in forward direction.
   slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
-                        forwardContinuousEmpty);
+                        forwardContinuousEmpty, forwardEmptyThenContinuous);
   slideWindowContinuous(backward, player, true, backwardContinuous, backwardClosedEnd,
-                        backwardContinuousEmpty);
+                        backwardContinuousEmpty, backwardEmptyThenContinuous);
 
   std::cout << "----------------" << std::endl;
   std::cout << "forward continuous: " << forwardContinuous << std::endl;
   std::cout << "forward is closed end: " << forwardClosedEnd << std::endl;
   std::cout << "forward continuous empty: " << forwardContinuousEmpty << std::endl;
+  std::cout << "forward empty then continuous: " << forwardEmptyThenContinuous << std::endl;
   std::cout << "----------------" << std::endl;
 
   std::cout << "----------------" << std::endl;
   std::cout << "backward continuous: " << backwardContinuous << std::endl;
   std::cout << "backward is closed end: " << backwardClosedEnd << std::endl;
   std::cout << "backward continuous empty: " << backwardContinuousEmpty << std::endl;
+  std::cout << "backward empty then continuous: " << backwardEmptyThenContinuous << std::endl;
   std::cout << "----------------" << std::endl;
 
   int totalContinuous = forwardContinuous + backwardContinuous;

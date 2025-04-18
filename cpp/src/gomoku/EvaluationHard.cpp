@@ -7,15 +7,17 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   int forwardContinuous = 0;
   bool forwardClosedEnd = false;
   int forwardContinuousEmpty = 0;
+  int forwardEmptyThenContinuous = 0;
 
   int backwardContinuous = 0;
   bool backwardClosedEnd = false;
   int backwardContinuousEmpty = 0;
+  int backwardEmptyThenContinuous = 0;
 
   slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
-                        forwardContinuousEmpty);
+                        forwardContinuousEmpty, forwardEmptyThenContinuous);
   slideWindowContinuous(backward, player, true, backwardContinuous, backwardClosedEnd,
-                        backwardContinuousEmpty);
+                        backwardContinuousEmpty, backwardEmptyThenContinuous);
 
   int totalContinuous = forwardContinuous + backwardContinuous;
 
@@ -386,11 +388,11 @@ static int evaluateContinuousLineScore(Board* board, int x, int y, int dx, int d
   unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
   unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE);
 
-  int fcont = 0, bcont = 0, fempty = 0, bempty = 0;
+  int fcont = 0, bcont = 0, fempty = 0, bempty = 0, femptyThenCont = 0, bemptyThenCont = 0;
   bool fclosed = false, bclosed = false;
 
-  slideWindowContinuous(forward, opponent, false, fcont, fclosed, fempty);
-  slideWindowContinuous(revBackward, opponent, true, bcont, bclosed, bempty);
+  slideWindowContinuous(forward, opponent, false, fcont, fclosed, fempty, femptyThenCont);
+  slideWindowContinuous(revBackward, opponent, true, bcont, bclosed, bempty, bemptyThenCont);
 
   int total = fcont + bcont;
   if (total == 3) {
