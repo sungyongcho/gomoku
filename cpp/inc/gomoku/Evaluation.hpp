@@ -151,7 +151,7 @@ int getEvaluationRating(int score);
 
 void printPattern(unsigned int pattern, int numCells);
 
-std::vector<std::pair<int, int> > getThresholdOpponentTotal(Board *board);
+// std::vector<std::pair<int, int> > getThresholdOpponentTotal(Board *board);
 
 }  // namespace Evaluation
 #endif  // EVALUATION_HPP

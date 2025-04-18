@@ -217,20 +217,8 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           return -1;
         }
 
-        pBoard->setLastEvalScore(Evaluation::evaluatePositionHard(
-            pBoard, pBoard->getLastPlayer(), pBoard->getLastX(), pBoard->getLastY()));
-
-        std::cout << "==========" << std::endl;
-        if (pBoard->getLastEvalScore() == OPEN_THREE || pBoard->getLastEvalScore() == CLOSED_FOUR ||
-            pBoard->getLastEvalScore() == OPEN_FOUR) {
-          std::vector<std::pair<int, int> > capturable =
-              Evaluation::getThresholdOpponentTotal(pBoard);
-          for (unsigned int i = 0; i < capturable.size(); i++) {
-            std::cout << Board::convertIndexToCoordinates(capturable[i].first, capturable[i].second)
-                      << std::endl;
-          }
-        }
-        std::cout << "==========" << std::endl;
+        // pBoard->setLastEvalScore(Evaluation::evaluatePositionHard(
+        //     pBoard, pBoard->getLastPlayer(), pBoard->getLastX(), pBoard->getLastY()));
 
         // p1 mapped as x and p2 mapped as o
         int x_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_1, eval_x, eval_y);
