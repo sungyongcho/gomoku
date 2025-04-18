@@ -219,179 +219,185 @@ EvaluationEntry evaluateCombinedAxisHard(Board* board, int player, int x, int y,
     return patternPlayerTwo[combined];
 }
 
-void getForwardData(int forward, int player, std::vector<int>& coords, bool& isOpenEnd) {
-  int contiguous = 0;
-  // Scan from highest-order bits down: coordinate +1 is i=SIDE_WINDOW_SIZE-1.
-  for (int i = SIDE_WINDOW_SIZE - 1; i >= 0; --i) {
-    int cell = (forward >> (i * 2)) & 0x03;
-    int coord = SIDE_WINDOW_SIZE - i;  // For i=3, coord = 1; i=2, coord = 2, etc.
-    if (cell == player) {
-      coords.push_back(coord);
-      contiguous++;
-    } else {
-      break;
-    }
-  }
-  // Check the cell immediately after the contiguous group.
-  if (contiguous < SIDE_WINDOW_SIZE) {
-    int nextIndex = SIDE_WINDOW_SIZE - contiguous - 1;
-    int nextCell = (forward >> (nextIndex * 2)) & 0x03;
-    isOpenEnd = (nextCell == EMPTY_SPACE);
-  } else {
-    isOpenEnd = false;  // All cells filled implies a boundary.
-  }
-}
+// void getForwardData(int forward, int player, std::vector<int>& coords, bool& isOpenEnd) {
+//   int contiguous = 0;
+//   // Scan from highest-order bits down: coordinate +1 is i=SIDE_WINDOW_SIZE-1.
+//   for (int i = SIDE_WINDOW_SIZE - 1; i >= 0; --i) {
+//     int cell = (forward >> (i * 2)) & 0x03;
+//     int coord = SIDE_WINDOW_SIZE - i;  // For i=3, coord = 1; i=2, coord = 2, etc.
+//     if (cell == player) {
+//       coords.push_back(coord);
+//       contiguous++;
+//     } else {
+//       break;
+//     }
+//   }
+//   // Check the cell immediately after the contiguous group.
+//   if (contiguous < SIDE_WINDOW_SIZE) {
+//     int nextIndex = SIDE_WINDOW_SIZE - contiguous - 1;
+//     int nextCell = (forward >> (nextIndex * 2)) & 0x03;
+//     isOpenEnd = (nextCell == EMPTY_SPACE);
+//   } else {
+//     isOpenEnd = false;  // All cells filled implies a boundary.
+//   }
+// }
 
-// For backward: Bit cell at coordinate -1 is stored in the lowest-order 2 bits.
-void getBackwardData(int backward, int player, std::vector<int>& coords, bool& isOpenEnd) {
-  int contiguous = 0;
-  for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
-    int cell = (backward >> (i * 2)) & 0x03;
-    int coord = i + 1;  // i=0 => -1, i=1 => -2, etc.
-    if (cell == player) {
-      coords.push_back(coord);
-      contiguous++;
-    } else {
-      break;
-    }
-  }
-  // Check the cell immediately after the contiguous group.
-  if (contiguous < SIDE_WINDOW_SIZE) {
-    int nextIndex = contiguous;
-    int nextCell = (backward >> (nextIndex * 2)) & 0x03;
-    isOpenEnd = (nextCell == EMPTY_SPACE);
-  } else {
-    isOpenEnd = false;
-  }
-  // Reverse so that farthest (most negative) coordinate is printed first.
-  std::reverse(coords.begin(), coords.end());
-}
+// // For backward: Bit cell at coordinate -1 is stored in the lowest-order 2 bits.
+// void getBackwardData(int backward, int player, std::vector<int>& coords, bool& isOpenEnd) {
+//   int contiguous = 0;
+//   for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+//     int cell = (backward >> (i * 2)) & 0x03;
+//     int coord = i + 1;  // i=0 => -1, i=1 => -2, etc.
+//     if (cell == player) {
+//       coords.push_back(coord);
+//       contiguous++;
+//     } else {
+//       break;
+//     }
+//   }
+//   // Check the cell immediately after the contiguous group.
+//   if (contiguous < SIDE_WINDOW_SIZE) {
+//     int nextIndex = contiguous;
+//     int nextCell = (backward >> (nextIndex * 2)) & 0x03;
+//     isOpenEnd = (nextCell == EMPTY_SPACE);
+//   } else {
+//     isOpenEnd = false;
+//   }
+//   // Reverse so that farthest (most negative) coordinate is printed first.
+//   std::reverse(coords.begin(), coords.end());
+// }
 
-std::vector<std::pair<int, int> > getNearbyPositions(
-    const std::vector<std::pair<int, int> >& stones) {
-  // Build a set of original positions for fast lookup.
-  std::set<std::pair<int, int> > original;
-  for (size_t i = 0; i < stones.size(); ++i) {
-    original.insert(stones[i]);
-  }
+// std::vector<std::pair<int, int> > getNearbyPositions(
+//     const std::vector<std::pair<int, int> >& stones) {
+//   // Build a set of original positions for fast lookup.
+//   std::set<std::pair<int, int> > original;
+//   for (size_t i = 0; i < stones.size(); ++i) {
+//     original.insert(stones[i]);
+//   }
 
-  std::set<std::pair<int, int> > uniqueNeighbors;
+//   std::set<std::pair<int, int> > uniqueNeighbors;
 
-  // Iterate over each stone.
-  for (size_t i = 0; i < stones.size(); ++i) {
-    int x = stones[i].first;
-    int y = stones[i].second;
+//   // Iterate over each stone.
+//   for (size_t i = 0; i < stones.size(); ++i) {
+//     int x = stones[i].first;
+//     int y = stones[i].second;
 
-    // Check all 8 directions.
-    for (int dx = -1; dx <= 1; ++dx) {
-      for (int dy = -1; dy <= 1; ++dy) {
-        // Skip the center itself.
-        if (dx == 0 && dy == 0) continue;
-        int nx = x + dx;
-        int ny = y + dy;
-        // Only add if candidate neighbor is within board boundaries.
-        if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
-          // Exclude if this position is already one of the original stones.
-          if (original.find(std::make_pair(nx, ny)) == original.end()) {
-            uniqueNeighbors.insert(std::make_pair(nx, ny));
-          }
-        }
-      }
-    }
-  }
+//     // Check all 8 directions.
+//     for (int dx = -1; dx <= 1; ++dx) {
+//       for (int dy = -1; dy <= 1; ++dy) {
+//         // Skip the center itself.
+//         if (dx == 0 && dy == 0) continue;
+//         int nx = x + dx;
+//         int ny = y + dy;
+//         // Only add if candidate neighbor is within board boundaries.
+//         if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
+//           // Exclude if this position is already one of the original stones.
+//           if (original.find(std::make_pair(nx, ny)) == original.end()) {
+//             uniqueNeighbors.insert(std::make_pair(nx, ny));
+//           }
+//         }
+//       }
+//     }
+//   }
 
-  // Convert the set back to a vector.
-  return std::vector<std::pair<int, int> >(uniqueNeighbors.begin(), uniqueNeighbors.end());
-}
-std::vector<std::pair<int, int> > getThresholdOpponentTotal(Board* board) {
-  int capture_player = board->getLastPlayer();
-  int capture_opponent = OPPONENT(capture_player);
-  int x = board->getLastX();
-  int y = board->getLastY();
-  std::vector<std::pair<int, int> > total;
+//   // Convert the set back to a vector.
+//   return std::vector<std::pair<int, int> >(uniqueNeighbors.begin(), uniqueNeighbors.end());
+// }
+// std::vector<std::pair<int, int> > getThresholdOpponentTotal(Board* board) {
+//   int capture_player = board->getLastPlayer();
+//   int capture_opponent = OPPONENT(capture_player);
+//   int x = board->getLastX();
+//   int y = board->getLastY();
+//   std::vector<std::pair<int, int> > total;
 
-  for (int i = 0; i < 4; i++) {
-    int dx = DIRECTIONS[i][0];
-    int dy = DIRECTIONS[i][1];
-    std::vector<int> forwardCoords, backwardCoords;
-    bool forwardOpen, backwardOpen;
+//   for (int i = 0; i < 4; i++) {
+//     int dx = DIRECTIONS[i][0];
+//     int dy = DIRECTIONS[i][1];
+//     std::vector<int> forwardCoords, backwardCoords;
+//     bool forwardOpen, backwardOpen;
 
-    unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
-    unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
-    unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE);
-    // unsigned int combined =
-    //     (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) | (0 << (2 * SIDE_WINDOW_SIZE)) | forward;
+//     unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
+//     unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
+//     unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE);
+//     // unsigned int combined =
+//     //     (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) | (0 << (2 * SIDE_WINDOW_SIZE)) |
+//     forward;
 
-    // printPattern(forward, 4);
-    // printPattern(revBackward, 4);
+//     // printPattern(forward, 4);
+//     // printPattern(revBackward, 4);
 
-    getForwardData(forward, capture_player, forwardCoords, forwardOpen);
-    getBackwardData(revBackward, capture_player, backwardCoords, backwardOpen);
+//     getForwardData(forward, capture_player, forwardCoords, forwardOpen);
+//     getBackwardData(revBackward, capture_player, backwardCoords, backwardOpen);
 
-    // std::cout << forwardCoords.size() + backwardCoords.size() << std::endl;
+//     // std::cout << forwardCoords.size() + backwardCoords.size() << std::endl;
 
-    if (forwardOpen && backwardOpen && (forwardCoords.size() + backwardCoords.size() == 2)) {
-      for (unsigned int i = 0; i < forwardCoords.size(); i++) {
-        total.push_back(std::make_pair(x + dx * forwardCoords[i], y + dy * forwardCoords[i]));
-      }
-      for (unsigned int i = 0; i < backwardCoords.size(); i++) {
-        total.push_back(std::make_pair(x + -dx * backwardCoords[i], y + -dy * backwardCoords[i]));
-      }
-    }
+//     if (forwardOpen && backwardOpen && (forwardCoords.size() + backwardCoords.size() == 2)) {
+//       for (unsigned int i = 0; i < forwardCoords.size(); i++) {
+//         total.push_back(std::make_pair(x + dx * forwardCoords[i], y + dy * forwardCoords[i]));
+//       }
+//       for (unsigned int i = 0; i < backwardCoords.size(); i++) {
+//         total.push_back(std::make_pair(x + -dx * backwardCoords[i], y + -dy *
+//         backwardCoords[i]));
+//       }
+//     }
 
-    else if (!(forwardOpen && backwardOpen) &&
-             (forwardCoords.size() + backwardCoords.size() == 3)) {
-      for (unsigned int i = 0; i < forwardCoords.size(); i++) {
-        total.push_back(std::make_pair(x + dx * forwardCoords[i], y + dy * forwardCoords[i]));
-      }
-      for (unsigned int i = 0; i < backwardCoords.size(); i++) {
-        total.push_back(std::make_pair(x + -dx * backwardCoords[i], y + -dy * backwardCoords[i]));
-      }
-    }
+//     else if (!(forwardOpen && backwardOpen) &&
+//              (forwardCoords.size() + backwardCoords.size() == 3)) {
+//       for (unsigned int i = 0; i < forwardCoords.size(); i++) {
+//         total.push_back(std::make_pair(x + dx * forwardCoords[i], y + dy * forwardCoords[i]));
+//       }
+//       for (unsigned int i = 0; i < backwardCoords.size(); i++) {
+//         total.push_back(std::make_pair(x + -dx * backwardCoords[i], y + -dy *
+//         backwardCoords[i]));
+//       }
+//     }
 
-    else if ((forwardOpen && backwardOpen) && (forwardCoords.size() + backwardCoords.size() == 3)) {
-      for (unsigned int i = 0; i < forwardCoords.size(); i++) {
-        total.push_back(std::make_pair(x + dx * forwardCoords[i], y + dy * forwardCoords[i]));
-      }
-      for (unsigned int i = 0; i < backwardCoords.size(); i++) {
-        total.push_back(std::make_pair(x + -dx * backwardCoords[i], y + -dy * backwardCoords[i]));
-      }
-    }
-  }
+//     else if ((forwardOpen && backwardOpen) && (forwardCoords.size() + backwardCoords.size() ==
+//     3)) {
+//       for (unsigned int i = 0; i < forwardCoords.size(); i++) {
+//         total.push_back(std::make_pair(x + dx * forwardCoords[i], y + dy * forwardCoords[i]));
+//       }
+//       for (unsigned int i = 0; i < backwardCoords.size(); i++) {
+//         total.push_back(std::make_pair(x + -dx * backwardCoords[i], y + -dy *
+//         backwardCoords[i]));
+//       }
+//     }
+//   }
 
-  if (!total.empty()) {
-    total.push_back(std::make_pair(x, y));
-  }
+//   if (!total.empty()) {
+//     total.push_back(std::make_pair(x, y));
+//   }
 
-  std::vector<std::pair<int, int> > capturable;
-  for (unsigned int i = 0; i < total.size(); i++) {
-    for (int j = 0; j < 8; j++) {
-      int dx = DIRECTIONS[j][0];
-      int dy = DIRECTIONS[j][1];
-      unsigned int backward_empty = board->getValueBit(total[i].first - dx, total[i].second - dy);
-      if (backward_empty != EMPTY_SPACE) continue;
-      unsigned int forward = board->extractLineAsBits(total[i].first, total[i].second, dx, dy, 2);
-      if (forward == pack_cells_2(capture_player, capture_opponent))
-        capturable.push_back(std::make_pair(total[i].first - dx, total[i].second - dy));
-    }
-  }
+//   std::vector<std::pair<int, int> > capturable;
+//   for (unsigned int i = 0; i < total.size(); i++) {
+//     for (int j = 0; j < 8; j++) {
+//       int dx = DIRECTIONS[j][0];
+//       int dy = DIRECTIONS[j][1];
+//       unsigned int backward_empty = board->getValueBit(total[i].first - dx, total[i].second -
+//       dy); if (backward_empty != EMPTY_SPACE) continue; unsigned int forward =
+//       board->extractLineAsBits(total[i].first, total[i].second, dx, dy, 2); if (forward ==
+//       pack_cells_2(capture_player, capture_opponent))
+//         capturable.push_back(std::make_pair(total[i].first - dx, total[i].second - dy));
+//     }
+//   }
 
-  return capturable;
-}
+//   return capturable;
+// }
 
-std::vector<std::pair<int, int> > getThresholdOpponentNearby(
-    Board* board, std::vector<std::pair<int, int> > total) {
-  std::vector<std::pair<int, int> > nearby = getNearbyPositions(total);
+// std::vector<std::pair<int, int> > getThresholdOpponentNearby(
+//     Board* board, std::vector<std::pair<int, int> > total) {
+//   std::vector<std::pair<int, int> > nearby = getNearbyPositions(total);
 
-  for (std::vector<std::pair<int, int> >::iterator it = nearby.begin(); it != nearby.end();) {
-    if (board->getValueBit(it->first, it->second) != EMPTY_SPACE)
-      it = nearby.erase(it);  // erase returns the next iterator
-    else
-      ++it;
-  }
+//   for (std::vector<std::pair<int, int> >::iterator it = nearby.begin(); it != nearby.end();) {
+//     if (board->getValueBit(it->first, it->second) != EMPTY_SPACE)
+//       it = nearby.erase(it);  // erase returns the next iterator
+//     else
+//       ++it;
+//   }
 
-  return nearby;
-}
+//   return nearby;
+// }
+
 static int evaluateContinuousLineScore(Board* board, int x, int y, int dx, int dy, int opponent) {
   unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
   unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
@@ -507,7 +513,6 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
     if (activeCaptureScore + total.counts.captureCount >= board->getGoal()) return CAPTURE_WIN;
     for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
          ++it) {
-      std::cout << *it << std::endl;
       int dir = *it;
       int dx = DIRECTIONS[dir][0];
       int dy = DIRECTIONS[dir][1];
