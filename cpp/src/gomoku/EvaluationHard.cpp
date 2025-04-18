@@ -392,25 +392,72 @@ std::vector<std::pair<int, int> > getThresholdOpponentNearby(
 
   return nearby;
 }
+static int evaluateContinuousLineScore(Board* board, int x, int y, int dx, int dy, int opponent) {
+  unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
+  unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
+  unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE);
+
+  int fcont = 0, bcont = 0, fempty = 0, bempty = 0;
+  bool fclosed = false, bclosed = false;
+
+  slideWindowContinuous(forward, opponent, false, fcont, fclosed, fempty);
+  slideWindowContinuous(revBackward, opponent, true, bcont, bclosed, bempty);
+
+  int total = fcont + bcont;
+  if (total == 3) {
+    if (!fclosed && !bclosed) return OPEN_FOUR;
+    if (!fclosed || bclosed || fclosed || !bclosed) return CLOSED_FOUR;
+  }
+  if (total == 2 && !fclosed && !bclosed) {
+    return OPEN_THREE;
+  }
+  return 0;
+}
+
+int checkOpponentCaptureLineScore(Board* board, int x, int y, int opponent) {
+  int best = 0;
+  for (int i = 0; i < 4; ++i) {
+    int dx = DIRECTIONS[i][0];
+    int dy = DIRECTIONS[i][1];
+    best = std::max(best, evaluateContinuousLineScore(board, x, y, dx, dy, opponent));
+  }
+  return best;
+}
+
+static int evaluateCaptureDir(Board* board, int x, int y, int dx, int dy, int player) {
+  int score = 0;
+
+  // forward
+  unsigned int fwdBits = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
+  if (checkCapture(fwdBits, player) > 0) {
+    if (checkOpponentCaptureLineScore(board, x + dx, y + dy, OPPONENT(player)) > 0)
+      score += CAPTURE_SCORE;
+    if (checkOpponentCaptureLineScore(board, x + 2 * dx, y + 2 * dy, OPPONENT(player)) > 0)
+      score += CAPTURE_SCORE;
+  }
+
+  // backward (reverse)
+  unsigned int bwdBits = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
+  unsigned int revBits = reversePattern(bwdBits, SIDE_WINDOW_SIZE);
+  if (checkCapture(revBits, player) > 0) {
+    if (checkOpponentCaptureLineScore(board, x - dx, y - dy, OPPONENT(player)) > 0)
+      score += CAPTURE_SCORE;
+    if (checkOpponentCaptureLineScore(board, x - 2 * dx, y - 2 * dy, OPPONENT(player)) > 0)
+      score += CAPTURE_SCORE;
+  }
+
+  return score;
+}
 
 int evaluatePositionHard(Board*& board, int player, int x, int y) {
   EvaluationEntry total;
 
-  // // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
-  // if (board->getLastEvalScore() == OPEN_THREE || board->getLastEvalScore() == CLOSED_FOUR ||
-  //     board->getLastEvalScore() == OPEN_FOUR) {
-  //   std::vector<std::pair<int, int> > total = getThresholdOpponentTotal(board);
-  //   for (std::vector<std::pair<int, int> >::iterator it = total.begin(); it != total.end();) {
-  //     if (it->first == x && it->second == y) {
-  //       board->setLastEvalScore(0);
-  //       return CAPTURE_LEADING;
-  //     }
-  //   }
-  //   board->setLastEvalScore(0);
-  // }
-
+  std::vector<int> captureDirections;
   for (int i = 0; i < 4; ++i) {
-    total += evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+    EvaluationEntry axisScore =
+        evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+    if (axisScore.counts.captureCount > 0) captureDirections.push_back(i);
+    total += axisScore;
   }
 
   for (int i = 1; i < 8; i += 2) {
@@ -432,8 +479,6 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   if (total.counts.openThreeCount == 1) total.score = OPEN_THREE;
   if (total.counts.closedThreeCount == 1) total.score = CLOSED_THREE;
 
-  // if ((total.counts.threatCount >= 2) &&
-  //     (total.counts.closedFourCount > 0 || total.counts.openThreeCount > 0))
   if ((total.counts.threatCount >= 2)) total.score = DOUBLE_THREAT;
 
   if (total.counts.threatCount >= 3) total.score = FORK;
@@ -460,6 +505,16 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
                                                                 : board->getLastPlayerScore();
   if (total.counts.captureCount > 0) {
     if (activeCaptureScore + total.counts.captureCount >= board->getGoal()) return CAPTURE_WIN;
+    for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
+         ++it) {
+      std::cout << *it << std::endl;
+      int dir = *it;
+      int dx = DIRECTIONS[dir][0];
+      int dy = DIRECTIONS[dir][1];
+
+      total.score += evaluateCaptureDir(board, x, y, dx, dy, player);
+    }
+    captureDirections.clear();
     total.score += CAPTURE_SCORE * (activeCaptureScore + total.counts.captureCount);
   }
 
