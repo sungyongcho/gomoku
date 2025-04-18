@@ -458,14 +458,17 @@ static int evaluateCaptureDir(Board* board, int x, int y, int dx, int dy, int pl
 int evaluatePositionHard(Board*& board, int player, int x, int y) {
   EvaluationEntry total;
 
+  // for checking capture direction
   std::vector<int> captureDirections;
   for (int i = 0; i < 4; ++i) {
     EvaluationEntry axisScore =
         evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+    // when capture occurs, store the direction
     if (axisScore.counts.captureCount > 0) captureDirections.push_back(i);
     total += axisScore;
   }
 
+  // check v pattern
   for (int i = 1; i < 8; i += 2) {
     total.score += checkVPattern(board, player, x, y, i);
   }
@@ -473,6 +476,8 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   if (total.counts.immediateBlockCount > 0) {
     return BLOCK_LINE_5;
   }
+
+  // ---------------------continuous-----------------
 
   if (total.counts.openFourCount > 2) {
     total.score += FORCED_WIN_SEQUENCE;
@@ -490,17 +495,25 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   if (total.counts.threatCount >= 3) total.score = FORK;
 
   // if (total.counts.captureCount >= 2) total.score += SCORE_CHAIN_CAPTURE_SETUP;
+  // ---------------------continuous-----------------
 
+  // --------------- block -----------------
   if (total.counts.openFourBlockCount) total.score = BLOCK_LINE_4;
 
+  // blocking openthree
   if (total.counts.openThreeBlockCount) total.score += OPEN_THREE_BLOCK;
 
+  // double blocking
   if (total.counts.defensiveBlockCount >= 2) total.score += COUNTER_THREAT;
 
+  // to prevent capture threatening
+  // if score increases, even garbage position will be proiritized
   if (total.counts.captureThreatCount > 0) {
     total.score += CAPTURE_THREAT * total.counts.captureThreatCount;
   }
+  // --------------- block -----------------
 
+  // central bonus
   int boardCenter = BOARD_SIZE / 2;
   int posBonus = SCORE_POSITIONAL_ADVANTAGE - (abs(x - boardCenter) + abs(y - boardCenter)) * 1000;
   total.score += posBonus;
@@ -509,8 +522,13 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
                                                               : board->getNextPlayerScore();
   int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
                                                                 : board->getLastPlayerScore();
+
+  // for capture
   if (total.counts.captureCount > 0) {
+    // if capture meets goal score, return score immediately
     if (activeCaptureScore + total.counts.captureCount >= board->getGoal()) return CAPTURE_WIN;
+    // check if captureable spot opponent has bigger than OPEN_THREE
+    // if bigger than OPEN_THREE, add CAPTURE_SCORE
     for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
          ++it) {
       int dir = *it;
@@ -523,6 +541,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
     total.score += CAPTURE_SCORE * (activeCaptureScore + total.counts.captureCount);
   }
 
+  // for block capture
   if (total.counts.captureBlockCount > 0) {
     if (opponentCaptureScore + total.counts.captureBlockCount >= board->getGoal())
       return BLOCK_LINE_5;
@@ -530,6 +549,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   }
   // totalScore += (activeCaptureScore - opponentCaptureScore) * SCORE_OPPORTUNISTIC_CAPTURE;
 
+  // if capture vulnerable, reset score to 0 regardless of the previous accumulated scores.
   if (total.counts.captureVulnerable > 0) {
     total.score = 0;
   }
