@@ -133,7 +133,7 @@ bool isCaptureWarning(int side, int player, bool reverse);
 bool isCaptureVulnerable(int forward, int backward, int player);
 
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
-                           int &continuousEmpty);
+                           int &continuousEmpty, int &emptyThenContinuous);
 void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd);
 
 void initCombinedPatternScoreTables();
