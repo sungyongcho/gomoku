@@ -99,19 +99,23 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
   }
 }
 
-void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd) {
+void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd,
+                      int &blockEmptyThenContinuous) {
   int opponent = player == 1 ? 2 : 1;
   int blockContinuousEmpty = 0;
-  int block_begin = 0;
   int closed = 0;
+  bool hasEmptyPassed = false;
 
   if (!reverse) {
     for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
       int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
       if (target_bit == opponent) {
         if (blockContinuous == i) blockContinuous++;
+        if (hasEmptyPassed && blockEmptyThenContinuous == i - 1) blockEmptyThenContinuous++;
       } else if (target_bit == player || target_bit == OUT_OF_BOUNDS) {
         if (closed == 0) closed = i + 1;
+      } else if (target_bit == EMPTY_SPACE && !hasEmptyPassed) {
+        hasEmptyPassed = true;
       }
     }
     for (int i = SIDE_WINDOW_SIZE - blockContinuous; i > 0; i--) {
@@ -310,11 +314,15 @@ int main() {
 
   int forwardBlockContinuous = 0;
   bool forwardBlockClosedEnd = false;
+  int forwardBlockEmptyThenContinuous = 0;
 
   int backwardBlockContinuous = 0;
   bool backwardBlockClosedEnd = false;
-  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd);
-  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd);
+  int backwardBlockEmptyThenContinuous = 0;
+  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd,
+                   forwardBlockEmptyThenContinuous);
+  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd,
+                   backwardBlockEmptyThenContinuous);
 
   std::cout << "----------------" << std::endl;
   std::cout << "forward block continuous: " << forwardBlockContinuous << std::endl;

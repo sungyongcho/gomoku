@@ -115,18 +115,23 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
   }
 }
 
-void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd) {
+void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd,
+                      int &blockEmptyThenContinuous) {
   int opponent = player == 1 ? 2 : 1;
   int blockContinuousEmpty = 0;
   int closed = 0;
+  bool hasEmptyPassed = false;
 
   if (!reverse) {
     for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
       int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
       if (target_bit == opponent) {
         if (blockContinuous == i) blockContinuous++;
+        if (hasEmptyPassed && blockEmptyThenContinuous == i - 1) blockEmptyThenContinuous++;
       } else if (target_bit == player || target_bit == OUT_OF_BOUNDS) {
         if (closed == 0) closed = i + 1;
+      } else if (target_bit == EMPTY_SPACE && !hasEmptyPassed) {
+        hasEmptyPassed = true;
       }
     }
     for (int i = SIDE_WINDOW_SIZE - blockContinuous; i > 0; i--) {
@@ -233,21 +238,28 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
 
   int forwardBlockContinuous = 0;
   bool forwardBlockClosedEnd = false;
+  int forwardBlockEmptyThenContinuous = 0;
 
   int backwardBlockContinuous = 0;
   bool backwardBlockClosedEnd = false;
-  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd);
-  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd);
+  int backwardBlockEmptyThenContinuous = 0;
+  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd,
+                   forwardBlockEmptyThenContinuous);
+  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd,
+                   backwardBlockEmptyThenContinuous);
 
-  int totalBlockCont = forwardBlockContinuous + backwardBlockContinuous;
-  // 1.if continous opponent is bigger or equal, should block asap
+  int totalBlockCont =
+      std::max(forwardBlockContinuous + backwardBlockContinuous,
+               std::max(forwardBlockEmptyThenContinuous + backwardBlockContinuous,
+                        forwardBlockContinuous + backwardBlockEmptyThenContinuous));
+  // 1.if continuous opponent is bigger or equal, should block asap
   if (totalBlockCont >= 4) totalBlockCont = 4;
 
   if (totalBlockCont < 4) {
-    // 2. if both end is blocked by player and continous is less then three, there is no need to
+    // 2. if both end is blocked by player and continuous is less then three, there is no need to
     // block
     if (forwardBlockClosedEnd && backwardBlockClosedEnd) totalBlockCont = 0;
-    // 3. for each side, if one side continous but that side is already closed,
+    // 3. for each side, if one side continuous but that side is already closed,
     // it doesn't need to be blocked 'yet', so heuristics can go for better score moves.
     else if ((forwardBlockClosedEnd && (forwardBlockContinuous == totalBlockCont)) ||
              (backwardBlockClosedEnd && (backwardBlockContinuous == totalBlockCont))) {
@@ -299,9 +311,9 @@ unsigned int reversePattern(unsigned int pattern, int windowSize) {
 int checkCapture(unsigned int side, unsigned int player) {
   unsigned int opponent = OPPONENT(player);
   if (((side & 0xFC) >> 2) == pack_cells_3(opponent, opponent, player))
-    return CAPTURE_SCORE;
+    return CAPTURE;
   else if (((side & 0xfc) >> 2) == pack_cells_3(player, player, opponent))
-    return -CAPTURE_SCORE;
+    return -CAPTURE;
   return 0;
 }
 

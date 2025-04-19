@@ -1,5 +1,74 @@
 #include "Evaluation.hpp"
+
 namespace Evaluation {
+
+void printEvalEntry(EvaluationEntry eval) {
+  std::cout << "=== EvalEntry ===" << std::endl;
+  std::cout << "Score: " << eval.score << std::endl;
+  std::cout << "openFourCount: " << eval.counts.openFourCount << std::endl;
+  std::cout << "closedFourCount: " << eval.counts.closedFourCount << std::endl;
+  std::cout << "openThreeCount: " << eval.counts.openThreeCount << std::endl;
+  std::cout << "closedThreeCount: " << eval.counts.closedThreeCount << std::endl;
+  std::cout << "threatCount: " << eval.counts.threatCount << std::endl;
+  std::cout << "captureCount: " << eval.counts.captureCount << std::endl;
+  std::cout << "defensiveBlockCount: " << eval.counts.defensiveBlockCount << std::endl;
+  std::cout << "openFourBlockCount: " << eval.counts.openFourBlockCount << std::endl;
+  std::cout << "closedFourBlockCount: " << eval.counts.closedFourBlockCount << std::endl;
+  std::cout << "openThreeBlockCount: " << eval.counts.openThreeBlockCount << std::endl;
+  std::cout << "closedThreeBlockCount: " << eval.counts.closedThreeBlockCount << std::endl;
+  std::cout << "captureVulnerable: " << eval.counts.captureVulnerable << std::endl;
+  std::cout << "captureBlockCount: " << eval.counts.captureBlockCount << std::endl;
+  std::cout << "captureThreatCount: " << eval.counts.captureThreatCount << std::endl;
+  std::cout << "immediateBlockCount: " << eval.counts.immediateBlockCount << std::endl;
+  std::cout << "fiveCount: " << eval.counts.fiveCount << std::endl;
+  std::cout << "=================" << std::endl;
+}
+
+void printAxis(int forward, int backward) {
+  // Process backward 8 bits in 2-bit groups (from MSB to LSB)
+  for (int i = 3; i >= 0; i--) {
+    int val = (backward >> (i * 2)) & 0x03;
+    switch (val) {
+      case 0:
+        std::cout << ".";
+        break;
+      case 1:
+        std::cout << "1";
+        break;
+      case 2:
+        std::cout << "2";
+        break;
+      case 3:
+        std::cout << "X";
+        break;
+    }
+  }
+  // Print the middle marker "[.]"
+  std::cout << "[.]";
+
+  // Process forward 8 bits in 2-bit groups (from MSB to LSB)
+  for (int i = 3; i >= 0; i--) {
+    int val = (forward >> (i * 2)) & 0x03;
+    switch (val) {
+      case 0:
+        std::cout << ".";
+        break;
+      case 1:
+        std::cout << "1";
+        break;
+      case 2:
+        std::cout << "2";
+        break;
+      case 3:
+        std::cout << "X";
+        break;
+    }
+  }
+  std::cout << std::endl;
+}
+
+// It evaluates Continuous player's pattern & opponent's pattern
+// Executed when server starts, create evaluation table
 EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned int forward,
                                               unsigned int player) {
   EvaluationEntry returnValue;
@@ -23,13 +92,12 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
 
   // if continuous on both side, it'll be gomoku (5 in a row)
   if (totalContinuous >= 4) {
-    // returnValue.counts.openFourCount += 1;
     totalContinuous = 4;
   }
 
   // prevent from placing unnecessary moves by setting total continuous 0
   if (totalContinuous < 4) {
-    // 1. for condition where total continous are less than equal to
+    // 1. for condition where total continuous are less than equal to
     // if both ends are closed, it is meaningless to place the stone.
     if (backwardClosedEnd == true && forwardClosedEnd == true) {
       // std::cout << "check here " << std::endl;
@@ -41,8 +109,9 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     // five, don't need to extend the line
     else if (!((totalContinuous + forwardContinuousEmpty) >= 5 ||
                (totalContinuous + backwardContinuousEmpty) >= 5 ||
-               (totalContinuous + backwardContinuousEmpty + forwardContinuousEmpty) >= 5))
+               (totalContinuous + backwardContinuousEmpty + forwardContinuousEmpty) >= 5)) {
       totalContinuous = 0;
+    }
 
     // 3. prevent from opponent to capture (needs to check if necessary)
     // separated if condition because it needs to check all above then add
@@ -51,12 +120,10 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     //   totalContinuous = forwardContinuous + backwardContinuous;
   }
 
-  if (isCaptureVulnerable(forward, backward, player)) {
-    returnValue.counts.captureVulnerable += 1;
-    totalContinuous = 0;
+  if (totalContinuous == 4) {
+    returnValue.counts.threatCount += 1;
+    returnValue.counts.fiveCount += 1;
   }
-
-  if (totalContinuous >= 4) totalContinuous = 4;
 
   if (totalContinuous == 3) {
     if (!forwardClosedEnd && !backwardClosedEnd) {
@@ -80,27 +147,43 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     }
   }
 
+  // if Stone be captured in next turn
+  if (isCaptureVulnerable(forward, backward, player)) {
+    returnValue.counts.captureVulnerable += 1;
+  }
+
+  // -------------- Opponent Pattern count (Block) ----------- //
   int forwardBlockContinuous = 0;
   bool forwardBlockClosedEnd = false;
+  int forwardBlockEmptyThenContinuous = 0;
 
   int backwardBlockContinuous = 0;
   bool backwardBlockClosedEnd = false;
-  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd);
-  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd);
+  int backwardBlockEmptyThenContinuous = 0;
+  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd,
+                   forwardBlockEmptyThenContinuous);
+  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd,
+                   backwardBlockEmptyThenContinuous);
 
   int totalBlockCont = forwardBlockContinuous + backwardBlockContinuous;
+  // std::max(
+  //    forwardBlockContinuous + backwardBlockContinuous,
+  //    std::max(forwardBlockEmptyThenContinuous + backwardBlockContinuous,
+  //             forwardBlockContinuous + backwardBlockEmptyThenContinuous));
 
-  // if continous opponent is bigger or equal, should block asap
+  // if continuous opponent is bigger or equal, should block asap
   if (totalBlockCont >= 4) {
     returnValue.counts.immediateBlockCount += 1;
+    returnValue.counts.openFourBlockCount += 1;
+    returnValue.counts.defensiveBlockCount += 1;
     totalBlockCont = 4;
   }
 
   if (totalBlockCont < 4) {
-    // if both end is blocked by player and continous is less then three, there is no need to
-    // block
+    // if both end is blocked by player and continuous is less then three, there is no need to block
     if (forwardBlockClosedEnd && backwardBlockClosedEnd) totalBlockCont = 0;
-    // for each side, if one side continous but that side is already closed,
+
+    // for each side, if one side continuous but that side is already closed,
     // it doesn't need to be blocked 'yet', so heuristics can go for better score moves.
     else if ((forwardBlockClosedEnd && (forwardBlockContinuous == totalBlockCont)) ||
              (backwardBlockClosedEnd && (backwardBlockContinuous == totalBlockCont))) {
@@ -108,7 +191,6 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     }
   }
 
-  // TODO add more condition
   if (totalBlockCont == 3) {
     if ((forwardBlockContinuous == 3 && !forwardBlockClosedEnd) ||
         (backwardBlockContinuous == 3 && !backwardBlockClosedEnd)) {
@@ -123,29 +205,22 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     }
   }
 
+  // Evaluate possible threat captures (_XX_)
   if (totalBlockCont == 2) {
-    if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
-      // open three
-      returnValue.counts.defensiveBlockCount += 1;
-      returnValue.counts.openThreeBlockCount += 1;
-    } else if (!forwardClosedEnd || !backwardClosedEnd) {
-      // closed three
-      returnValue.counts.defensiveBlockCount += 1;
-      returnValue.counts.closedThreeBlockCount += 1;
+    if (!forwardBlockClosedEnd && forwardBlockContinuous == 2) {
+      returnValue.counts.captureThreatCount += 1;
+    }
+    if (!backwardClosedEnd && backwardContinuous == 2) {
+      returnValue.counts.captureThreatCount += 1;
     }
   }
 
-  if (!forwardBlockClosedEnd && forwardBlockContinuous == 2) {
-    returnValue.counts.captureThreatCount += 1;
-  }
-  if (!backwardClosedEnd && backwardContinuous == 2) {
-    returnValue.counts.captureThreatCount += 1;
-  }
-
+  // Check player captures (OXX_) cases
   if (checkCapture(forward, player) > 0) returnValue.counts.captureCount += 1;
   if (checkCapture(reversePattern(backward, SIDE_WINDOW_SIZE), player) > 0)
     returnValue.counts.captureCount += 1;
 
+  // Check opponent capture (XOO_) cases
   if (checkCapture(forward, player) < 0) returnValue.counts.captureBlockCount += 1;
   if (checkCapture(reversePattern(backward, SIDE_WINDOW_SIZE), player) < 0)
     returnValue.counts.captureBlockCount += 1;
@@ -415,6 +490,34 @@ int checkOpponentCaptureLineScore(Board* board, int x, int y, int opponent) {
   return best;
 }
 
+// 해당 방향을 따라가면서 5석이 있는지 체크
+static bool hasGomokuOnClosedThree(Board* board, int x, int y, int dx, int dy, int player) {
+  // 바둑알을 한칸씩 이동하면서 체크
+  for (int j = 0; j < 2; ++j) {
+    x = x + dx;
+    y = y + dy;
+    // 4 가지 방향 체크
+    for (int i = 0; i < 4; ++i) {
+      int _dx = DIRECTIONS[i][0];
+      int _dy = DIRECTIONS[i][1];
+      if ((_dx == dx && _dy == dy) || (_dx == -dx && _dy == -dy)) continue;
+      unsigned int fwdBits = board->extractLineAsBits(x, y, _dx, _dy, SIDE_WINDOW_SIZE);
+      unsigned int bwdBits = board->extractLineAsBits(x, y, -_dx, -_dy, SIDE_WINDOW_SIZE);
+      unsigned int revBwdBits = reversePattern(bwdBits, SIDE_WINDOW_SIZE);
+      unsigned int combined =
+          (revBwdBits << (2 * (SIDE_WINDOW_SIZE + 1))) | (0 << (2 * SIDE_WINDOW_SIZE)) | fwdBits;
+
+      EvaluationEntry eval =
+          player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+
+      if (eval.score >= GOMOKU) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 static int evaluateCaptureDir(Board* board, int x, int y, int dx, int dy, int player) {
   int score = 0;
 
@@ -422,9 +525,9 @@ static int evaluateCaptureDir(Board* board, int x, int y, int dx, int dy, int pl
   unsigned int fwdBits = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
   if (checkCapture(fwdBits, player) > 0) {
     if (checkOpponentCaptureLineScore(board, x + dx, y + dy, OPPONENT(player)) > 0)
-      score += CAPTURE_SCORE;
+      score += CAPTURE;
     if (checkOpponentCaptureLineScore(board, x + 2 * dx, y + 2 * dy, OPPONENT(player)) > 0)
-      score += CAPTURE_SCORE;
+      score += CAPTURE;
   }
 
   // backward (reverse)
@@ -432,9 +535,9 @@ static int evaluateCaptureDir(Board* board, int x, int y, int dx, int dy, int pl
   unsigned int revBits = reversePattern(bwdBits, SIDE_WINDOW_SIZE);
   if (checkCapture(revBits, player) > 0) {
     if (checkOpponentCaptureLineScore(board, x - dx, y - dy, OPPONENT(player)) > 0)
-      score += CAPTURE_SCORE;
+      score += CAPTURE;
     if (checkOpponentCaptureLineScore(board, x - 2 * dx, y - 2 * dy, OPPONENT(player)) > 0)
-      score += CAPTURE_SCORE;
+      score += CAPTURE;
   }
 
   return score;
@@ -442,102 +545,121 @@ static int evaluateCaptureDir(Board* board, int x, int y, int dx, int dy, int pl
 
 int evaluatePositionHard(Board*& board, int player, int x, int y) {
   EvaluationEntry total;
-
-  // for checking capture direction
-  std::vector<int> captureDirections;
-  for (int i = 0; i < 4; ++i) {
-    EvaluationEntry axisScore =
-        evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
-    // when capture occurs, store the direction
-    if (axisScore.counts.captureCount > 0) captureDirections.push_back(i);
-    total += axisScore;
-  }
-
-  // check v pattern
-  for (int i = 1; i < 8; i += 2) {
-    total.score += checkVPattern(board, player, x, y, i);
-  }
-
-  if (total.counts.immediateBlockCount > 0) {
-    return BLOCK_LINE_5;
-  }
-
-  // ---------------------continuous-----------------
-
-  if (total.counts.openFourCount > 2) {
-    total.score += FORCED_WIN_SEQUENCE;
-    total.score += DOUBLE_OPEN_FOUR;
-  }
-
-  if (total.counts.openFourCount == 1) total.score = OPEN_FOUR;
-  if (total.counts.closedFourCount == 1) total.score = CLOSED_FOUR;
-
-  if (total.counts.openThreeCount == 1) total.score = OPEN_THREE;
-  if (total.counts.closedThreeCount == 1) total.score = CLOSED_THREE;
-
-  if ((total.counts.threatCount >= 2)) total.score = DOUBLE_THREAT;
-
-  if (total.counts.threatCount >= 3) total.score = FORK;
-
-  // if (total.counts.captureCount >= 2) total.score += SCORE_CHAIN_CAPTURE_SETUP;
-  // ---------------------continuous-----------------
-
-  // --------------- block -----------------
-  if (total.counts.openFourBlockCount) total.score = BLOCK_LINE_4;
-
-  // blocking openthree
-  if (total.counts.openThreeBlockCount) total.score += OPEN_THREE_BLOCK;
-
-  // double blocking
-  if (total.counts.defensiveBlockCount >= 2) total.score += COUNTER_THREAT;
-
-  // to prevent capture threatening
-  // if score increases, even garbage position will be proiritized
-  if (total.counts.captureThreatCount > 0) {
-    total.score += CAPTURE_THREAT * total.counts.captureThreatCount;
-  }
-  // --------------- block -----------------
-
-  // central bonus
-  int boardCenter = BOARD_SIZE / 2;
-  int posBonus = SCORE_POSITIONAL_ADVANTAGE - (abs(x - boardCenter) + abs(y - boardCenter)) * 1000;
-  total.score += posBonus;
-
   int activeCaptureScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
                                                               : board->getNextPlayerScore();
   int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
                                                                 : board->getLastPlayerScore();
 
-  // for capture
-  if (total.counts.captureCount > 0) {
-    // if capture meets goal score, return score immediately
-    if (activeCaptureScore + total.counts.captureCount >= board->getGoal()) return CAPTURE_WIN;
-    // check if captureable spot opponent has bigger than OPEN_THREE
-    // if bigger than OPEN_THREE, add CAPTURE_SCORE
-    for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
-         ++it) {
-      int dir = *it;
-      int dx = DIRECTIONS[dir][0];
-      int dy = DIRECTIONS[dir][1];
+  // for checking player's & opponent's capture direction
+  std::vector<int> captureDirections;
+  std::vector<int> opponentCaptureDirections;
+  for (int i = 0; i < 4; ++i) {
+    EvaluationEntry playerAxisScore =
+        evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+    EvaluationEntry opponentAxisScore =
+        evaluateCombinedAxisHard(board, OPPONENT(player), x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
+    // when capture occurs, store the direction
+    if (playerAxisScore.counts.captureCount > 0) captureDirections.push_back(i);
+    if (opponentAxisScore.counts.captureCount > 0) opponentCaptureDirections.push_back(i);
 
-      total.score += evaluateCaptureDir(board, x, y, dx, dy, player);
+    total += playerAxisScore;
+  }
+
+  /*
+  ** Fine tuning for gomoku evaluation
+  */
+
+  // 1. HIGH PRIORITY CASE
+  // - 1) If the player can reach the target score by capture, they must take it.
+  if (activeCaptureScore + total.counts.captureCount >= board->getGoal()) {
+    return CAPTURE_WIN;
+  }
+  // - 2) If the player can't win by breakable gomoku, he must solve it.
+  if (total.counts.closedThreeCount) {
+    for (std::vector<int>::iterator it = opponentCaptureDirections.begin();
+         it != opponentCaptureDirections.end(); ++it) {
+      int dx = DIRECTIONS[*it][0];
+      int dy = DIRECTIONS[*it][1];
+      bool hasGomoku = hasGomokuOnClosedThree(board, x, y, dx, dy, player);
+      if (hasGomoku) {
+        return BREAKABLE_GOMOKU;
+      }
     }
-    captureDirections.clear();
-    total.score += CAPTURE_SCORE * (activeCaptureScore + total.counts.captureCount);
   }
 
-  // for block capture
-  if (total.counts.captureBlockCount > 0) {
-    if (opponentCaptureScore + total.counts.captureBlockCount >= board->getGoal())
-      return BLOCK_LINE_5;
-    total.score += CAPTURE_SCORE * (opponentCaptureScore + total.counts.captureBlockCount);
-  }
-  // totalScore += (activeCaptureScore - opponentCaptureScore) * SCORE_OPPORTUNISTIC_CAPTURE;
+  // 2. MEDIUM PRIORITY CASE
+  // - 1) If opponent made open three or four, player must block it
+  total.score += total.counts.defensiveBlockCount * THREAT_BLOCK;
+  total.score += total.counts.openThreeBlockCount * THREAT_BLOCK;
+  total.score += total.counts.openFourBlockCount * THREAT_BLOCK * 2;
+  // - 2) If player can catch, he must catch.
+  total.score += total.counts.captureCount * CAPTURE;
+  // - 3) If player can threat, he must threat
+  total.score += total.counts.threatCount * THREAT;
+  total.score += total.counts.captureThreatCount * THREAT;
 
-  // if capture vulnerable, reset score to 0 regardless of the previous accumulated scores.
-  if (total.counts.captureVulnerable > 0) {
-    total.score = 0;
-  }
+  // 3. LOW PRIORITY CASE
+  // - 1) Center priority
+  int boardCenter = BOARD_SIZE / 2;
+  int posBonus = CENTER_BONUS - (abs(x - boardCenter) + abs(y - boardCenter)) * 1000;
+  total.score += posBonus;
+  // - 2) Avoid capture vulnerability
+  total.score -= total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY;
+  // printEvalEntry(total);
+  // check v pattern
+  // for (int i = 1; i < 8; i += 2) {
+  //   total.score += checkVPattern(board, player, x, y, i);
+  // }
+
+  // if (total.counts.immediateBlockCount > 0) {
+  //   return BLOCK_LINE_5;
+  // }
+
+  // // --------------- block -----------------
+  // if (total.counts.openFourBlockCount) total.score = BLOCK_LINE_4;
+
+  // // blocking openthree
+  // if (total.counts.openThreeBlockCount) total.score += OPEN_THREE_BLOCK;
+
+  // // double blocking
+  // if (total.counts.defensiveBlockCount >= 2) total.score += COUNTER_THREAT;
+
+  // // to prevent capture threatening
+  // // if score increases, even garbage position will be proiritized
+  // if (total.counts.captureThreatCount > 0) {
+  //   total.score += CAPTURE_THREAT * total.counts.captureThreatCount;
+  // }
+
+  // --------------- block -----------------
+  // for capture
+  // if (total.counts.captureCount > 0) {
+  //   // check if capturable spot opponent has bigger than OPEN_THREE
+  //   // if bigger than OPEN_THREE, add CAPTURE_SCORE
+  //   for (std::vector<int>::iterator it = captureDirections.begin(); it !=
+  //   captureDirections.end();
+  //        ++it) {
+  //     int dir = *it;
+  //     int dx = DIRECTIONS[dir][0];
+  //     int dy = DIRECTIONS[dir][1];
+
+  //     total.score += evaluateCaptureDir(board, x, y, dx, dy, player);
+  //   }
+  //   captureDirections.clear();
+  //   total.score += CAPTURE_SCORE * (activeCaptureScore + total.counts.captureCount);
+  // }
+
+  // // for block capture
+  // if (total.counts.captureBlockCount > 0) {
+  //   if (opponentCaptureScore + total.counts.captureBlockCount >= board->getGoal())
+  //     return BLOCK_LINE_5;
+  //   total.score += CAPTURE_SCORE * (opponentCaptureScore + total.counts.captureBlockCount);
+  // }
+  // // totalScore += (activeCaptureScore - opponentCaptureScore) * SCORE_OPPORTUNISTIC_CAPTURE;
+
+  // // if capture vulnerable, reset score to 0 regardless of the previous accumulated scores.
+  // if (total.counts.captureVulnerable > 0) {
+  //   total.score = 0;
+  // }
 
   return total.score;
 }
