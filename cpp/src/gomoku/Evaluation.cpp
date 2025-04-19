@@ -282,7 +282,7 @@ void initCombinedPatternScoreTables() {
   }
 }
 
-inline unsigned int reversePattern(unsigned int pattern, int windowSize) {
+unsigned int reversePattern(unsigned int pattern, int windowSize) {
   unsigned int reversed = 0;
   for (int i = 0; i < windowSize; i++) {
     reversed = (reversed << 2) | (pattern & 0x3);
@@ -301,7 +301,7 @@ int checkCapture(unsigned int side, unsigned int player) {
 }
 
 int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy) {
-  int score;
+  int score = 0;
   // Extract windows.
   unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
   unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);

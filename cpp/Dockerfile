@@ -22,7 +22,7 @@ COPY . .
 EXPOSE 8005
 
 # Initial build: only compiles what's out‑of‑date
-RUN make
+RUN make re
 
 # On file changes, rebuild only what’s needed, then run
 CMD find src inc -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "Makefile" \) \

@@ -117,7 +117,7 @@ void Board::setValueBit(int col, int row, int player) {
 }
 
 // Get the value at (col, row).
-inline int Board::getValueBit(int col, int row) const {
+int Board::getValueBit(int col, int row) const {
   if (!isValidCoordinate(col, row)) return OUT_OF_BOUNDS;
   uint64_t mask = 1ULL << col;
   if (this->last_player_board[row] & mask) return PLAYER_1;
@@ -307,6 +307,7 @@ Board *Board::cloneBoard(const Board *board) {
   newBoard->next_player = board->next_player;
   newBoard->last_player_score = board->last_player_score;
   newBoard->next_player_score = board->next_player_score;
+  newBoard->currentHash = board->currentHash;
   return newBoard;
 }
 

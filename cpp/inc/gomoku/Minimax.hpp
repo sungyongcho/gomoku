@@ -22,7 +22,7 @@
 //   which is the total number of unique patterns that can be represented.
 #define LOOKUP_TABLE_SIZE_TMP (1 << (2 * COMBINED_WINDOW_SIZE_TMP))
 
-#define MAX_DEPTH 10
+#define MAX_DEPTH 5
 // Bound types used for alpha-beta entries.
 enum BoundType { EXACT, LOWERBOUND, UPPERBOUND };
 
