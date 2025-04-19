@@ -1,5 +1,5 @@
 #include "Evaluation.hpp"
-// to remove
+
 #include <iostream>
 namespace Evaluation {
 int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
@@ -53,98 +53,6 @@ void printPattern(unsigned int pattern, int numCells) {
   }
   std::cout << std::endl;
 }
-
-/*
- * 1. the evaluated cell from combined pattern will always be in the middle
- * 2. check leftside, rightside for the continuous pattern
- * 2.1 for each side, check if the continuous pattern happens in both on current player and
- * opponent, the opponent score is for to check how dangerous the current position is. 2.2 when
- * checking for leftside and rightside, combine the score by checking the player's score first then
- * subtract opponent's score by last. 2.3 if the capture is available for player, give advantage and
- * if for opponent, subtract for opponent. ps1. assuming middle is always empty. ps2. there are
- * three patterns 0 for empty, 1 for p1, 2 for p2, 3 for out of bounds.
- */
-// int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsigned int player) {
-//   unsigned int opponent = OPPONENT(player);
-//   int continuous = 0;
-//   int forwardContinuous = 0;
-//   int forwardContEmpty = 0;
-//   int backwardContinuous = 0;
-//   int backwardContEmpty = 0;
-//   int block = 0;
-
-//   // bool forwardClosed = true;
-//   // bool backwardClosed = true;
-//   if (forward == pack_cells_4(player, player, player, player)) {
-//     // forwardContinuous += 4;
-//     // return gomoku
-//     return GOMOKU;
-//   } else if (((forward & 0xFC) >> 2) == pack_cells_3(player, player, player)) {
-//     forwardContinuous += 3;
-//   } else if (((forward & 0xF0) >> 4) == pack_cells_2(player, player)) {
-//     forwardContinuous += 2;
-//   } else if (((forward & 0xC0) >> 6) == player) {
-//     forwardContinuous += 1;
-//   } else if (forward == pack_cells_4(opponent, opponent, opponent, opponent))
-//     block += 4;
-//   else if (((forward & 0xFC) >> 2) == pack_cells_3(opponent, opponent, opponent))
-//     block += 3;
-//   else if (((forward & 0xF0) >> 4) == pack_cells_2(opponent, opponent))
-//     block += 2;
-//   else if (((forward & 0xC0) >> 6) == opponent)
-//     block += 1;
-//   for (int i = SIDE_WINDOW_SIZE - forwardContinuous; i > 0; i--) {
-//     if (((forward >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
-//       forwardContEmpty += 1;
-//     else
-//       break;
-//   }
-
-//   if (backward == pack_cells_4(player, player, player, player)) {
-//     return GOMOKU;
-//     // backwardContinuous += 4;
-//   } else if ((backward & 0x3F) == pack_cells_3(player, player, player)) {
-//     backwardContinuous += 3;
-//   } else if ((backward & 0x0F) == pack_cells_2(player, player)) {
-//     backwardContinuous += 2;
-//   } else if ((backward & 0x03) == player) {
-//     backwardContinuous += 1;
-//   } else if (backward == pack_cells_4(opponent, opponent, opponent, opponent))
-//     block += 4;
-//   else if ((backward & 0x3F) == pack_cells_3(opponent, opponent, opponent))
-//     block += 3;
-//   else if ((backward & 0x0F) == pack_cells_2(opponent, opponent))
-//     block += 2;
-//   else if ((backward & 0x03) == opponent)
-//     block += 1;
-
-//   for (int i = backwardContinuous; i < SIDE_WINDOW_SIZE; i++) {
-//     if (((backward >> (i * 2)) & 0x03) == EMPTY_SPACE)
-//       backwardContEmpty += 1;
-//     else
-//       break;
-//   }
-//   continuous = forwardContinuous + backwardContinuous;
-//   if (continuous > 4) continuous = 4;
-//   if (block > 4) block = 4;
-//   if ((SIDE_WINDOW_SIZE - continuous) >= (forwardContEmpty + backwardContEmpty)) continuous = 0;
-//   if ((((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) &&
-//        ((backward & 0x03) == EMPTY_SPACE)) ||
-//       (((backward & 0x0F)) == pack_cells_2(opponent, player) &&
-//        ((forward & 0xC0) >> 6) == EMPTY_SPACE)) {
-//     continuous = 0;
-//     block = 0;
-//   } else if (((backward & 0x03) == opponent &&
-//               ((forward & 0xF0) >> 4) == pack_cells_2(player, EMPTY_SPACE)) ||
-//              (((forward & 0xC0) >> 6) == opponent &&
-//               (backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player))) {
-//     continuous = 0;
-//     block = 0;
-//   }
-//   // TODO: block sharpning
-
-//   return continuousScores[continuous + 1] + blockScores[block + 1];
-// }
 
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
                            int &continuousEmpty) {

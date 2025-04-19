@@ -491,7 +491,7 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
                                                            board->getLastX(), board->getLastY()));
 
   // Optionally, clear the transposition table.
-  // transTable.clear();
+  transTable.clear();
   initKillerMoves();
 
   for (int depth = 1; depth <= maxDepth; ++depth) {
