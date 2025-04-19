@@ -535,8 +535,8 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   EvaluationEntry total;
   int activeCaptureScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
                                                               : board->getNextPlayerScore();
-  int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
-                                                                : board->getLastPlayerScore();
+  // int opponentCaptureScore = (player == board->getLastPlayer()) ? board->getNextPlayerScore()
+  //                                                               : board->getLastPlayerScore();
 
   // for checking player's & opponent's capture direction
   std::vector<int> captureDirections;
@@ -575,7 +575,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
     }
   }
 
-  // 2. MEDIUM PRIORITY CASE
+  // 2. ATTACK CASE
   // - 1) If opponent made open three or four, player must block it
   total.score += total.counts.defensiveBlockCount * THREAT_BLOCK;
   total.score += total.counts.openThreeBlockCount * THREAT_BLOCK;
@@ -585,8 +585,23 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   // - 3) If player can threat, he must threat
   total.score += total.counts.threatCount * THREAT;
   total.score += total.counts.captureThreatCount * THREAT;
+  // - 4) If player can break opponent's open 3+ or 4 stone, he must break.
+  if (total.counts.captureCount > 0) {
+    // check if capturable spot opponent has bigger than OPEN_THREE
+    // if bigger than OPEN_THREE, add CAPTURE_SCORE
+    for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
+         ++it) {
+      int dir = *it;
+      int dx = DIRECTIONS[dir][0];
+      int dy = DIRECTIONS[dir][1];
 
-  // 3. LOW PRIORITY CASE
+      total.score += evaluateCaptureDir(board, x, y, dx, dy, player);
+      total.score += CAPTURE_DEFENSE;
+    }
+    captureDirections.clear();
+  }
+
+  // 3. DEFENSE CASE
   // - 1) Center priority
   int boardCenter = BOARD_SIZE / 2;
   int posBonus = CENTER_BONUS - (abs(x - boardCenter) + abs(y - boardCenter)) * 1000;
@@ -594,7 +609,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   // - 2) Avoid capture vulnerability
   total.score -= total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY;
   // - 3) Avoid capture
-  total.score += total.counts.captureBlockCount * CAPTURE;
+  total.score += total.counts.captureBlockCount * CAPTURE_DEFENSE;
 
   // printEvalEntry(total);
   // check v pattern
