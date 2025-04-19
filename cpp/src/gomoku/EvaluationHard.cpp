@@ -253,18 +253,6 @@ void initCombinedPatternScoreTablesHard() {
   }
 }
 
-// void updatePatternCounts(int score, PatternCounts &pattern) {
-//   if (score == SCORE_OPEN_FOUR) pattern.openFourCount++;
-
-//   if (score == SCORE_OPEN_THREE) pattern.threatCount++;
-
-//   if (score == SCORE_CLOSED_THREE) pattern.threatCount++;
-
-//   if (score % SCORE_CAPTURE_LEADING == 0) pattern.captureCount += score / SCORE_CAPTURE_LEADING;
-
-//   if (score == SCORE_DEFENSIVE_BLOCK) pattern.defensiveBlockCount++;
-// }
-
 EvaluationEntry evaluateCombinedAxisHard(Board* board, int player, int x, int y, int dx, int dy) {
   unsigned int forward = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
   unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
@@ -605,6 +593,9 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   total.score += posBonus;
   // - 2) Avoid capture vulnerability
   total.score -= total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY;
+  // - 3) Avoid capture
+  total.score += total.counts.captureBlockCount * CAPTURE;
+
   // printEvalEntry(total);
   // check v pattern
   // for (int i = 1; i < 8; i += 2) {
