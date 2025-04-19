@@ -8,20 +8,16 @@
 #include "Board.hpp"
 #include "Gomoku.hpp"
 
-#define GOMOKU 10000000
 #define CAPTURE_WIN 11000000
-#define FORCED_WIN_SEQUENCE 950000
-#define DOUBLE_OPEN_FOUR 950000
+#define GOMOKU 10000000
+#define BREAKABLE_GOMOKU 10000000
 #define OPEN_FOUR 700000
 #define CLOSED_FOUR 400000
-#define DOUBLE_THREAT 800000
-#define FORK 750000
 #define CAPTURE_LEADING 500000
 #define OPEN_THREE 200000
 #define OPEN_THREE_BLOCK 150000
 #define CLOSED_THREE 100000
 #define DEFENSIVE_BLOCK 350000
-#define COUNTER_THREAT 300000
 #define CONTINUOUS_LINE_4 100000
 #define CONTINUOUS_LINE_3 1000
 #define CONTINUOUS_LINE_2 100
@@ -31,12 +27,14 @@
 #define BLOCK_LINE_3 100
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
-#define CAPTURE_SCORE 200000
-#define CAPTURE_THREAT 50000
+#define CAPTURE 200000
+#define THREAT 30000
+#define THREAT_BLOCK 30000
+#define CENTER_BONUS 10000
 #define WINDOW_CENTER_VALUE 0
-#define SCORE_POSITIONAL_ADVANTAGE 150000
 // TODO needs to check
 #define INVALID_PATTERN -1337
+#define CAPTURE_VULNERABLE_PENALTY 20000
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
@@ -65,6 +63,7 @@ struct PatternCounts {
   int captureBlockCount;
   int captureThreatCount;
   int immediateBlockCount;
+  int fiveCount;
 
   PatternCounts()
       : openFourCount(0),
@@ -81,7 +80,8 @@ struct PatternCounts {
         captureVulnerable(0),
         captureBlockCount(0),
         captureThreatCount(0),
-        immediateBlockCount(0) {}
+        immediateBlockCount(0),
+        fiveCount(0) {}
 };
 
 struct EvaluationEntry {
@@ -109,6 +109,7 @@ struct EvaluationEntry {
     counts.captureBlockCount += other.counts.captureBlockCount;
     counts.captureThreatCount += other.counts.captureThreatCount;
     counts.immediateBlockCount += other.counts.immediateBlockCount;
+    counts.fiveCount += other.counts.fiveCount;
     return *this;
   }
 };
@@ -134,7 +135,8 @@ bool isCaptureVulnerable(int forward, int backward, int player);
 
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
                            int &continuousEmpty, int &emptyThenContinuous);
-void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd);
+void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd,
+                      int &emptyThenContinuous);
 
 void initCombinedPatternScoreTables();
 void initCombinedPatternScoreTablesHard();

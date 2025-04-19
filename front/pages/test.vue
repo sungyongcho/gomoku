@@ -161,13 +161,7 @@ watch(data, (rawData) => {
 <template>
   <main class="relative">
     <section class="mx-auto mt-10 max-w-[1200px] px-6 -sm:my-[80px]">
-      <h1 class="flex items-center gap-4 text-4xl">
-        <Button size="small" class="leading-none">
-          Trigger All Tests <i class="pi pi-bolt"></i>
-        </Button>
-
-        Evaluation test cases
-      </h1>
+      <h1 class="flex items-center gap-4 text-4xl">Evaluation test cases</h1>
 
       <div class="card">
         <Accordion v-model="activeIndex">
