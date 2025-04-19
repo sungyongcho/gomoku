@@ -124,6 +124,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
     case LWS_CALLBACK_ESTABLISHED:
       std::cout << "WebSocket `/ws/debug` connected!" << std::endl;
       initZobrist();
+      transTable.clear();
       break;
     case LWS_CALLBACK_RECEIVE: {
       std::string received_msg((char *)in, len);
@@ -245,6 +246,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         return 0;
       } else if (type == "reset") {
         initZobrist();
+        transTable.clear();
       } else {
         std::string error_response = constructErrorResponse(ERROR_UNKNOWN, "Unknown type");
         sendJsonResponse(wsi, error_response);
