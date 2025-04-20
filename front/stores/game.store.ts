@@ -3,10 +3,11 @@ import { useStorage } from "@vueuse/core";
 import { cloneDeep } from "lodash";
 
 import {
+  GAME_END_SCENARIO,
   type BoardInput,
   type BoardStone,
-  GAME_END_SCENARIO,
   type History,
+  type Settings,
   type Stone,
   type StoneEval,
 } from "~/types/game";
@@ -410,13 +411,22 @@ export const useGameStore = defineStore("game", () => {
     );
   };
 
-  const importData = (dataStr: string) => {
-    const data = JSON.parse(atob(dataStr));
+  const importGame = (data: {
+    boardData: { stone: Stone }[][];
+    histories: History[];
+    settings: Settings;
+    turn: Stone;
+    gameOver: boolean;
+  }) => {
     boardData.value = data.boardData;
     histories.value = data.histories;
     settings.value = data.settings;
     turn.value = data.turn;
     gameOver.value = data.gameOver;
+  };
+  const importData = (dataStr: string) => {
+    const data = JSON.parse(atob(dataStr));
+    importGame(data);
   };
 
   return {
@@ -442,6 +452,7 @@ export const useGameStore = defineStore("game", () => {
     evalScores,
     isAiThinking,
     exportUrl,
+    importGame,
     importData,
     exportJson,
     initialBoard,

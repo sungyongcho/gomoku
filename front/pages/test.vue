@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useWebSocket, type WebSocketStatus } from "@vueuse/core";
+import { useWebSocket } from "@vueuse/core";
 
 import type {
+  TestCase,
   RequestType,
   SocketMoveResponse,
   SocketMoveRequest,
@@ -13,15 +14,8 @@ definePageMeta({
 
 const { isAiThinking } = storeToRefs(useGameStore());
 
-const {
-  deleteLastHistory,
-  initGame,
-  addStoneToBoardData,
-  initialBoard,
-  getPlayerTotalCaptured,
-} = useGameStore();
+const { initialBoard, getPlayerTotalCaptured, importGame } = useGameStore();
 
-const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert } = useAlertStore();
 
 const { data, send, close, status } = useWebSocket(
@@ -120,11 +114,20 @@ onUnmounted(() => {
 });
 
 const triggeredTestLabel = ref("");
-const onTest = (label: string, idx: number) => {
+const onTest = (label: string) => {
   const initState = testCases.value[label]["init"];
-  const histories = initState.histories;
   triggeredTestLabel.value = label;
   onSendData("move", initState);
+};
+
+const goToDebug = (testCase: TestCase) => {
+  useRouter().push({
+    path: "/debug",
+  });
+
+  importGame({
+    ...testCase,
+  });
 };
 
 watch(data, (rawData) => {
@@ -174,29 +177,35 @@ watch(data, (rawData) => {
             :value="testIndex"
           >
             <AccordionHeader>
-              <div class="flex items-center gap-8">
-                <Badge
-                  value="Passed"
-                  severity="success"
-                  v-if="
-                    JSON.stringify(testCaseData.evaluated.boardData) ===
-                    JSON.stringify(testCaseData.expected.boardData)
-                  "
-                />
-                <Badge value="Not Passed" severity="danger" v-else />
+              <div class="flex w-full items-center justify-between pr-4">
+                <div class="flex items-center gap-2">
+                  <Badge
+                    value="Passed"
+                    severity="success"
+                    v-if="
+                      JSON.stringify(testCaseData.evaluated.boardData) ===
+                      JSON.stringify(testCaseData.expected.boardData)
+                    "
+                  />
+                  <Badge value="Not Passed" severity="danger" v-else />
 
-                <Button
-                  size="small"
-                  severity="secondary"
-                  icon="pi pi-bolt"
-                  @click.stop="onTest(label, testIndex)"
-                  :loading="triggeredTestLabel === label"
-                  :disabled="triggeredTestLabel === label"
-                  label="Test"
-                />
-                <span>
-                  {{ label }}
-                </span>
+                  <Button
+                    size="small"
+                    severity="secondary"
+                    icon="pi pi-bolt"
+                    @click.stop="onTest(label, testIndex)"
+                    :loading="triggeredTestLabel === label"
+                    :disabled="triggeredTestLabel === label"
+                    label="Test"
+                  />
+                  <span>
+                    {{ label }}
+                  </span>
+                </div>
+
+                <Button size="small" @click.stop="goToDebug(testCaseData.init)">
+                  debug
+                </Button>
               </div>
             </AccordionHeader>
             <AccordionContent>
