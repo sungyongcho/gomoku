@@ -576,10 +576,6 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   }
 
   // 2. ATTACK CASE
-  // - 1) If opponent made open three or four, player must block it
-  total.score += total.counts.defensiveBlockCount * THREAT_BLOCK;
-  total.score += total.counts.openThreeBlockCount * THREAT_BLOCK;
-  total.score += total.counts.openFourBlockCount * THREAT_BLOCK * 2;
   // - 2) If player can catch, he must catch.
   total.score += total.counts.captureCount * CAPTURE;
   // - 3) If player can threat, he must threat
@@ -610,6 +606,10 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   total.score -= total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY;
   // - 3) Avoid capture
   total.score += total.counts.captureBlockCount * CAPTURE_DEFENSE;
+  // - 4) If opponent made open three or four, player must block it
+  // total.score += total.counts.defensiveBlockCount * THREAT_BLOCK;
+  total.score += total.counts.openThreeBlockCount * THREAT_BLOCK;
+  total.score += total.counts.openFourBlockCount * THREAT_BLOCK;
 
   // printEvalEntry(total);
   // check v pattern
