@@ -396,20 +396,11 @@ int evaluatePosition(Board *&board, int player, int x, int y) {
   return totalScore;
 }
 
-int getEvaluationRating(int score) {
+int getEvaluationPercentage(int score) {
   // Map score from [1, GOMOKU] to [0, 100]
   int percentage = (score - 1) * 100 / (GOMOKU - 1);
 
-  if (percentage < 20)
-    return 1;
-  else if (percentage < 40)
-    return 2;
-  else if (percentage < 60)
-    return 3;
-  else if (percentage < 80)
-    return 4;
-  else
-    return 5;
+  return percentage;
 }
 
 }  // namespace Evaluation

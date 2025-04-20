@@ -14,7 +14,7 @@ const props = defineProps({
     >
       <i
         class="pi pi-sort-down-fill absolute bottom-[50%] translate-x-[-50%] text-black"
-        :style="{ left: `${(120 / 5) * modelValue}px` }"
+        :style="{ left: `${Math.min(modelValue, 100)}%` }"
       ></i>
     </div>
     Good
