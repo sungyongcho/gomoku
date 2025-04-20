@@ -376,7 +376,7 @@ int checkVPattern(Board *board, int player, int x, int y, int i) {
 
   if (right == opponent && left == opponent) {
     if (center == EMPTY_SPACE || center == opponent)
-      result += (continuousScores[2] * 2 + blockScores[2]) + 1;
+      result += (continuousScores[2] * 3 + blockScores[2] * 3) + 1;
   }
   return result;
 }
