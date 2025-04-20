@@ -16,8 +16,8 @@
 ,
 {
   "type": "evaluate",
-  "evalScores": [{"player": "O", "evalScores": 1, "rating": 2}, {"player": "X", "evalScores":3,  "rating": 4}],
-  // five different ratings:
+  "evalScores": [{"player": "O", "evalScores": 1, "percentage": 2}, {"player": "X", "evalScores":3,  "percentage": 4}],
+  // five different percentages:
   // 1 -- Weak
   // 2 -- Less Weak
   // 3 -- Mediocre

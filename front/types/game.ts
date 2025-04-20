@@ -54,7 +54,7 @@ export type SocketMoveRequest = {
 export type StoneEval = {
   player: "O" | "X";
   evalScores: number;
-  rating: 1 | 2 | 3 | 4 | 5;
+  percentage: number;
 };
 
 export type SocketMoveResponse = {

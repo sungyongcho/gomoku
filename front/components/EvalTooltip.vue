@@ -18,7 +18,7 @@ const { evalScores } = storeToRefs(useGameStore());
           ['pi-circle']: s.player === 'O',
         }"
       ></i>
-      <EvalScoreGage v-model="s.rating" />
+      <EvalScoreGage v-model="s.percentage" />
     </div>
   </div>
 </template>

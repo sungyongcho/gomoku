@@ -8,9 +8,9 @@
 #include "Board.hpp"
 #include "Gomoku.hpp"
 
-#define CAPTURE_WIN 11000000
-#define BREAKABLE_GOMOKU 11000000
-#define GOMOKU 10000000
+#define CAPTURE_WIN 1100000
+#define BREAKABLE_GOMOKU 1100000
+#define GOMOKU 1000000
 #define OPEN_FOUR 700000
 #define CLOSED_FOUR 400000
 #define OPEN_THREE 200000
@@ -144,7 +144,7 @@ int evaluatePosition(Board *&board, int player, int x, int y);
 
 int evaluatePositionHard(Board *&board, int player, int x, int y);
 
-int getEvaluationRating(int score);
+int getEvaluationPercentage(int score);
 
 void printPattern(unsigned int pattern, int numCells);
 

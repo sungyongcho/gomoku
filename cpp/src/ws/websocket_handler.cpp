@@ -71,13 +71,13 @@ void responseSuccessEvaluate(struct lws *wsi, int evalScoreX, int evalScoreY) {
   rapidjson::Value scoreO(rapidjson::kObjectType);
   scoreO.AddMember("player", "O", allocator);
   scoreO.AddMember("evalScore", evalScoreY, allocator);
-  scoreO.AddMember("rating", Evaluation::getEvaluationRating(evalScoreY), allocator);
+  scoreO.AddMember("percentage", Evaluation::getEvaluationPercentage(evalScoreY), allocator);
   evalScores.PushBack(scoreO, allocator);
 
   rapidjson::Value scoreX(rapidjson::kObjectType);
   scoreX.AddMember("player", "X", allocator);
   scoreX.AddMember("evalScore", evalScoreX, allocator);
-  scoreX.AddMember("rating", Evaluation::getEvaluationRating(evalScoreX), allocator);
+  scoreX.AddMember("percentage", Evaluation::getEvaluationPercentage(evalScoreX), allocator);
   evalScores.PushBack(scoreX, allocator);
 
   response.AddMember("evalScores", evalScores, allocator);
@@ -224,10 +224,11 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         int x_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_1, eval_x, eval_y);
         int o_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_2, eval_x, eval_y);
 
-        int x_rating = Evaluation::getEvaluationRating(x_scores);
-        int o_rating = Evaluation::getEvaluationRating(o_scores);
+        int x_percentage = Evaluation::getEvaluationPercentage(x_scores);
+        int o_percentage = Evaluation::getEvaluationPercentage(o_scores);
         std::cout << "x_scores: " << x_scores << " y_scores: " << o_scores << std::endl;
-        std::cout << "x_rating: " << x_rating << " y_rating: " << o_rating << std::endl;
+        std::cout << "x_percentage: " << x_percentage << " y_percentage: " << o_percentage
+                  << std::endl;
         responseSuccessEvaluate(wsi, x_scores, o_scores);
 
         delete pBoard;
