@@ -112,7 +112,6 @@ ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std
     error = "Missing required fields.";
     return ERROR_UNKNOWN;
   }
-  std::cout << last_player << "," << next_player << std::endl;
   *last_x = x;
   *last_y = y;
 
