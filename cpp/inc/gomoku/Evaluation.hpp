@@ -9,8 +9,8 @@
 #include "Gomoku.hpp"
 
 #define CAPTURE_WIN 11000000
+#define BREAKABLE_GOMOKU 11000000
 #define GOMOKU 10000000
-#define BREAKABLE_GOMOKU 10000000
 #define OPEN_FOUR 700000
 #define CLOSED_FOUR 400000
 #define OPEN_THREE 200000
@@ -62,8 +62,6 @@ struct PatternCounts {
   int captureVulnerable;
   int captureBlockCount;
   int captureThreatCount;
-  int immediateBlockCount;
-  int fiveCount;
 
   PatternCounts()
       : openFourCount(0),
@@ -79,9 +77,7 @@ struct PatternCounts {
         closedThreeBlockCount(0),  // Used for forced win / double open four detection.
         captureVulnerable(0),
         captureBlockCount(0),
-        captureThreatCount(0),
-        immediateBlockCount(0),
-        fiveCount(0) {}
+        captureThreatCount(0) {}
 };
 
 struct EvaluationEntry {
@@ -108,8 +104,6 @@ struct EvaluationEntry {
     counts.captureVulnerable += other.counts.captureVulnerable;
     counts.captureBlockCount += other.counts.captureBlockCount;
     counts.captureThreatCount += other.counts.captureThreatCount;
-    counts.immediateBlockCount += other.counts.immediateBlockCount;
-    counts.fiveCount += other.counts.fiveCount;
     return *this;
   }
 };
