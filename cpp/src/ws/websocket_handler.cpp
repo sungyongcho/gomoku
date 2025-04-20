@@ -161,8 +161,6 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         // std::clock_t start = std::clock();  // Start time
 
-        // std::pair<int, int> a = Minimax::getBestMove(pBoard, difficulty == "easy" ? 1 : 8);
-
         // std::clock_t end = std::clock();  // End time
         // pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
         // if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
@@ -175,9 +173,10 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::clock_t start = std::clock();  // Start time
 
-        std::pair<int, int> a =
-            // Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH, 500);
-            Minimax::iterativeDeepening(pBoard, 1, 500);
+        std::pair<int, int> a = Minimax::getBestMove(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH);
+        // std::pair<int, int> a =
+        //     // Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH, 500);
+        //     Minimax::iterativeDeepening(pBoard, 1, 500);
 
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
@@ -193,10 +192,6 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::cout << "Execution time: " << executionTime << " s, " << elapsed_ms << " ms, "
                   << elapsed_ns << " ns" << std::endl;
-        // std::cout << a.first << ", " << a.second << std::endl;
-        std::cout << Board::convertIndexToCoordinates(a.first, a.second) << std::endl;
-        std::cout << "score: " << pBoard->getLastPlayerScore() << " , "
-                  << pBoard->getNextPlayerScore() << std::endl;
 
         // Minimax::simulateAIBattle(pBoard, 5, 80);
 

@@ -51,18 +51,6 @@ Board::Board(const std::vector<std::vector<char> > &board_data, int goal, int la
     }
   }
   currentHash ^= zobristTurn[getNextPlayer()];
-
-  std::cout << "------inside1-------" << std::endl;
-  std::cout << last_player_int << "," << next_player_int << std::endl;
-  std::cout << "--------inside1----" << std::endl;
-
-  std::cout << "------inside2-------" << std::endl;
-  std::cout << this->last_player << "," << this->next_player << std::endl;
-  std::cout << "--------inside2----" << std::endl;
-
-  std::cout << "------inside-------" << std::endl;
-  std::cout << getLastPlayer() << "," << getNextPlayer() << std::endl;
-  std::cout << "--------inside----" << std::endl;
 }
 
 bool Board::isValidCoordinate(int col, int row) {
@@ -306,22 +294,6 @@ void printLinePatternReverse(unsigned int pattern, int length) {
 
 void Board::printLinePattern(unsigned int pattern, int length) {
   print_line_pattern_impl(pattern, length, false);
-}
-
-Board *Board::cloneBoard(const Board *board) {
-  Board *newBoard = new Board();
-
-  for (int i = 0; i < BOARD_SIZE; i++) {
-    newBoard->last_player_board[i] = board->last_player_board[i];
-    newBoard->next_player_board[i] = board->next_player_board[i];
-  }
-  newBoard->goal = board->goal;
-  newBoard->last_player = board->last_player;
-  newBoard->next_player = board->next_player;
-  newBoard->last_player_score = board->last_player_score;
-  newBoard->next_player_score = board->next_player_score;
-  newBoard->currentHash = board->currentHash;
-  return newBoard;
 }
 
 void Board::storeCapturedStone(int x, int y, int player) {
