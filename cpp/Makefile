@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX        := g++
-CXXFLAGS   := -std=c++98 -Wall -Wextra -Iinc -Iinc/gomoku -Iinc/ws -O2
+CXXFLAGS   := -std=c++98 -Wall -Wextra -Werror -Wreorder -Iinc -Iinc/gomoku -Iinc/ws -O2
 LDFLAGS    := -lwebsockets -lpthread
 
 # Directories

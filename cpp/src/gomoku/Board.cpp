@@ -1,14 +1,11 @@
 #include "Board.hpp"
 
 Board::Board()
-    : goal(5),                // Default winning condition (e.g., 5 in a row)
-      last_player(PLAYER_1),  // Default starting player for last move
-      next_player(PLAYER_2),  // Default next player
+    : goal(5),         // Default winning condition (e.g., 5 in a row)
+      last_player(0),  // Default starting player for last move
+      next_player(0),  // Default next player
       last_player_score(0),
       next_player_score(0),
-      last_x(-1),
-      last_y(-1),
-      lastEvalScore(-1),
       currentHash(0) {
   // Reset the bitboards to start with an empty board.
   resetBitboard();
@@ -27,9 +24,6 @@ Board::Board(const Board &other)
       next_player(other.next_player),
       last_player_score(other.last_player_score),
       next_player_score(other.next_player_score),
-      last_x(-1),
-      last_y(-1),
-      lastEvalScore(-1),
       captured_stones(other.captured_stones),
       currentHash(other.currentHash) {
   for (int i = 0; i < BOARD_SIZE; ++i) {
@@ -38,16 +32,13 @@ Board::Board(const Board &other)
   }
 }
 
-Board::Board(const std::vector<std::vector<char> > &board_data, int goal,
-             const std::string &last_stone, const std::string &next_stone, int last_score,
-             int next_score, int last_x, int last_y)
+Board::Board(const std::vector<std::vector<char> > &board_data, int goal, int last_player_int,
+             int next_player_int, int last_score, int next_score)
     : goal(goal),
-      last_player(last_stone == "X" ? PLAYER_1 : PLAYER_2),
-      next_player(next_stone == "X" ? PLAYER_1 : PLAYER_2),
+      last_player(last_player_int),
+      next_player(next_player_int),
       last_player_score(last_score),
-      next_player_score(next_score),
-      last_x(last_x),
-      last_y(last_y) {
+      next_player_score(next_score) {
   this->resetBitboard();
   this->initBitboardFromData(board_data);
 
@@ -60,6 +51,18 @@ Board::Board(const std::vector<std::vector<char> > &board_data, int goal,
     }
   }
   currentHash ^= zobristTurn[getNextPlayer()];
+
+  std::cout << "------inside1-------" << std::endl;
+  std::cout << last_player_int << "," << next_player_int << std::endl;
+  std::cout << "--------inside1----" << std::endl;
+
+  std::cout << "------inside2-------" << std::endl;
+  std::cout << this->last_player << "," << this->next_player << std::endl;
+  std::cout << "--------inside2----" << std::endl;
+
+  std::cout << "------inside-------" << std::endl;
+  std::cout << getLastPlayer() << "," << getNextPlayer() << std::endl;
+  std::cout << "--------inside----" << std::endl;
 }
 
 bool Board::isValidCoordinate(int col, int row) {
@@ -94,26 +97,34 @@ uint64_t *Board::getBitboardByPlayer(int player) {
 }
 
 // Set the cell (col, row) to a given player.
-void Board::setValueBit(int col, int row, int player) {
+void Board::setValueBit(int col, int row, int stone) {
   if (!isValidCoordinate(col, row)) return;
 
   int index = row * BOARD_SIZE + col;
-  int oldState = getValueBit(col, row);
+  int oldState = getValueBit(col, row);  // 0 = empty, 1 = P1, 2 = P2
 
-  currentHash ^= zobristTable[index][oldState];
-  // Each row is a separate uint64_t; only the lower BOARD_SIZE bits are used.
-  uint64_t mask = 1ULL << col;  // Bit position corresponds to the column.
-  // Clear the cell in both boards.
-  this->last_player_board[row] &= ~mask;
-  this->next_player_board[row] &= ~mask;
-  // Set the appropriate bit for the given player.
-  if (player == PLAYER_1)
-    this->last_player_board[row] |= mask;
-  else if (player == PLAYER_2)
-    this->next_player_board[row] |= mask;
+  // 1) remove old piece if this is capture
+  // 2) add new piece
+  if (oldState != EMPTY_SPACE) currentHash ^= zobristTable[index][oldState];
+  currentHash ^= zobristTable[index][stone];
 
-  currentHash ^= zobristTable[index][player];
-  currentHash ^= zobristTurn[getNextPlayer()];
+  // stone: 0=empty (removal), 1=PLAYER_1, 2=PLAYER_2
+  // update the bitboards (C++98)
+  uint64_t mask = 1ULL << col;
+
+  if (stone == 0) {
+    // removal: clear that cell on both bitboards
+    last_player_board[row] &= ~mask;
+    next_player_board[row] &= ~mask;
+  } else if (stone == PLAYER_1) {
+    // placement of P1: just set the bit, don't clear first
+    last_player_board[row] |= mask;
+  } else if (stone == PLAYER_2) {
+    // placement of P2
+    next_player_board[row] |= mask;
+  }
+
+  // 3) remove old turn, 4) flip, 5) add new turn
 }
 
 // Get the value at (col, row).
@@ -182,12 +193,6 @@ int Board::getNextPlayerScore() { return this->next_player_score; }
 
 int Board::getLastPlayerScore() { return this->last_player_score; }
 
-void Board::setLastEvalScore(int score) { this->lastEvalScore = score; }
-
-int Board::getLastX() { return this->last_x; }
-int Board::getLastY() { return this->last_y; }
-int Board::getLastEvalScore() { return this->lastEvalScore; }
-
 int Board::getGoal() { return this->goal; }
 
 uint64_t Board::getHash() { return this->currentHash; }
@@ -196,14 +201,22 @@ const std::vector<CapturedStone> &Board::getCapturedStones() const { return this
 
 // TODO: needs to change the hash value
 void Board::switchTurn() {
-  int tmp;
+  // 1) remember who was to move
+  int oldTurn = next_player;
 
-  tmp = this->next_player;
-  this->next_player = this->last_player;
-  this->last_player = tmp;
-  tmp = this->next_player_score;
-  this->next_player_score = this->last_player_score;
-  this->last_player_score = tmp;
+  // 2) swap players
+  int tmp = next_player;
+  next_player = last_player;
+  last_player = tmp;
+
+  // 3) swap scores
+  tmp = next_player_score;
+  next_player_score = last_player_score;
+  last_player_score = tmp;
+
+  // 4) update zobrist hash: remove old-turn, add new-turn
+  currentHash ^= zobristTurn[oldTurn];
+  currentHash ^= zobristTurn[next_player];
 }
 
 void Board::printBitboard() const {
