@@ -529,29 +529,72 @@ static bool hasGomokuOnClosedThree(Board* board, int x, int y, int dx, int dy, i
   return false;
 }
 
-static int evaluateCaptureDir(Board* board, int x, int y, int dx, int dy, int player) {
-  int score = 0;
+static int hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int dx, int dy,
+                                               int player) {
+  int checkX = x;
+  int checkY = y;
+  int opponent = OPPONENT(player);
 
   // forward
-  unsigned int fwdBits = board->extractLineAsBits(x, y, dx, dy, SIDE_WINDOW_SIZE);
-  if (checkCapture(fwdBits, player) > 0) {
-    if (checkOpponentCaptureLineScore(board, x + dx, y + dy, OPPONENT(player)) > 0)
-      score += CAPTURE;
-    if (checkOpponentCaptureLineScore(board, x + 2 * dx, y + 2 * dy, OPPONENT(player)) > 0)
-      score += CAPTURE;
+  for (int j = 0; j < 2; ++j) {
+    checkX += dx;
+    checkY += dy;
+    if (board->getValueBit(checkX, checkY) != opponent) break;
+
+    for (int i = 0; i < 4; ++i) {
+      int checkDx = DIRECTIONS[i][0];
+      int checkDy = DIRECTIONS[i][1];
+      if ((checkDx == dx && checkDy == dy) || (checkDx == -dx && checkDy == -dy)) continue;
+
+      unsigned int forwardBits =
+          board->extractLineAsBits(checkX, checkY, checkDx, checkDy, SIDE_WINDOW_SIZE);
+      unsigned int backwardBits =
+          board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
+      unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
+      unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
+                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+
+      EvaluationEntry evaluation =
+          opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+
+      if (evaluation.counts.openFourCount || evaluation.counts.openThreeCount ||
+          evaluation.counts.closedFourCount || evaluation.score >= GOMOKU) {
+        return true;
+      }
+    }
   }
 
-  // backward (reverse)
-  unsigned int bwdBits = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
-  unsigned int revBits = reversePattern(bwdBits, SIDE_WINDOW_SIZE);
-  if (checkCapture(revBits, player) > 0) {
-    if (checkOpponentCaptureLineScore(board, x - dx, y - dy, OPPONENT(player)) > 0)
-      score += CAPTURE;
-    if (checkOpponentCaptureLineScore(board, x - 2 * dx, y - 2 * dy, OPPONENT(player)) > 0)
-      score += CAPTURE;
-  }
+  // backward
+  checkX = x;
+  checkY = y;
+  for (int j = 0; j < 2; ++j) {
+    checkX -= dx;
+    checkY -= dy;
+    if (board->getValueBit(checkX, checkY) != opponent) break;
 
-  return score;
+    for (int i = 0; i < 4; ++i) {
+      int checkDx = DIRECTIONS[i][0];
+      int checkDy = DIRECTIONS[i][1];
+      if ((checkDx == dx && checkDy == dy) || (checkDx == -dx && checkDy == -dy)) continue;
+
+      unsigned int forwardBits =
+          board->extractLineAsBits(checkX, checkY, checkDx, checkDy, SIDE_WINDOW_SIZE);
+      unsigned int backwardBits =
+          board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
+      unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
+      unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
+                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+
+      EvaluationEntry evaluation =
+          opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+
+      if (evaluation.counts.openFourCount || evaluation.counts.openThreeCount ||
+          evaluation.counts.closedFourCount || evaluation.score >= GOMOKU) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 int evaluatePositionHard(Board*& board, int player, int x, int y) {
@@ -604,20 +647,6 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   // - 3) If player can threat, he must threat
   total.score += total.counts.threatCount * THREAT;
   total.score += total.counts.captureThreatCount * THREAT;
-  // - 4) If player can break opponent's open 3+ or 4 stone, he must break.
-  if (total.counts.captureCount > 0) {
-    // check if capturable spot opponent has bigger than OPEN_THREE
-    // if bigger than OPEN_THREE, add CAPTURE_SCORE
-    for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
-         ++it) {
-      int dir = *it;
-      int dx = DIRECTIONS[dir][0];
-      int dy = DIRECTIONS[dir][1];
-      total.score += evaluateCaptureDir(board, x, y, dx, dy, player);
-      total.score += CAPTURE_DEFENSE;
-    }
-    captureDirections.clear();
-  }
 
   // 3. DEFENSE CASE
   // - 1) Center priority
@@ -627,12 +656,27 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   // - 2) Avoid capture vulnerability
   total.score -= total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY;
   // - 3) Avoid capture
-  total.score += total.counts.captureBlockCount * CAPTURE_DEFENSE;
+  total.score += total.counts.captureBlockCount * CAPTURE;
   // - 4) If opponent made open three or four, player must block it
   // total.score += total.counts.defensiveBlockCount * THREAT_BLOCK;
   total.score += total.counts.openThreeBlockCount * THREAT_BLOCK;
   total.score += total.counts.openFourBlockCount * THREAT_BLOCK;
-
+  // - 5) If player can break opponent's open 3+ or 4 stone, he must break.
+  if (total.counts.captureCount > 0) {
+    // check if capturable spot opponent has bigger than OPEN_THREE
+    // if bigger than OPEN_THREE, add CAPTURE_SCORE
+    for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
+         ++it) {
+      int dir = *it;
+      int dx = DIRECTIONS[dir][0];
+      int dy = DIRECTIONS[dir][1];
+      bool hasCapturable = hasCapturableOnOpponentCriticalLine(board, x, y, dx, dy, player);
+      if (hasCapturable) {
+        total.score += CAPTURE_DEFENSE;
+      }
+    }
+    captureDirections.clear();
+  }
   // printEvalEntry(total);
 
   return total.score;

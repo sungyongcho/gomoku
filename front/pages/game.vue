@@ -35,7 +35,7 @@ const {
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert } = useAlertStore();
 
-const { data, send, close, status } = useWebSocket(
+const { data, send, close, status, open } = useWebSocket(
   `ws://${window.location.hostname}:8005/ws/debug`,
   {
     autoReconnect: {
@@ -59,6 +59,8 @@ const onPutStone = async ({ x, y }: { x: number; y: number }) => {
 
   if (isSuccessToPutStone && settings.value.isPlayer2AI && !gameOver.value) {
     if (status.value === "CLOSED") {
+      // retry to connect
+
       doAlert(
         "Error",
         "WebSocket connection failed. refresh the page to retry",
