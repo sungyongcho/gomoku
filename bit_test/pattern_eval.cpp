@@ -217,8 +217,8 @@ void printAxis(int forward, int backward) {
 
 int main() {
   int player = 1;
-  int backward = 0b01010000;
-  int forward = 0b00000001;
+  int backward = 0b00011010;
+  int forward = 0b11111111;
 
   int forwardContinuous = 0;
   bool forwardClosedEnd = false;
