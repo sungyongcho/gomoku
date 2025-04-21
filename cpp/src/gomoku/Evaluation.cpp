@@ -7,39 +7,40 @@ int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
 bool isValidBackwardPattern(unsigned int sidePattern) {
   bool encounteredValid = false;
+
   for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
-    // Calculate shift: i=0 -> outermost cell (highest bits)
     int shift = 2 * (SIDE_WINDOW_SIZE - 1 - i);
     int cell = (sidePattern >> shift) & 0x3;
-    if (!encounteredValid) {
-      if (cell != 3) encounteredValid = true;
-    } else {
+
+    if (encounteredValid) {
       if (cell == 3) return false;
+    } else {
+      if (cell != 3) encounteredValid = true;
     }
   }
+
   return true;
 }
+
 // Right side validation:
 // The right side (SIDE_WINDOW_SIZE cells) is represented so that the cell closest to the center
 // is in the highest order bits. Validity rule:
 // - The cell closest to the center must not be OUT_OF_BOUNDS (3).
 // - After an OUT_OF_BOUNDS appears, all further cells (moving outward) must be 3.
 bool isValidForwardPattern(unsigned int sidePattern) {
-  // Check the cell closest to the center (highest order bits)
-  int shift = 2 * (SIDE_WINDOW_SIZE - 1);
-  int firstCell = (sidePattern >> shift) & 0x3;
-  if (firstCell == 3) return false;
-
   bool encounteredOOB = false;
-  for (int i = 1; i < SIDE_WINDOW_SIZE; ++i) {
-    shift = 2 * (SIDE_WINDOW_SIZE - 1 - i);
+
+  for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+    int shift = 2 * (SIDE_WINDOW_SIZE - 1 - i);
     int cell = (sidePattern >> shift) & 0x3;
-    if (!encounteredOOB) {
-      if (cell == 3) encounteredOOB = true;
+
+    if (cell == 3) {
+      encounteredOOB = true;
     } else {
-      if (cell != 3) return false;
+      if (encounteredOOB) return false;
     }
   }
+
   return true;
 }
 

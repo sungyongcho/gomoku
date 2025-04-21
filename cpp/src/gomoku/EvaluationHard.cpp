@@ -147,7 +147,15 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     }
   }
 
-  // if Stone be captured in next turn
+  if (backward == 0b00000000 && forward == 0b00000000) {
+    int fw = 0b11111111;
+    int bw = 0b00011010;
+    std::cout << "IsValidForward" << isValidForwardPattern(fw) << std::endl;
+    std::cout << "IsValidBackward" << isValidBackwardPattern(bw) << std::endl;
+
+    printAxis(fw, bw);
+  }
+
   if (isCaptureVulnerable(forward, backward, player)) {
     returnValue.counts.captureVulnerable += 1;
   }
