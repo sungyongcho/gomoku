@@ -55,63 +55,29 @@ void printPattern(unsigned int pattern, int numCells) {
 }
 
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
-                           int &continuousEmpty, int &emptyThenContinuous) {
+                           int &continuousEmpty, int &emptyThenContinuous,
+                           int &emptyEmptyThenContinuous) {
   int opponent = player == 1 ? 2 : 1;
-  int player_count = 0;
-  int closed = 0;
-  int player_begin = 0;
-  bool emptyPassed = false;
-
-  if (!reverse) {
-    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
-      int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
-      if (target_bit == player) {
-        if (continuous == i) continuous++;
-        if (player_begin == 0) player_begin = i + 1;
-        if (emptyPassed && emptyThenContinuous == i - 1) emptyThenContinuous++;
-        player_count++;
-      } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
-        if (closed == 0) closed = i + 1;
-      } else if (target_bit == EMPTY_SPACE && !emptyPassed) {
-        emptyPassed = true;
-      }
-    }
-    for (int i = SIDE_WINDOW_SIZE - continuous; i > 0; i--) {
-      if (((side >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
-        continuousEmpty += 1;
-      else
-        break;
-    }
-  } else {
-    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
-      int target_bit = ((side >> (i * 2)) & 0x03);
-      if (target_bit == player) {
-        if (continuous == i) continuous++;
-        if (player_begin == 0) player_begin = i + 1;
-        player_count++;
-      } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
-        if (closed == 0) closed = i + 1;
-      }
-    }
-    for (int i = continuous; i < SIDE_WINDOW_SIZE; i++) {
-      if (((side >> (i * 2)) & 0x03) == EMPTY_SPACE)
-        continuousEmpty += 1;
-      else
-        break;
+  int emptyPassed = 0;
+  side = reverse ? reversePattern(side, SIDE_WINDOW_SIZE) : side;
+  for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+    int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
+    if (target_bit == player) {
+      if (continuous == i && !isClosedEnd) continuous++;
+      if (emptyPassed == 1 && emptyThenContinuous == (i - 1) && !isClosedEnd) emptyThenContinuous++;
+      if (emptyPassed == 2 && emptyEmptyThenContinuous == (i - 2) && !isClosedEnd)
+        emptyEmptyThenContinuous++;
+    } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
+      isClosedEnd = true;
+    } else if (target_bit == EMPTY_SPACE && !emptyPassed) {
+      emptyPassed += 1;
     }
   }
-  // std::cout << "----------------" << std::endl;
-  // std::cout << "player_count: " << player_count << std::endl;
-  // std::cout << "continuous: " << continuous << std::endl;
-  // std::cout << "closed: " << closed << std::endl;
-  // std::cout << "player_begin: " << player_begin << std::endl;
-  // std::cout << "continuousEmpty: " << continuousEmpty << std::endl;
-  // std::cout << "----------------" << std::endl;
-
-  if (player_count == continuous) {
-    if (closed - continuous == 1) {
-      isClosedEnd = true;
-    }
+  for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+    int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
+    if (target_bit == EMPTY_SPACE) continuousEmpty += 1;
+    if (target_bit == player) continue;
+    if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) break;
   }
 }
 
@@ -200,15 +166,19 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
   bool forwardClosedEnd = false;
   int forwardContinuousEmpty = 0;
   int forwardEmptyThenContinuous = 0;
+  int forwardEmptyEmptyThenContinuous = 0;
 
   int backwardContinuous = 0;
   bool backwardClosedEnd = false;
   int backwardContinuousEmpty = 0;
   int backwardEmptyThenContinuous = 0;
+  int backwardEmptyEmptyThenContinuous = 0;
   slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
-                        forwardContinuousEmpty, forwardEmptyThenContinuous);
+                        forwardContinuousEmpty, forwardEmptyThenContinuous,
+                        forwardEmptyEmptyThenContinuous);
   slideWindowContinuous(backward, player, true, backwardContinuous, backwardClosedEnd,
-                        backwardContinuousEmpty, backwardEmptyThenContinuous);
+                        backwardContinuousEmpty, backwardEmptyThenContinuous,
+                        backwardEmptyEmptyThenContinuous);
 
   int totalContinuous = forwardContinuous + backwardContinuous;
 

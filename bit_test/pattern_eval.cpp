@@ -33,6 +33,14 @@ static const int continuousScores[6] = {
 static const int blockScores[6] = {
     0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
+unsigned int reversePattern(unsigned int pattern, int windowSize) {
+  unsigned int reversed = 0;
+  for (int i = 0; i < windowSize; i++) {
+    reversed = (reversed << 2) | (pattern & 0x3);
+    pattern >>= 2;
+  }
+  return reversed;
+}
 // Slides a 2-bit window over the 8-bit representation of 'side'.
 // For each window position, it prints the full binary string with the current 2-bit window in
 // brackets, then prints the window's bits (and "matches" if it equals 'player'). If 'reverse' is
@@ -40,50 +48,26 @@ static const int blockScores[6] = {
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
                            int &continuousEmpty, int &emptyThenContinuous) {
   int opponent = player == 1 ? 2 : 1;
-  (void)reverse;
-  int player_count = 0;
-  int closed = 0;
-  int player_begin = 0;
   bool emptyPassed = false;
-
-  if (!reverse) {
-    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
-      int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
-      if (target_bit == player) {
-        if (continuous == i) continuous++;
-        if (player_begin == 0) player_begin = i + 1;
-        if (emptyPassed && emptyThenContinuous == i - 1) emptyThenContinuous++;
-        player_count++;
-      } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
-        if (closed == 0) closed = i + 1;
-      } else if (target_bit == EMPTY_SPACE && !emptyPassed) {
-        emptyPassed = true;
-      }
-    }
-    for (int i = SIDE_WINDOW_SIZE - continuous; i > 0; i--) {
-      if (((side >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
-        continuousEmpty += 1;
-      else
-        break;
-    }
-  } else {
-    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
-      int target_bit = ((side >> (i * 2)) & 0x03);
-      if (target_bit == player) {
-        if (continuous == i) continuous++;
-        if (player_begin == 0) player_begin = i + 1;
-        player_count++;
-      } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
-        if (closed == 0) closed = i + 1;
-      }
-    }
-    for (int i = continuous; i < SIDE_WINDOW_SIZE; i++) {
-      if (((side >> (i * 2)) & 0x03) == EMPTY_SPACE)
-        continuousEmpty += 1;
-      else
-        break;
+  side = reverse ? reversePattern(side, SIDE_WINDOW_SIZE) : side;
+  for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+    int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
+    if (target_bit == player) {
+      if (continuous == i && !isClosedEnd) continuous++;
+      if (emptyPassed && emptyThenContinuous == (i - 1) && !isClosedEnd) emptyThenContinuous++;
+    } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
+      isClosedEnd = true;
+    } else if (target_bit == EMPTY_SPACE && !emptyPassed) {
+      emptyPassed = true;
     }
   }
+  for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
+    int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
+    if (target_bit == EMPTY_SPACE) continuousEmpty += 1;
+    if (target_bit == player) continue;
+    if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) break;
+  }
+
   // std::cout << "----------------" << std::endl;
   // std::cout << "player_count: " << player_count << std::endl;
   // std::cout << "continuous: " << continuous << std::endl;
@@ -91,12 +75,6 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
   // std::cout << "player_begin: " << player_begin << std::endl;
   // std::cout << "continuousEmpty: " << continuousEmpty << std::endl;
   // std::cout << "----------------" << std::endl;
-
-  if (player_count == continuous) {
-    if (closed - continuous == 1) {
-      isClosedEnd = true;
-    }
-  }
 }
 
 void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd,
@@ -239,8 +217,8 @@ void printAxis(int forward, int backward) {
 
 int main() {
   int player = 1;
-  int forward = 0b00010100;
-  int backward = 0b00100101;
+  int backward = 0b01010000;
+  int forward = 0b00000001;
 
   int forwardContinuous = 0;
   bool forwardClosedEnd = false;

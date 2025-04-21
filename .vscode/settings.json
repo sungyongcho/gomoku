@@ -1,6 +1,8 @@
 {
   "files.associations": {
     "*.c": "c",
+    "*.svg": "html",
+    "*.vue": "vue",
     "*.h": "c",
     "*.cpp": "cpp",
     "*.hpp": "cpp",
@@ -86,7 +88,8 @@
     "variant": "cpp",
     "*.ipp": "cpp",
     "regex": "cpp",
-    "fstream": "cpp"
+    "fstream": "cpp",
+    "locale": "cpp"
   },
   "[cpp]": {
     "editor.rulers": [100],

@@ -75,16 +75,20 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   bool forwardClosedEnd = false;
   int forwardContinuousEmpty = 0;
   int forwardEmptyThenContinuous = 0;
+  int forwardEmptyEmptyThenContinuous = 0;
 
   int backwardContinuous = 0;
   bool backwardClosedEnd = false;
   int backwardContinuousEmpty = 0;
   int backwardEmptyThenContinuous = 0;
+  int backwardEmptyEmptyThenContinuous = 0;
 
   slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
-                        forwardContinuousEmpty, forwardEmptyThenContinuous);
+                        forwardContinuousEmpty, forwardEmptyThenContinuous,
+                        forwardEmptyEmptyThenContinuous);
   slideWindowContinuous(backward, player, true, backwardContinuous, backwardClosedEnd,
-                        backwardContinuousEmpty, backwardEmptyThenContinuous);
+                        backwardContinuousEmpty, backwardEmptyThenContinuous,
+                        backwardEmptyEmptyThenContinuous);
 
   int totalContinuous = forwardContinuous + backwardContinuous;
 
@@ -100,7 +104,6 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     if (backwardClosedEnd == true && forwardClosedEnd == true) {
       totalContinuous = 0;
     }
-
     // 2. if the total continuous + continuous empty => potential growth for gomoku is less then
     // five, don't need to extend the line
     else if (!((totalContinuous + forwardContinuousEmpty) >= 5 ||
@@ -112,6 +115,7 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
 
   if (totalContinuous == 4) {
     returnValue.counts.threatCount += 1;
+    returnValue.counts.gomokuCount += 1;
   }
 
   if (totalContinuous == 3) {
@@ -124,6 +128,13 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     }
   }
 
+  // [.]_OO_
+  if (((forwardEmptyThenContinuous == 2) || (backwardEmptyThenContinuous == 2)) &&
+      (!forwardClosedEnd && !backwardClosedEnd)) {
+    returnValue.counts.threatCount += 1;
+    returnValue.counts.openThreeCount += 1;
+  }
+
   if (totalContinuous == 2) {
     if (!forwardClosedEnd && !backwardClosedEnd) {
       // open three
@@ -131,7 +142,7 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
       returnValue.counts.openThreeCount += 1;
     } else if (!forwardClosedEnd || !backwardClosedEnd) {
       // closed three
-      returnValue.counts.threatCount += 1;
+      // returnValue.counts.threatCount += 1;
       returnValue.counts.closedThreeCount += 1;
     }
   }
@@ -155,10 +166,6 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
                    backwardBlockEmptyThenContinuous);
 
   int totalBlockCont = forwardBlockContinuous + backwardBlockContinuous;
-  // std::max(
-  //    forwardBlockContinuous + backwardBlockContinuous,
-  //    std::max(forwardBlockEmptyThenContinuous + backwardBlockContinuous,
-  //             forwardBlockContinuous + backwardBlockEmptyThenContinuous));
 
   // if continuous opponent is bigger or equal, should block asap
   if (totalBlockCont >= 4) {
@@ -439,11 +446,14 @@ static int evaluateContinuousLineScore(Board* board, int x, int y, int dx, int d
   unsigned int backward = board->extractLineAsBits(x, y, -dx, -dy, SIDE_WINDOW_SIZE);
   unsigned int revBackward = reversePattern(backward, SIDE_WINDOW_SIZE);
 
-  int fcont = 0, bcont = 0, fempty = 0, bempty = 0, femptyThenCont = 0, bemptyThenCont = 0;
+  int fcont = 0, bcont = 0, fempty = 0, bempty = 0, femptyThenCont = 0, bemptyThenCont = 0,
+      femptyEmptyThenCont = 0, bemptyEmptyThenCont = 0;
   bool fclosed = false, bclosed = false;
 
-  slideWindowContinuous(forward, opponent, false, fcont, fclosed, fempty, femptyThenCont);
-  slideWindowContinuous(revBackward, opponent, true, bcont, bclosed, bempty, bemptyThenCont);
+  slideWindowContinuous(forward, opponent, false, fcont, fclosed, fempty, femptyThenCont,
+                        femptyEmptyThenCont);
+  slideWindowContinuous(revBackward, opponent, true, bcont, bclosed, bempty, bemptyThenCont,
+                        bemptyEmptyThenCont);
 
   int total = fcont + bcont;
   if (total == 3) {
@@ -529,8 +539,8 @@ static bool hasGomokuOnClosedThree(Board* board, int x, int y, int dx, int dy, i
   return false;
 }
 
-static int hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int dx, int dy,
-                                               int player) {
+static bool hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int dx, int dy,
+                                                int player) {
   int checkX = x;
   int checkY = y;
   int opponent = OPPONENT(player);
@@ -554,11 +564,11 @@ static int hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int d
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
                               (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
-      EvaluationEntry evaluation =
+      EvaluationEntry opponentEval =
           opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
 
-      if (evaluation.counts.openFourCount || evaluation.counts.openThreeCount ||
-          evaluation.counts.closedFourCount || evaluation.score >= GOMOKU) {
+      if (opponentEval.counts.openFourCount || opponentEval.counts.openThreeCount ||
+          opponentEval.counts.closedFourCount || opponentEval.score >= GOMOKU) {
         return true;
       }
     }
@@ -585,16 +595,83 @@ static int hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int d
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
                               (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
-      EvaluationEntry evaluation =
+      EvaluationEntry opponentEval =
           opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
 
-      if (evaluation.counts.openFourCount || evaluation.counts.openThreeCount ||
-          evaluation.counts.closedFourCount || evaluation.score >= GOMOKU) {
+      if (opponentEval.counts.openFourCount || opponentEval.counts.openThreeCount ||
+          opponentEval.counts.closedFourCount || opponentEval.score >= GOMOKU) {
         return true;
       }
     }
   }
   return false;
+}
+
+static bool hasPerfectGomoku(Board* board, int x, int y, int dx, int dy, int player) {
+  int checkX = x;
+  int checkY = y;
+  int _dx = dx;
+  int _dy = dy;
+
+  // forward
+  for (int j = 0; j < 2; ++j) {
+    checkX += _dx;
+    checkY += _dy;
+
+    for (int i = 0; i < 4; ++i) {
+      int checkDx = DIRECTIONS[i][0];
+      int checkDy = DIRECTIONS[i][1];
+      if ((checkDx == dx && checkDy == dy) || (checkDx == -dx && checkDy == -dy)) continue;
+
+      unsigned int forwardBits =
+          board->extractLineAsBits(checkX, checkY, checkDx, checkDy, SIDE_WINDOW_SIZE);
+      unsigned int backwardBits =
+          board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
+      unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
+      unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
+                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+
+      EvaluationEntry playerEval =
+          player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+
+      if (playerEval.counts.captureVulnerable > 0) {
+        return false;
+      }
+    }
+  }
+
+  // backward
+  checkX = x;
+  checkY = y;
+  _dx = -dx;
+  _dy = -dy;
+  for (int j = 0; j < 2; ++j) {
+    checkX += _dx;
+    checkY += _dy;
+
+    for (int i = 0; i < 4; ++i) {
+      int checkDx = DIRECTIONS[i][0];
+      int checkDy = DIRECTIONS[i][1];
+      if ((checkDx == dx && checkDy == dy) || (checkDx == -dx && checkDy == -dy)) continue;
+
+      unsigned int forwardBits =
+          board->extractLineAsBits(checkX, checkY, checkDx, checkDy, SIDE_WINDOW_SIZE);
+      unsigned int backwardBits =
+          board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
+      unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
+      unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
+                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+
+      EvaluationEntry playerEval =
+          player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+
+      if (playerEval.counts.captureCount > 0) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 int evaluatePositionHard(Board*& board, int player, int x, int y) {
@@ -607,6 +684,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   // for checking player's & opponent's capture direction
   std::vector<int> captureDirections;
   std::vector<int> opponentCaptureDirections;
+  std::vector<int> gomokuDirections;
   for (int i = 0; i < 4; ++i) {
     EvaluationEntry playerAxisScore =
         evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
@@ -615,7 +693,8 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
     // when capture occurs, store the direction
     if (playerAxisScore.counts.captureCount > 0) captureDirections.push_back(i);
     if (opponentAxisScore.counts.captureCount > 0) opponentCaptureDirections.push_back(i);
-
+    if (playerAxisScore.counts.openFourCount > 0 || playerAxisScore.counts.closedFourCount > 0)
+      gomokuDirections.push_back(i);
     total += playerAxisScore;
   }
 
@@ -624,7 +703,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   */
 
   // 1. HIGH PRIORITY CASE
-  // - 1) If the player can reach the target score by capture, they must take it.
+  // - 1) If the player can reach the target score by capture, he must take it.
   if (activeCaptureScore + total.counts.captureCount >= board->getGoal()) {
     return CAPTURE_WIN;
   }
@@ -637,6 +716,19 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
       bool hasGomoku = hasGomokuOnClosedThree(board, x, y, dx, dy, player);
       if (hasGomoku) {
         return BREAKABLE_GOMOKU;
+      }
+    }
+  }
+  // - 3) If the player can make perfect gomoku, he must take it
+  if (total.counts.gomokuCount > 0) {
+    for (std::vector<int>::iterator it = gomokuDirections.begin(); it != gomokuDirections.end();
+         ++it) {
+      int dx = DIRECTIONS[*it][0];
+      int dy = DIRECTIONS[*it][1];
+      bool isPerfectGomoku = hasPerfectGomoku(board, x, y, dx, dy, player);
+
+      if (isPerfectGomoku) {
+        return PERFECT_GOMOKU;
       }
     }
   }
