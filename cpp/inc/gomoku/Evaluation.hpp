@@ -10,8 +10,9 @@
 
 #define CAPTURE_WIN 1100000
 #define BREAKABLE_GOMOKU 1100000
+#define PERFECT_GOMOKU 1100000
 #define GOMOKU 1000000
-#define CAPTURE_DEFENSE 1100000
+#define CAPTURE_DEFENSE 1000000
 #define OPEN_FOUR 700000
 #define CLOSED_FOUR 400000
 #define OPEN_THREE 200000
@@ -27,14 +28,14 @@
 #define BLOCK_LINE_3 100
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
-#define CAPTURE 30000
+#define CAPTURE 35000
 #define THREAT 20000
 #define THREAT_BLOCK 30000
 #define CENTER_BONUS 10000
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
 #define INVALID_PATTERN -1337
-#define CAPTURE_VULNERABLE_PENALTY 20000
+#define CAPTURE_VULNERABLE_PENALTY 10000
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
@@ -48,6 +49,7 @@
 namespace Evaluation {
 
 struct PatternCounts {
+  int gomokuCount;
   int openFourCount;          // Used for forced win / double open four detection.
   int closedFourCount;        // Used for forced win / double open four detection.
   int openThreeCount;         // Used for forced win / double open four detection.
@@ -64,7 +66,8 @@ struct PatternCounts {
   int captureThreatCount;
 
   PatternCounts()
-      : openFourCount(0),
+      : gomokuCount(0),
+        openFourCount(0),
         closedFourCount(0),
         openThreeCount(0),
         closedThreeCount(0),
@@ -90,6 +93,7 @@ struct EvaluationEntry {
   // Overload operator += to combine two EvaluationEntries.
   EvaluationEntry &operator+=(const EvaluationEntry &other) {
     score += other.score;
+    counts.gomokuCount += other.counts.gomokuCount;
     counts.openFourCount += other.counts.openFourCount;
     counts.closedFourCount += other.counts.closedFourCount;
     counts.openThreeCount += other.counts.openThreeCount;
@@ -128,7 +132,8 @@ bool isCaptureWarning(int side, int player, bool reverse);
 bool isCaptureVulnerable(int forward, int backward, int player);
 
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
-                           int &continuousEmpty, int &emptyThenContinuous);
+                           int &continuousEmpty, int &emptyThenContinuous,
+                           int &emptyEmptyThenContinuous);
 void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd,
                       int &emptyThenContinuous);
 
