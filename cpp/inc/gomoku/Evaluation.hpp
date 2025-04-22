@@ -9,10 +9,9 @@
 #include "Gomoku.hpp"
 
 #define CAPTURE_WIN 1100000
-#define BREAKABLE_GOMOKU 1100000
 #define PERFECT_GOMOKU 1100000
 #define GOMOKU 1000000
-#define CAPTURE_DEFENSE 1000000
+#define CAPTURE_CRITICAL 1000000
 #define OPEN_FOUR 700000
 #define CLOSED_FOUR 400000
 #define OPEN_THREE 200000
@@ -64,6 +63,10 @@ struct PatternCounts {
   int captureVulnerable;
   int captureBlockCount;
   int captureThreatCount;
+  int captureCriticalCount;
+  int captureWin;
+  int fixBreakableGomoku;
+  int perfectGomoku;
 
   PatternCounts()
       : gomokuCount(0),
@@ -74,13 +77,17 @@ struct PatternCounts {
         threatCount(0),
         captureCount(0),
         defensiveBlockCount(0),
-        openFourBlockCount(0),     // Used for forced win / double open four detection.
-        closedFourBlockCount(0),   // Used for forced win / double open four detection.
-        openThreeBlockCount(0),    // Used for forced win / double open four detection.
-        closedThreeBlockCount(0),  // Used for forced win / double open four detection.
+        openFourBlockCount(0),
+        closedFourBlockCount(0),
+        openThreeBlockCount(0),
+        closedThreeBlockCount(0),
         captureVulnerable(0),
         captureBlockCount(0),
-        captureThreatCount(0) {}
+        captureThreatCount(0),
+        captureCriticalCount(0),
+        captureWin(0),
+        fixBreakableGomoku(0),
+        perfectGomoku(0) {}
 };
 
 struct EvaluationEntry {
@@ -93,7 +100,6 @@ struct EvaluationEntry {
   // Overload operator += to combine two EvaluationEntries.
   EvaluationEntry &operator+=(const EvaluationEntry &other) {
     score += other.score;
-    counts.gomokuCount += other.counts.gomokuCount;
     counts.openFourCount += other.counts.openFourCount;
     counts.closedFourCount += other.counts.closedFourCount;
     counts.openThreeCount += other.counts.openThreeCount;
@@ -108,6 +114,11 @@ struct EvaluationEntry {
     counts.captureVulnerable += other.counts.captureVulnerable;
     counts.captureBlockCount += other.counts.captureBlockCount;
     counts.captureThreatCount += other.counts.captureThreatCount;
+    counts.captureCriticalCount += other.counts.captureCriticalCount;
+    counts.captureWin += other.counts.captureWin;
+    counts.gomokuCount += other.counts.gomokuCount;
+    counts.fixBreakableGomoku += other.counts.fixBreakableGomoku;
+    counts.perfectGomoku += other.counts.perfectGomoku;
     return *this;
   }
 };
