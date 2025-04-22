@@ -9,15 +9,17 @@
 #include "Gomoku.hpp"
 
 #define CAPTURE_WIN 1100000
-#define PERFECT_GOMOKU 1100000
 #define GOMOKU 1000000
 #define CAPTURE_CRITICAL 1000000
-#define OPEN_FOUR 700000
-#define CLOSED_FOUR 400000
-#define OPEN_THREE 200000
-#define OPEN_THREE_BLOCK 150000
-#define CLOSED_THREE 100000
 #define DEFENSIVE_BLOCK 350000
+
+#define CONTINUOUS_OPEN_4 900000
+#define CONTINUOUS_CLOSED_4 500000
+#define CONTINUOUS_OPEN_3 450000
+#define CONTINUOUS_CLOSED_3 450000  // It blocks a capture
+
+#define PERFECT_CRITICAL_LINE 900000
+#define BLOCK_CRITICAL_LINE 900000
 #define CONTINUOUS_LINE_4 1000000
 #define CONTINUOUS_LINE_3 1000
 #define CONTINUOUS_LINE_2 100
@@ -27,6 +29,7 @@
 #define BLOCK_LINE_3 100
 #define BLOCK_LINE_2 10
 #define BLOCK_LINE_1 1
+
 #define CAPTURE 35000
 #define THREAT 20000
 #define THREAT_BLOCK 30000
@@ -34,7 +37,7 @@
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
 #define INVALID_PATTERN -1337
-#define CAPTURE_VULNERABLE_PENALTY 10000
+#define CAPTURE_VULNERABLE_PENALTY 40000
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
@@ -66,7 +69,7 @@ struct PatternCounts {
   int captureCriticalCount;
   int captureWin;
   int fixBreakableGomoku;
-  int perfectGomoku;
+  int perfectCritical;
 
   PatternCounts()
       : gomokuCount(0),
@@ -87,7 +90,7 @@ struct PatternCounts {
         captureCriticalCount(0),
         captureWin(0),
         fixBreakableGomoku(0),
-        perfectGomoku(0) {}
+        perfectCritical(0) {}
 };
 
 struct EvaluationEntry {
@@ -118,7 +121,7 @@ struct EvaluationEntry {
     counts.captureWin += other.counts.captureWin;
     counts.gomokuCount += other.counts.gomokuCount;
     counts.fixBreakableGomoku += other.counts.fixBreakableGomoku;
-    counts.perfectGomoku += other.counts.perfectGomoku;
+    counts.perfectCritical += other.counts.perfectCritical;
     return *this;
   }
 };
@@ -136,9 +139,9 @@ static const int continuousScores[6] = {
 static const int blockScores[6] = {
     0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
+void printAxis(int forward, int backward);
 bool isValidBackwardPattern(unsigned int sidePattern);
 bool isValidForwardPattern(unsigned int sidePattern);
-
 bool isCaptureWarning(int side, int player, bool reverse);
 bool isCaptureVulnerable(int forward, int backward, int player);
 

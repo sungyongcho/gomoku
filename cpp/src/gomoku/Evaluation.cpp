@@ -5,6 +5,49 @@ namespace Evaluation {
 int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
 int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];
 
+void printAxis(int forward, int backward) {
+  // Process backward 8 bits in 2-bit groups (from MSB to LSB)
+  for (int i = 3; i >= 0; i--) {
+    int val = (backward >> (i * 2)) & 0x03;
+    switch (val) {
+      case 0:
+        std::cout << ".";
+        break;
+      case 1:
+        std::cout << "1";
+        break;
+      case 2:
+        std::cout << "2";
+        break;
+      case 3:
+        std::cout << "X";
+        break;
+    }
+  }
+  // Print the middle marker "[.]"
+  std::cout << "[.]";
+
+  // Process forward 8 bits in 2-bit groups (from MSB to LSB)
+  for (int i = 3; i >= 0; i--) {
+    int val = (forward >> (i * 2)) & 0x03;
+    switch (val) {
+      case 0:
+        std::cout << ".";
+        break;
+      case 1:
+        std::cout << "1";
+        break;
+      case 2:
+        std::cout << "2";
+        break;
+      case 3:
+        std::cout << "X";
+        break;
+    }
+  }
+  std::cout << std::endl;
+}
+
 bool isValidBackwardPattern(unsigned int sidePattern) {
   bool encounteredValid = false;
 
@@ -68,7 +111,7 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
       if (emptyPassed == 1 && emptyThenContinuous == (i - 1) && !isClosedEnd) emptyThenContinuous++;
       if (emptyPassed == 2 && emptyEmptyThenContinuous == (i - 2) && !isClosedEnd)
         emptyEmptyThenContinuous++;
-    } else if (target_bit == opponent || target_bit == OUT_OF_BOUNDS) {
+    } else if (!emptyPassed && (target_bit == opponent || target_bit == OUT_OF_BOUNDS)) {
       isClosedEnd = true;
     } else if (target_bit == EMPTY_SPACE && !emptyPassed) {
       emptyPassed += 1;
@@ -141,23 +184,40 @@ bool isCaptureWarning(int side, int player, bool reverse) {
   return false;
 }
 
+int getCell(int bits, int index) {
+  int shift = 2 * (SIDE_WINDOW_SIZE - index - 1);  // 각 셀은 2비트
+  return (bits >> shift) & 0x03;
+}
+
+// Check the player has risk of capture if he plays at (x, y)
 bool isCaptureVulnerable(int forward, int backward, int player) {
   int opponent = player == 1 ? 2 : 1;
 
-  if (((forward & 0xF0) >> 4) == pack_cells_2(player, opponent) &&
-      ((backward & 0x03) == EMPTY_SPACE))
-    return true;
-  if (((forward & 0xC0) >> 6) == opponent &&
-      ((backward & 0x0F) == pack_cells_2(EMPTY_SPACE, player)))
-    return true;
+  // BACKWARD 기반 패턴
+  int B1 = getCell(backward, 2);
+  int B0 = getCell(backward, 3);
+  int F0 = getCell(forward, 0);
+  int F1 = getCell(forward, 1);
 
-  if (((backward & 0x0F) == pack_cells_2(opponent, player)) &&
-      (((forward & 0xC0) >> 6) == EMPTY_SPACE))
+  // 패턴 1: opponent - player - [P] - empty
+  if (B1 == opponent && B0 == player && F0 == EMPTY_SPACE) {
     return true;
+  }
 
-  if (((backward & 0x03) == opponent) &&
-      (((forward & 0x0F) >> 4) == pack_cells_2(player, EMPTY_SPACE)))
+  // 패턴 2: opponent - [P] - player - empty
+  if (B0 == opponent && F0 == player && F1 == EMPTY_SPACE) {
     return true;
+  }
+
+  // 패턴 3: empty - [P] - player - opponent
+  if (B0 == EMPTY_SPACE && F0 == player && F1 == opponent) {
+    return true;
+  }
+
+  // 패턴 4: empty - player - [P] - opponent
+  if (B1 == EMPTY_SPACE && B0 == player && F0 == opponent) {
+    return true;
+  }
 
   return false;
 }
@@ -204,8 +264,6 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
         (isCaptureWarning(forward, player, false) || isCaptureWarning(backward, player, true)))
       totalContinuous = forwardContinuous + backwardContinuous;
   }
-
-  if (isCaptureVulnerable(forward, backward, player)) totalContinuous = 0;
 
   int forwardBlockContinuous = 0;
   bool forwardBlockClosedEnd = false;
