@@ -504,7 +504,7 @@ static bool hasGomokuOnClosedThree(Board* board, int x, int y, int dx, int dy, i
       EvaluationEntry evaluation =
           player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
 
-      if (evaluation.score >= GOMOKU) {
+      if (evaluation.counts.gomokuCount > 0) {
         return true;
       }
     }
@@ -533,7 +533,7 @@ static bool hasGomokuOnClosedThree(Board* board, int x, int y, int dx, int dy, i
       EvaluationEntry evaluation =
           player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
 
-      if (evaluation.score >= GOMOKU) {
+      if (evaluation.counts.gomokuCount > 0) {
         return true;
       }
     }
