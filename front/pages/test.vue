@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { delay } from "@fxts/core";
 import { useWebSocket } from "@vueuse/core";
 
 import type {
@@ -13,7 +14,7 @@ definePageMeta({
 });
 
 const { isAiThinking } = storeToRefs(useGameStore());
-
+const isAllTesting = ref(false);
 const { initialBoard, getPlayerTotalCaptured, importGame } = useGameStore();
 
 const { doAlert } = useAlertStore();
@@ -119,6 +120,18 @@ const onTest = (label: string) => {
   triggeredTestLabel.value = label;
   onSendData("move", initState);
 };
+const onTestAll = async () => {
+  isAllTesting.value = true;
+
+  const labels = Object.keys(testCases.value);
+
+  for await (const label of labels) {
+    await delay(500);
+    await onTest(label);
+  }
+
+  isAllTesting.value = false;
+};
 
 const goToDebug = (testCase: TestCase) => {
   useRouter().push({
@@ -164,7 +177,17 @@ watch(data, (rawData) => {
 <template>
   <main class="relative">
     <section class="mx-auto mt-10 max-w-[1200px] px-6 -sm:my-[80px]">
-      <h1 class="flex items-center gap-4 text-4xl">Evaluation test cases</h1>
+      <h1 class="flex items-center gap-4 text-4xl">
+        <Button
+          size="small"
+          @click="onTestAll"
+          :loading="isAllTesting"
+          :disabled="isAllTesting"
+          icon="pi pi-bolt"
+          label="test all"
+        />
+        Evaluation test cases
+      </h1>
 
       <div class="card">
         <Accordion v-model="activeIndex">
@@ -194,8 +217,8 @@ watch(data, (rawData) => {
                     severity="secondary"
                     icon="pi pi-bolt"
                     @click.stop="onTest(label, testIndex)"
-                    :loading="triggeredTestLabel === label"
-                    :disabled="triggeredTestLabel === label"
+                    :loading="triggeredTestLabel === label || isAllTesting"
+                    :disabled="triggeredTestLabel === label || isAllTesting"
                     label="Test"
                   />
                   <span>
