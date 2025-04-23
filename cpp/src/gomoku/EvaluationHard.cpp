@@ -9,13 +9,14 @@ void printEvalEntry(EvaluationEntry eval) {
   std::cout << "closedFourCount: " << eval.counts.closedFourCount << std::endl;
   std::cout << "openThreeCount: " << eval.counts.openThreeCount << std::endl;
   std::cout << "closedThreeCount: " << eval.counts.closedThreeCount << std::endl;
+  std::cout << "openTwoCount: " << eval.counts.openTwoCount << std::endl;
   std::cout << "threatCount: " << eval.counts.threatCount << std::endl;
   std::cout << "captureCount: " << eval.counts.captureCount << std::endl;
-  std::cout << "defensiveBlockCount: " << eval.counts.defensiveBlockCount << std::endl;
   std::cout << "openFourBlockCount: " << eval.counts.openFourBlockCount << std::endl;
   std::cout << "closedFourBlockCount: " << eval.counts.closedFourBlockCount << std::endl;
-  std::cout << "openThreeBlockCount: " << eval.counts.openThreeBlockCount << std::endl;
+  std::cout << "openTwoBlockCount: " << eval.counts.openTwoBlockCount << std::endl;
   std::cout << "closedThreeBlockCount: " << eval.counts.closedThreeBlockCount << std::endl;
+  std::cout << "openOneBlockCount: " << eval.counts.openOneBlockCount << std::endl;
   std::cout << "captureVulnerable: " << eval.counts.captureVulnerable << std::endl;
   std::cout << "captureBlockCount: " << eval.counts.captureBlockCount << std::endl;
   std::cout << "captureThreatCount: " << eval.counts.captureThreatCount << std::endl;
@@ -84,10 +85,16 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     if (!forwardClosedEnd && !backwardClosedEnd) {
       returnValue.counts.openFourCount += 1;
       returnValue.counts.threatCount += 1;
-    } else if ((!forwardClosedEnd && backwardClosedEnd) &&
+    } else if ((!forwardClosedEnd && backwardClosedEnd) ||
                (forwardClosedEnd && !backwardClosedEnd)) {
       returnValue.counts.threatCount += 1;
       returnValue.counts.closedFourCount += 1;
+    }
+  }
+
+  if (totalContinuous == 1) {
+    if (!forwardClosedEnd && !backwardClosedEnd) {
+      returnValue.counts.openTwoCount += 1;
     }
   }
 
@@ -115,50 +122,45 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   }
 
   // -------------- Opponent Pattern count (Block) ----------- //
+  int opponent = player == 1 ? 2 : 1;
+
   int forwardBlockContinuous = 0;
+  int forwardBlockContinuousEmpty = 0;
   bool forwardBlockClosedEnd = false;
   int forwardBlockEmptyThenContinuous = 0;
+  int forwardBlockEmptyEmptyThenContinuous = 0;
 
   int backwardBlockContinuous = 0;
+  int backwardBlockContinuousEmpty = 0;
   bool backwardBlockClosedEnd = false;
   int backwardBlockEmptyThenContinuous = 0;
-  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd,
-                   forwardBlockEmptyThenContinuous);
-  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd,
-                   backwardBlockEmptyThenContinuous);
+  int backwardBlockEmptyEmptyThenContinuous = 0;
 
-  int totalBlockCont = forwardBlockContinuous + backwardBlockContinuous;
+  slideWindowContinuous(forward, opponent, false, forwardBlockContinuous, forwardBlockClosedEnd,
+                        forwardBlockContinuousEmpty, forwardBlockEmptyThenContinuous,
+                        forwardBlockEmptyEmptyThenContinuous);
+  slideWindowContinuous(backward, opponent, true, backwardBlockContinuous, backwardBlockClosedEnd,
+                        backwardBlockContinuousEmpty, backwardBlockEmptyThenContinuous,
+                        backwardBlockEmptyEmptyThenContinuous);
+
+  int totalBlockContinuous = forwardBlockContinuous + backwardBlockContinuous;
 
   // if continuous opponent is bigger or equal, should block asap
-  if (totalBlockCont >= 4) {
+  if (totalBlockContinuous >= 4) {
     returnValue.counts.openFourBlockCount += 1;
-    returnValue.counts.defensiveBlockCount += 1;
-    totalBlockCont = 4;
+    totalBlockContinuous = 4;
   }
 
-  if (totalBlockCont < 4) {
-    // if both end is blocked by player and continuous is less then three, there is no need to block
-    if (forwardBlockClosedEnd && backwardBlockClosedEnd) totalBlockCont = 0;
-
-    // for each side, if one side continuous but that side is already closed,
-    // it doesn't need to be blocked 'yet', so heuristics can go for better score moves.
-    else if ((forwardBlockClosedEnd && (forwardBlockContinuous == totalBlockCont)) ||
-             (backwardBlockClosedEnd && (backwardBlockContinuous == totalBlockCont))) {
-      totalBlockCont = 0;
+  if (totalBlockContinuous == 3) {
+    if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
+      returnValue.counts.openThreeBlockCount += 1;
     }
   }
 
-  if (totalBlockCont == 3) {
-    if ((forwardBlockContinuous == 3 && !forwardBlockClosedEnd) ||
-        (backwardBlockContinuous == 3 && !backwardBlockClosedEnd)) {
-      returnValue.counts.openThreeBlockCount += 1;
-      returnValue.counts.defensiveBlockCount += 1;
-    } else if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
-      returnValue.counts.defensiveBlockCount += 1;
-      returnValue.counts.openThreeBlockCount += 1;
-    } else if (!forwardBlockClosedEnd || !backwardBlockClosedEnd) {
-      returnValue.counts.defensiveBlockCount += 1;
-      returnValue.counts.closedFourBlockCount += 1;
+  // Block Open Two
+  if (totalBlockContinuous == 2) {
+    if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
+      returnValue.counts.openTwoBlockCount += 1;
     }
   }
 
@@ -168,6 +170,13 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   }
   if (!backwardBlockClosedEnd && backwardBlockContinuous == 2) {
     returnValue.counts.captureThreatCount += 1;
+  }
+
+  // Evaluate open two block
+  if (totalBlockContinuous == 1) {
+    if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
+      returnValue.counts.openOneBlockCount += 1;
+    }
   }
 
   // Check player captures (OXX_) cases
@@ -180,7 +189,7 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   if (checkCapture(reversePattern(backward, SIDE_WINDOW_SIZE), player) < 0)
     returnValue.counts.captureBlockCount += 1;
 
-  returnValue.score += blockScores[totalBlockCont + 1];
+  returnValue.score += blockScores[totalBlockContinuous + 1];
   return returnValue;
 }
 
@@ -422,7 +431,7 @@ static bool hasGomokuOnClosedThree(Board* board, int x, int y, int dx, int dy, i
           board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
       unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
       EvaluationEntry evaluation =
           player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
@@ -451,7 +460,7 @@ static bool hasGomokuOnClosedThree(Board* board, int x, int y, int dx, int dy, i
           board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
       unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
       EvaluationEntry evaluation =
           player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
@@ -494,7 +503,7 @@ static bool hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int 
           board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
       unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
       EvaluationEntry opponentEval =
           opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
@@ -538,7 +547,7 @@ static bool hasCapturableOnPlayerVulnerableLine(Board* board, int x, int y, int 
           board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
       unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
       EvaluationEntry opponentEval =
           opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
@@ -580,12 +589,13 @@ static bool hasCapturableOnPlayerCriticalLine(Board* board, int x, int y, int dx
           board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
       unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
       EvaluationEntry playerEval =
           player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
 
-      if (playerEval.counts.gomokuCount || playerEval.counts.openFourCount) {
+      if (playerEval.counts.gomokuCount || playerEval.counts.openFourCount ||
+          playerEval.counts.closedFourCount) {
         return true;
       }
     }
@@ -617,7 +627,7 @@ static bool isNonVulnerableLine(Board* board, int x, int y, int dx, int dy, int 
           board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
       unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
       EvaluationEntry playerEval =
           player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
@@ -648,7 +658,7 @@ static bool isNonVulnerableLine(Board* board, int x, int y, int dx, int dy, int 
           board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
       unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
       EvaluationEntry playerEval =
           player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
@@ -779,6 +789,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   total.score += total.counts.closedFourCount * CONTINUOUS_CLOSED_4;
   total.score += total.counts.openThreeCount * CONTINUOUS_OPEN_3;
   total.score += total.counts.closedThreeCount * CONTINUOUS_CLOSED_3;
+  total.score += total.counts.openTwoCount * CONTINUOUS_OPEN_2;
 
   // Defense Case
   // - 1) Center priority
@@ -789,9 +800,12 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   // - 3) Avoid capture
   total.score += total.counts.captureBlockCount * CAPTURE;
   // - 4) If opponent made open three or four, player must block it
-  total.score += total.counts.openThreeBlockCount * BLOCK_CRITICAL_LINE;
   total.score += total.counts.openFourBlockCount * BLOCK_CRITICAL_LINE;
+  total.score += total.counts.openThreeBlockCount * BLOCK_CRITICAL_LINE;
   total.score += total.counts.captureCriticalCount * CAPTURE_CRITICAL;
+  // - 5) Open two block
+  total.score += total.counts.openTwoBlockCount * BLOCK_OPEN_2;
+  total.score += total.counts.openOneBlockCount * BLOCK_OPEN_1;
 
   // printEvalEntry(total);
 

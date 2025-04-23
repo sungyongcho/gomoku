@@ -8,28 +8,22 @@
 #include "Board.hpp"
 #include "Gomoku.hpp"
 
-#define CAPTURE_WIN 1100000
-#define GOMOKU 1000000
-#define CAPTURE_CRITICAL 1000000
-#define CAPTURE_IMPORTANT 500000
-#define DEFENSIVE_BLOCK 350000
+#define CAPTURE_WIN 110000
+#define GOMOKU 100000
+#define CAPTURE_CRITICAL 100000
+#define CAPTURE_IMPORTANT 50000
 
-#define CONTINUOUS_OPEN_4 900000
-#define CONTINUOUS_CLOSED_4 500000
-#define CONTINUOUS_OPEN_3 450000
-#define CONTINUOUS_CLOSED_3 450000  // It blocks a capture
+#define CONTINUOUS_OPEN_4 90000
+#define CONTINUOUS_CLOSED_4 50000
+#define CONTINUOUS_OPEN_3 45000
+#define CONTINUOUS_CLOSED_3 40000  // It blocks a capture
+#define CONTINUOUS_OPEN_2 13000
 
-#define PERFECT_CRITICAL_LINE 900000
-#define BLOCK_CRITICAL_LINE 900000
-#define CONTINUOUS_LINE_4 1000000
-#define CONTINUOUS_LINE_3 1000
-#define CONTINUOUS_LINE_2 100
-#define CONTINUOUS_LINE_1 10
-#define BLOCK_LINE_5 999000
-#define BLOCK_LINE_4 10000
-#define BLOCK_LINE_3 100
-#define BLOCK_LINE_2 10
-#define BLOCK_LINE_1 1
+#define BLOCK_OPEN_2 25000
+#define BLOCK_OPEN_1 20000
+
+#define PERFECT_CRITICAL_LINE 90000
+#define BLOCK_CRITICAL_LINE 90000
 
 #define CAPTURE 35000
 #define THREAT 20000
@@ -38,7 +32,20 @@
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
 #define INVALID_PATTERN -1337
-#define CAPTURE_VULNERABLE_PENALTY 40000
+#define CAPTURE_VULNERABLE_PENALTY 25000
+
+// not used in hard eval
+#define CONTINUOUS_LINE_4 100000
+#define CONTINUOUS_LINE_3 1000
+#define CONTINUOUS_LINE_2 100
+#define CONTINUOUS_LINE_1 10
+
+// not used in hard eval
+#define BLOCK_LINE_5 99900
+#define BLOCK_LINE_4 60000
+#define BLOCK_LINE_3 50000
+#define BLOCK_LINE_2 40000
+#define BLOCK_LINE_1 30000
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
@@ -52,22 +59,31 @@
 namespace Evaluation {
 
 struct PatternCounts {
+  // attack
   int gomokuCount;
-  int openFourCount;          // Used for forced win / double open four detection.
-  int closedFourCount;        // Used for forced win / double open four detection.
-  int openThreeCount;         // Used for forced win / double open four detection.
-  int closedThreeCount;       // Used for forced win / double open four detection.
-  int threatCount;            // Counts open/closed three threats.
-  int captureCount;           // Counts capture opportunities ("OXXO").
-  int defensiveBlockCount;    // Counts when this move blocks an opponent pattern.
-  int openFourBlockCount;     // Used for forced win / double open four detection.
-  int closedFourBlockCount;   // Used for forced win / double open four detection.
-  int openThreeBlockCount;    // Used for forced win / double open four detection.
-  int closedThreeBlockCount;  // Used for forced win / double open four detection.
+  int openFourCount;
+  int closedFourCount;
+  int openThreeCount;
+  int closedThreeCount;
+  int openTwoCount;
+  int threatCount;
+  int captureCount;
+
+  // block
+  int openFourBlockCount;
+  int closedFourBlockCount;
+  int closedThreeBlockCount;
+  int openThreeBlockCount;
+  int openTwoBlockCount;
+  int openOneBlockCount;
+
+  // capture
   int captureVulnerable;
   int captureBlockCount;
   int captureThreatCount;
   int captureCriticalCount;
+
+  // critical
   int captureWin;
   int fixBreakableGomoku;
   int perfectCritical;
@@ -78,13 +94,15 @@ struct PatternCounts {
         closedFourCount(0),
         openThreeCount(0),
         closedThreeCount(0),
+        openTwoCount(0),
         threatCount(0),
         captureCount(0),
-        defensiveBlockCount(0),
         openFourBlockCount(0),
         closedFourBlockCount(0),
-        openThreeBlockCount(0),
         closedThreeBlockCount(0),
+        openThreeBlockCount(0),
+        openTwoBlockCount(0),
+        openOneBlockCount(0),
         captureVulnerable(0),
         captureBlockCount(0),
         captureThreatCount(0),
@@ -108,12 +126,14 @@ struct EvaluationEntry {
     counts.closedFourCount += other.counts.closedFourCount;
     counts.openThreeCount += other.counts.openThreeCount;
     counts.closedThreeCount += other.counts.closedThreeCount;
+    counts.openTwoCount += other.counts.openTwoCount;
     counts.threatCount += other.counts.threatCount;
     counts.captureCount += other.counts.captureCount;
-    counts.defensiveBlockCount += other.counts.defensiveBlockCount;
     counts.openFourBlockCount += other.counts.openFourBlockCount;
     counts.closedFourBlockCount += other.counts.closedFourBlockCount;
     counts.openThreeBlockCount += other.counts.openThreeBlockCount;
+    counts.openTwoBlockCount += other.counts.openTwoBlockCount;
+    counts.openOneBlockCount += other.counts.openOneBlockCount;
     counts.closedThreeBlockCount += other.counts.closedThreeBlockCount;
     counts.captureVulnerable += other.counts.captureVulnerable;
     counts.captureBlockCount += other.counts.captureBlockCount;
@@ -149,8 +169,6 @@ bool isCaptureVulnerable(int forward, int backward, int player);
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
                            int &continuousEmpty, int &emptyThenContinuous,
                            int &emptyEmptyThenContinuous);
-void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd,
-                      int &emptyThenContinuous);
 
 void initCombinedPatternScoreTables();
 void initCombinedPatternScoreTablesHard();
