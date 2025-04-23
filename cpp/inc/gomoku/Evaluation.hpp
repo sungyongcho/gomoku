@@ -8,44 +8,46 @@
 #include "Board.hpp"
 #include "Gomoku.hpp"
 
-#define CAPTURE_WIN 110000
-#define GOMOKU 100000
-#define CAPTURE_CRITICAL 100000
-#define CAPTURE_IMPORTANT 50000
+#define CAPTURE_WIN 50000
+#define GOMOKU 49000
+#define CAPTURE_CRITICAL 19000
+#define CAPTURE_BLOCK_CRITICAL 30000
+#define BLOCK_CRITICAL_LINE 39500  // block open 3, 4
 
-#define CONTINUOUS_OPEN_4 90000
-#define CONTINUOUS_CLOSED_4 50000
-#define CONTINUOUS_OPEN_3 45000
-#define CONTINUOUS_CLOSED_3 40000  // It blocks a capture
-#define CONTINUOUS_OPEN_2 13000
+#define CONTINUOUS_OPEN_4 9000
+#define CONTINUOUS_CLOSED_4 5000
+#define CONTINUOUS_OPEN_3 4500
+#define CONTINUOUS_CLOSED_3 4000  // It blocks a capture
+#define CONTINUOUS_OPEN_2 1000
 
-#define BLOCK_OPEN_2 25000
-#define BLOCK_OPEN_1 20000
+#define BLOCK_GOMOKU 20000
+#define BLOCK_OPEN_2 1800
+#define BLOCK_OPEN_1 1500
+#define PERFECT_CRITICAL_LINE 18000
 
-#define PERFECT_CRITICAL_LINE 90000
-#define BLOCK_CRITICAL_LINE 90000
-
-#define CAPTURE 35000
-#define THREAT 20000
-#define THREAT_BLOCK 30000
-#define CENTER_BONUS 10000
+#define CAPTURE 6000
+#define CAPTURE_THREAT 3300
+#define THREAT 2000
+#define THREAT_BLOCK 3000
+#define CENTER_BONUS 1000
 #define WINDOW_CENTER_VALUE 0
 // TODO needs to check
-#define INVALID_PATTERN -1337
-#define CAPTURE_VULNERABLE_PENALTY 25000
+#define INVALID_PATTERN -133
+#define CAPTURE_VULNERABLE_PENALTY 4000
+#define DOUBLE_THREE_PENALTY 1800  // same as BLOCK_OPEN_2
 
 // not used in hard eval
-#define CONTINUOUS_LINE_4 100000
-#define CONTINUOUS_LINE_3 1000
-#define CONTINUOUS_LINE_2 100
-#define CONTINUOUS_LINE_1 10
+#define CONTINUOUS_LINE_4 10000
+#define CONTINUOUS_LINE_3 100
+#define CONTINUOUS_LINE_2 10
+#define CONTINUOUS_LINE_1 1
 
 // not used in hard eval
-#define BLOCK_LINE_5 99900
-#define BLOCK_LINE_4 60000
-#define BLOCK_LINE_3 50000
-#define BLOCK_LINE_2 40000
-#define BLOCK_LINE_1 30000
+#define BLOCK_LINE_5 9990
+#define BLOCK_LINE_4 6000
+#define BLOCK_LINE_3 5000
+#define BLOCK_LINE_2 4000
+#define BLOCK_LINE_1 3000
 
 // Window extraction settings.
 // SIDE_WINDOW_SIZE: the number of cells to extract on each side (excluding center).
@@ -70,8 +72,8 @@ struct PatternCounts {
   int captureCount;
 
   // block
-  int openFourBlockCount;
-  int closedFourBlockCount;
+  int fourBlockCount;
+  int gomokuBlockCount;
   int closedThreeBlockCount;
   int openThreeBlockCount;
   int openTwoBlockCount;
@@ -82,6 +84,7 @@ struct PatternCounts {
   int captureBlockCount;
   int captureThreatCount;
   int captureCriticalCount;
+  int captureBlockCriticalCount;
 
   // critical
   int captureWin;
@@ -97,8 +100,8 @@ struct PatternCounts {
         openTwoCount(0),
         threatCount(0),
         captureCount(0),
-        openFourBlockCount(0),
-        closedFourBlockCount(0),
+        fourBlockCount(0),
+        gomokuBlockCount(0),
         closedThreeBlockCount(0),
         openThreeBlockCount(0),
         openTwoBlockCount(0),
@@ -107,6 +110,7 @@ struct PatternCounts {
         captureBlockCount(0),
         captureThreatCount(0),
         captureCriticalCount(0),
+        captureBlockCriticalCount(0),
         captureWin(0),
         fixBreakableGomoku(0),
         perfectCritical(0) {}
@@ -129,8 +133,8 @@ struct EvaluationEntry {
     counts.openTwoCount += other.counts.openTwoCount;
     counts.threatCount += other.counts.threatCount;
     counts.captureCount += other.counts.captureCount;
-    counts.openFourBlockCount += other.counts.openFourBlockCount;
-    counts.closedFourBlockCount += other.counts.closedFourBlockCount;
+    counts.fourBlockCount += other.counts.fourBlockCount;
+    counts.gomokuBlockCount += other.counts.gomokuBlockCount;
     counts.openThreeBlockCount += other.counts.openThreeBlockCount;
     counts.openTwoBlockCount += other.counts.openTwoBlockCount;
     counts.openOneBlockCount += other.counts.openOneBlockCount;
@@ -139,6 +143,7 @@ struct EvaluationEntry {
     counts.captureBlockCount += other.counts.captureBlockCount;
     counts.captureThreatCount += other.counts.captureThreatCount;
     counts.captureCriticalCount += other.counts.captureCriticalCount;
+    counts.captureBlockCriticalCount += other.counts.captureBlockCriticalCount;
     counts.captureWin += other.counts.captureWin;
     counts.gomokuCount += other.counts.gomokuCount;
     counts.fixBreakableGomoku += other.counts.fixBreakableGomoku;

@@ -55,7 +55,7 @@ void responseSuccessMove(struct lws *wsi, Board &board, int aiPlayX, int aiPlayY
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   response.Accept(writer);
   std::string json_response = buffer.GetString();
-  std::cout << "Json Response: " << json_response << std::endl;
+  // std::cout << "Json Response: " << json_response << std::endl;
   sendJsonResponse(wsi, json_response);
 }
 
@@ -86,7 +86,7 @@ void responseSuccessEvaluate(struct lws *wsi, int evalScoreX, int evalScoreY) {
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   response.Accept(writer);
   std::string json_response = buffer.GetString();
-  std::cout << "Json Response: " << json_response << std::endl;
+  // std::cout << "Json Response: " << json_response << std::endl;
   sendJsonResponse(wsi, json_response);
 }
 
