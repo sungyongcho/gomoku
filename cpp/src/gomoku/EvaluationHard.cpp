@@ -5,26 +5,48 @@ namespace Evaluation {
 void printEvalEntry(EvaluationEntry eval) {
   std::cout << "=== EvalEntry ===" << std::endl;
   std::cout << "Score: " << eval.score << std::endl;
-  std::cout << "openFourCount: " << eval.counts.openFourCount << std::endl;
-  std::cout << "closedFourCount: " << eval.counts.closedFourCount << std::endl;
-  std::cout << "openThreeCount: " << eval.counts.openThreeCount << std::endl;
-  std::cout << "closedThreeCount: " << eval.counts.closedThreeCount << std::endl;
-  std::cout << "openTwoCount: " << eval.counts.openTwoCount << std::endl;
-  std::cout << "threatCount: " << eval.counts.threatCount << std::endl;
-  std::cout << "captureCount: " << eval.counts.captureCount << std::endl;
-  std::cout << "openFourBlockCount: " << eval.counts.openFourBlockCount << std::endl;
-  std::cout << "closedFourBlockCount: " << eval.counts.closedFourBlockCount << std::endl;
-  std::cout << "openTwoBlockCount: " << eval.counts.openTwoBlockCount << std::endl;
-  std::cout << "closedThreeBlockCount: " << eval.counts.closedThreeBlockCount << std::endl;
-  std::cout << "openOneBlockCount: " << eval.counts.openOneBlockCount << std::endl;
-  std::cout << "captureVulnerable: " << eval.counts.captureVulnerable << std::endl;
-  std::cout << "captureBlockCount: " << eval.counts.captureBlockCount << std::endl;
-  std::cout << "captureThreatCount: " << eval.counts.captureThreatCount << std::endl;
-  std::cout << "captureCriticalCount: " << eval.counts.captureCriticalCount << std::endl;
-  std::cout << "captureWin: " << eval.counts.captureWin << std::endl;
-  std::cout << "gomokuCount: " << eval.counts.gomokuCount << std::endl;
-  std::cout << "fixBreakableGomoku: " << eval.counts.fixBreakableGomoku << std::endl;
-  std::cout << "perfectCritical: " << eval.counts.perfectCritical << std::endl;
+  if (eval.counts.openFourCount)
+    std::cout << "openFourCount: " << eval.counts.openFourCount << std::endl;
+  if (eval.counts.closedFourCount)
+    std::cout << "closedFourCount: " << eval.counts.closedFourCount << std::endl;
+  if (eval.counts.openThreeCount)
+    std::cout << "openThreeCount: " << eval.counts.openThreeCount << std::endl;
+  if (eval.counts.closedThreeCount)
+    std::cout << "closedThreeCount: " << eval.counts.closedThreeCount << std::endl;
+  if (eval.counts.openTwoCount)
+    std::cout << "openTwoCount: " << eval.counts.openTwoCount << std::endl;
+  if (eval.counts.threatCount) std::cout << "threatCount: " << eval.counts.threatCount << std::endl;
+  if (eval.counts.captureCount)
+    std::cout << "captureCount: " << eval.counts.captureCount << std::endl;
+  if (eval.counts.fourBlockCount)
+    std::cout << "fourBlockCount: " << eval.counts.fourBlockCount << std::endl;
+  if (eval.counts.gomokuBlockCount)
+    std::cout << "gomokuBlockCount: " << eval.counts.gomokuBlockCount << std::endl;
+  if (eval.counts.openThreeBlockCount)
+    std::cout << "openThreeBlockCount: " << eval.counts.openThreeBlockCount << std::endl;
+  if (eval.counts.openTwoBlockCount)
+    std::cout << "openTwoBlockCount: " << eval.counts.openTwoBlockCount << std::endl;
+  if (eval.counts.closedThreeBlockCount)
+    std::cout << "closedThreeBlockCount: " << eval.counts.closedThreeBlockCount << std::endl;
+  if (eval.counts.openOneBlockCount)
+    std::cout << "openOneBlockCount: " << eval.counts.openOneBlockCount << std::endl;
+  if (eval.counts.captureVulnerable)
+    std::cout << "captureVulnerable: " << eval.counts.captureVulnerable << std::endl;
+  if (eval.counts.captureBlockCount)
+    std::cout << "captureBlockCount: " << eval.counts.captureBlockCount << std::endl;
+  if (eval.counts.captureThreatCount)
+    std::cout << "captureThreatCount: " << eval.counts.captureThreatCount << std::endl;
+  if (eval.counts.captureCriticalCount)
+    std::cout << "captureCriticalCount: " << eval.counts.captureCriticalCount << std::endl;
+  if (eval.counts.captureBlockCriticalCount)
+    std::cout << "captureBlockCriticalCount: " << eval.counts.captureBlockCriticalCount
+              << std::endl;
+  if (eval.counts.captureWin) std::cout << "captureWin: " << eval.counts.captureWin << std::endl;
+  if (eval.counts.gomokuCount) std::cout << "gomokuCount: " << eval.counts.gomokuCount << std::endl;
+  if (eval.counts.fixBreakableGomoku)
+    std::cout << "fixBreakableGomoku: " << eval.counts.fixBreakableGomoku << std::endl;
+  if (eval.counts.perfectCritical)
+    std::cout << "perfectCritical: " << eval.counts.perfectCritical << std::endl;
   std::cout << "=================" << std::endl;
 }
 
@@ -104,6 +126,13 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     returnValue.counts.threatCount += 1;
     returnValue.counts.openThreeCount += 1;
   }
+  // 0[.]_0, 0_[.]0
+  if (((forwardContinuous == 1 && backwardEmptyThenContinuous == 1) ||
+       (forwardEmptyThenContinuous == 1 && backwardContinuous == 1)) &&
+      (!forwardClosedEnd && !backwardClosedEnd)) {
+    returnValue.counts.threatCount += 1;
+    returnValue.counts.openThreeCount += 1;
+  }
 
   if (totalContinuous == 2) {
     if (!forwardClosedEnd && !backwardClosedEnd) {
@@ -147,7 +176,7 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
 
   // if continuous opponent is bigger or equal, should block asap
   if (totalBlockContinuous >= 4) {
-    returnValue.counts.openFourBlockCount += 1;
+    returnValue.counts.fourBlockCount += 1;
     totalBlockContinuous = 4;
   }
 
@@ -473,8 +502,11 @@ static bool hasGomokuOnClosedThree(Board* board, int x, int y, int dx, int dy, i
   return false;
 }
 
-static bool hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int dx, int dy,
-                                                int player) {
+// return 1: open three
+// return 2: four
+// return 3: gomoku
+static int hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int dx, int dy,
+                                               int player) {
   int checkX = x;
   int checkY = y;
   int opponent = OPPONENT(player);
@@ -508,14 +540,19 @@ static bool hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int 
       EvaluationEntry opponentEval =
           opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
 
-      if (opponentEval.counts.openFourCount || opponentEval.counts.openThreeCount ||
-          opponentEval.counts.closedFourCount || opponentEval.score >= GOMOKU) {
-        return true;
+      if (opponentEval.counts.openThreeCount) {
+        return 1;
+      }
+      if (opponentEval.counts.openFourCount || opponentEval.counts.closedFourCount) {
+        return 2;
+      }
+      if (opponentEval.counts.gomokuCount) {
+        return 3;
       }
     }
   }
 
-  return false;
+  return 0;
 }
 
 static bool hasCapturableOnPlayerVulnerableLine(Board* board, int x, int y, int dx, int dy,
@@ -604,6 +641,48 @@ static bool hasCapturableOnPlayerCriticalLine(Board* board, int x, int y, int dx
   return false;
 }
 
+static bool hasCaptureBlockOnOpponentCriticalLine(Board* board, int x, int y, int dx, int dy,
+                                                  int player) {
+  int checkX = x;
+  int checkY = y;
+  int opponent = OPPONENT(player);
+  if (!(board->getValueBit(checkX + dx, checkY + dy) == player &&
+        board->getValueBit(checkX + 2 * dx, checkY + 2 * dy) == player &&
+        board->getValueBit(checkX + 3 * dx, checkY + 3 * dy) == opponent)) {
+    dx = -dx;
+    dy = -dy;
+  }
+
+  for (int j = 0; j < 2; ++j) {
+    checkX += dx;
+    checkY += dy;
+    if (board->getValueBit(checkX, checkY) != player) break;
+
+    for (int i = 0; i < 4; ++i) {
+      int checkDx = DIRECTIONS[i][0];
+      int checkDy = DIRECTIONS[i][1];
+      if ((checkDx == dx && checkDy == dy) || (checkDx == -dx && checkDy == -dy)) continue;
+
+      unsigned int forwardBits =
+          board->extractLineAsBits(checkX, checkY, checkDx, checkDy, SIDE_WINDOW_SIZE);
+      unsigned int backwardBits =
+          board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
+      unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
+      unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
+                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
+
+      EvaluationEntry playerEval =
+          player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+
+      if (playerEval.counts.openThreeBlockCount || playerEval.counts.fourBlockCount) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 // Check if it's non vulnerable line
 static bool isNonVulnerableLine(Board* board, int x, int y, int dx, int dy, int player) {
   int checkX = x;
@@ -684,6 +763,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   std::vector<int> opponentCaptureDirections;
   std::vector<int> gomokuDirections;
   std::vector<int> openFourDirections;
+  std::vector<int> captureBlockDirections;
   for (int i = 0; i < 4; ++i) {
     EvaluationEntry playerAxisScore =
         evaluateCombinedAxisHard(board, player, x, y, DIRECTIONS[i][0], DIRECTIONS[i][1]);
@@ -694,6 +774,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
     if (opponentAxisScore.counts.captureCount > 0) opponentCaptureDirections.push_back(i);
     if (playerAxisScore.counts.gomokuCount > 0) gomokuDirections.push_back(i);
     if (playerAxisScore.counts.openFourCount > 0) openFourDirections.push_back(i);
+    if (playerAxisScore.counts.captureBlockCount > 0) captureBlockDirections.push_back(i);
     total += playerAxisScore;
   }
 
@@ -747,7 +828,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
 
   // 3. DEFENSE CASE
 
-  // - 5) If player can break opponent's open 3+ or 4 stone, he must break.
+  // - 1) If player can break opponent's open 3+ or 4 stone, he must break.
   if (total.counts.captureCount > 0) {
     for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
          ++it) {
@@ -755,15 +836,30 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
       int dx = DIRECTIONS[dir][0];
       int dy = DIRECTIONS[dir][1];
       // check if capturable spot is on opponent's critical line
-      bool hasCapturable = hasCapturableOnOpponentCriticalLine(board, x, y, dx, dy, player);
+      int hasCapturable = hasCapturableOnOpponentCriticalLine(board, x, y, dx, dy, player);
       if (hasCapturable) {
         total.counts.captureCriticalCount += 1;
+        switch (hasCapturable) {
+          case 1:
+            total.counts.openThreeBlockCount += 1;
+            break;
+          case 2:
+            total.counts.fourBlockCount += 1;
+            break;
+          case 3:
+            total.counts.gomokuBlockCount += 1;
+            break;
+          default:
+            break;
+        }
       }
+
       // check if capturable spot can remove player's vulnerable spot
       hasCapturable = hasCapturableOnPlayerVulnerableLine(board, x, y, dx, dy, player);
       if (hasCapturable) {
         total.counts.captureCriticalCount += 1;
       }
+      // check if capturable spot is on player's critical line
       hasCapturable = hasCapturableOnPlayerCriticalLine(board, x, y, dx, dy, player);
       if (hasCapturable) {
         total.counts.captureCriticalCount += 1;
@@ -771,6 +867,18 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
     }
 
     captureDirections.clear();
+  }
+
+  // - 2) If player can block capture on opponent's critical line, he must block
+  if (total.counts.captureBlockCount > 0) {
+    for (std::vector<int>::iterator it = captureBlockDirections.begin();
+         it != captureBlockDirections.end(); ++it) {
+      int dx = DIRECTIONS[*it][0];
+      int dy = DIRECTIONS[*it][1];
+      if (hasCaptureBlockOnOpponentCriticalLine(board, x, y, dx, dy, player)) {
+        total.counts.captureBlockCriticalCount += 1;
+      }
+    }
   }
 
   // Score calculation
@@ -784,7 +892,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   total.score += total.counts.captureCount * CAPTURE;
   // - 2) If player can threat, he must threat
   total.score += total.counts.threatCount * THREAT;
-  total.score += total.counts.captureThreatCount * THREAT;
+  total.score += total.counts.captureThreatCount * CAPTURE_THREAT;
   total.score += total.counts.openFourCount * CONTINUOUS_OPEN_4;
   total.score += total.counts.closedFourCount * CONTINUOUS_CLOSED_4;
   total.score += total.counts.openThreeCount * CONTINUOUS_OPEN_3;
@@ -794,16 +902,23 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   // Defense Case
   // - 1) Center priority
   int boardCenter = BOARD_SIZE / 2;
-  total.score += CENTER_BONUS - (abs(x - boardCenter) + abs(y - boardCenter)) * 1000;
+  total.score += CENTER_BONUS - (abs(x - boardCenter) + abs(y - boardCenter)) * 100;
   // - 2) Avoid capture vulnerability
   total.score -= total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY;
-  // - 3) Avoid capture
+  // - 3) Avoid opponent double three spot (no priority)
+  if (total.counts.openTwoBlockCount >= 2) {
+    total.score -= total.counts.openTwoBlockCount * DOUBLE_THREE_PENALTY;
+  }
+
+  // - 4) Avoid capture
   total.score += total.counts.captureBlockCount * CAPTURE;
-  // - 4) If opponent made open three or four, player must block it
-  total.score += total.counts.openFourBlockCount * BLOCK_CRITICAL_LINE;
+  // - 5) If opponent made open three or four, player must block it
+  total.score += total.counts.fourBlockCount * BLOCK_CRITICAL_LINE;
   total.score += total.counts.openThreeBlockCount * BLOCK_CRITICAL_LINE;
   total.score += total.counts.captureCriticalCount * CAPTURE_CRITICAL;
-  // - 5) Open two block
+  total.score += total.counts.captureBlockCriticalCount * CAPTURE_BLOCK_CRITICAL;
+  total.score += total.counts.gomokuBlockCount * BLOCK_GOMOKU;
+  // - 6) Open two block
   total.score += total.counts.openTwoBlockCount * BLOCK_OPEN_2;
   total.score += total.counts.openOneBlockCount * BLOCK_OPEN_1;
 
