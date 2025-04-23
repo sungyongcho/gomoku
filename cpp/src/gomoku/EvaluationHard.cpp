@@ -84,7 +84,8 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
     if (!forwardClosedEnd && !backwardClosedEnd) {
       returnValue.counts.openFourCount += 1;
       returnValue.counts.threatCount += 1;
-    } else if (!forwardClosedEnd || !backwardClosedEnd) {
+    } else if ((!forwardClosedEnd && backwardClosedEnd) &&
+               (forwardClosedEnd && !backwardClosedEnd)) {
       returnValue.counts.threatCount += 1;
       returnValue.counts.closedFourCount += 1;
     }
@@ -469,6 +470,13 @@ static bool hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int 
   int checkY = y;
   int opponent = OPPONENT(player);
 
+  if (!(board->getValueBit(checkX + dx, checkY + dy) == opponent &&
+        board->getValueBit(checkX + 2 * dx, checkY + 2 * dy) == opponent &&
+        board->getValueBit(checkX + 3 * dx, checkY + 3 * dy) == player)) {
+    dx = -dx;
+    dy = -dy;
+  }
+
   // forward
   for (int j = 0; j < 2; ++j) {
     checkX += dx;
@@ -498,36 +506,6 @@ static bool hasCapturableOnOpponentCriticalLine(Board* board, int x, int y, int 
     }
   }
 
-  // backward
-  checkX = x;
-  checkY = y;
-  for (int j = 0; j < 2; ++j) {
-    checkX -= dx;
-    checkY -= dy;
-    if (board->getValueBit(checkX, checkY) != opponent) break;
-
-    for (int i = 0; i < 4; ++i) {
-      int checkDx = DIRECTIONS[i][0];
-      int checkDy = DIRECTIONS[i][1];
-      if ((checkDx == dx && checkDy == dy) || (checkDx == -dx && checkDy == -dy)) continue;
-
-      unsigned int forwardBits =
-          board->extractLineAsBits(checkX, checkY, checkDx, checkDy, SIDE_WINDOW_SIZE);
-      unsigned int backwardBits =
-          board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
-      unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
-      unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
-
-      EvaluationEntry opponentEval =
-          opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
-
-      if (opponentEval.counts.openFourCount || opponentEval.counts.openThreeCount ||
-          opponentEval.counts.closedFourCount || opponentEval.score >= GOMOKU) {
-        return true;
-      }
-    }
-  }
   return false;
 }
 
@@ -537,7 +515,13 @@ static bool hasCapturableOnPlayerVulnerableLine(Board* board, int x, int y, int 
   int checkY = y;
   int opponent = OPPONENT(player);
 
-  // forward
+  if (!(board->getValueBit(checkX + dx, checkY + dy) == opponent &&
+        board->getValueBit(checkX + 2 * dx, checkY + 2 * dy) == opponent &&
+        board->getValueBit(checkX + 3 * dx, checkY + 3 * dy) == player)) {
+    dx = -dx;
+    dy = -dy;
+  }
+
   for (int j = 0; j < 2; ++j) {
     checkX += dx;
     checkY += dy;
@@ -565,12 +549,24 @@ static bool hasCapturableOnPlayerVulnerableLine(Board* board, int x, int y, int 
     }
   }
 
-  // backward
-  checkX = x;
-  checkY = y;
+  return false;
+}
+
+static bool hasCapturableOnPlayerCriticalLine(Board* board, int x, int y, int dx, int dy,
+                                              int player) {
+  int checkX = x;
+  int checkY = y;
+  int opponent = OPPONENT(player);
+  if (!(board->getValueBit(checkX + dx, checkY + dy) == opponent &&
+        board->getValueBit(checkX + 2 * dx, checkY + 2 * dy) == opponent &&
+        board->getValueBit(checkX + 3 * dx, checkY + 3 * dy) == player)) {
+    dx = -dx;
+    dy = -dy;
+  }
+
   for (int j = 0; j < 2; ++j) {
-    checkX -= dx;
-    checkY -= dy;
+    checkX += dx;
+    checkY += dy;
     if (board->getValueBit(checkX, checkY) != opponent) break;
 
     for (int i = 0; i < 4; ++i) {
@@ -586,10 +582,10 @@ static bool hasCapturableOnPlayerVulnerableLine(Board* board, int x, int y, int 
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
                               (0 << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
-      EvaluationEntry opponentEval =
-          opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+      EvaluationEntry playerEval =
+          player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
 
-      if (opponentEval.counts.captureThreatCount) {
+      if (playerEval.counts.gomokuCount || playerEval.counts.openFourCount) {
         return true;
       }
     }
@@ -755,6 +751,10 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
       }
       // check if capturable spot can remove player's vulnerable spot
       hasCapturable = hasCapturableOnPlayerVulnerableLine(board, x, y, dx, dy, player);
+      if (hasCapturable) {
+        total.counts.captureCriticalCount += 1;
+      }
+      hasCapturable = hasCapturableOnPlayerCriticalLine(board, x, y, dx, dy, player);
       if (hasCapturable) {
         total.counts.captureCriticalCount += 1;
       }
