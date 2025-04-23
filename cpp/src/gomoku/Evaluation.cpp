@@ -125,53 +125,6 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
   }
 }
 
-void slideWindowBlock(int side, int player, bool reverse, int &blockContinuous, bool &isClosedEnd,
-                      int &blockEmptyThenContinuous) {
-  int opponent = player == 1 ? 2 : 1;
-  int blockContinuousEmpty = 0;
-  int closed = 0;
-  bool hasEmptyPassed = false;
-
-  if (!reverse) {
-    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
-      int target_bit = ((side >> ((SIDE_WINDOW_SIZE - i - 1) * 2)) & 0x03);
-      if (target_bit == opponent) {
-        if (blockContinuous == i) blockContinuous++;
-        if (hasEmptyPassed && blockEmptyThenContinuous == i - 1) blockEmptyThenContinuous++;
-      } else if (target_bit == player || target_bit == OUT_OF_BOUNDS) {
-        if (closed == 0) closed = i + 1;
-      } else if (target_bit == EMPTY_SPACE && !hasEmptyPassed) {
-        hasEmptyPassed = true;
-      }
-    }
-    for (int i = SIDE_WINDOW_SIZE - blockContinuous; i > 0; i--) {
-      if (((side >> ((i - 1) * 2)) & 0x03) == EMPTY_SPACE)
-        blockContinuousEmpty += 1;
-      else
-        break;
-    }
-  } else {
-    for (int i = 0; i < SIDE_WINDOW_SIZE; ++i) {
-      int target_bit = ((side >> (i * 2)) & 0x03);
-      if (target_bit == opponent) {
-        if (blockContinuous == i) blockContinuous++;
-      } else if (target_bit == player || target_bit == OUT_OF_BOUNDS) {
-        if (closed == 0) closed = i + 1;
-      }
-    }
-    for (int i = blockContinuous; i < SIDE_WINDOW_SIZE; i++) {
-      if (((side >> (i * 2)) & 0x03) == EMPTY_SPACE)
-        blockContinuousEmpty += 1;
-      else
-        break;
-    }
-  }
-
-  if (closed - blockContinuous == 1) {
-    isClosedEnd = true;
-  }
-}
-
 bool isCaptureWarning(int side, int player, bool reverse) {
   int opponent = player == 1 ? 2 : 1;
 
@@ -265,22 +218,28 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
       totalContinuous = forwardContinuous + backwardContinuous;
   }
 
+  int opponent = player == 1 ? 2 : 1;
   int forwardBlockContinuous = 0;
+  int forwardBlockContinuousEmpty = 0;
   bool forwardBlockClosedEnd = false;
   int forwardBlockEmptyThenContinuous = 0;
+  int forwardBlockEmptyEmptyThenContinuous = 0;
 
   int backwardBlockContinuous = 0;
+  int backwardBlockContinuousEmpty = 0;
   bool backwardBlockClosedEnd = false;
   int backwardBlockEmptyThenContinuous = 0;
-  slideWindowBlock(forward, player, false, forwardBlockContinuous, forwardBlockClosedEnd,
-                   forwardBlockEmptyThenContinuous);
-  slideWindowBlock(backward, player, true, backwardBlockContinuous, backwardBlockClosedEnd,
-                   backwardBlockEmptyThenContinuous);
+  int backwardBlockEmptyEmptyThenContinuous = 0;
 
-  int totalBlockCont =
-      std::max(forwardBlockContinuous + backwardBlockContinuous,
-               std::max(forwardBlockEmptyThenContinuous + backwardBlockContinuous,
-                        forwardBlockContinuous + backwardBlockEmptyThenContinuous));
+  slideWindowContinuous(forward, opponent, false, forwardBlockContinuous, forwardBlockClosedEnd,
+                        forwardBlockContinuousEmpty, forwardBlockEmptyThenContinuous,
+                        forwardBlockEmptyEmptyThenContinuous);
+  slideWindowContinuous(backward, opponent, true, backwardBlockContinuous, backwardBlockClosedEnd,
+                        backwardBlockContinuousEmpty, backwardBlockEmptyThenContinuous,
+                        backwardBlockEmptyEmptyThenContinuous);
+
+  int totalBlockCont = forwardBlockContinuous + backwardBlockContinuous;
+
   // 1.if continuous opponent is bigger or equal, should block asap
   if (totalBlockCont >= 4) totalBlockCont = 4;
 
@@ -356,8 +315,8 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
   // window]
   // unsigned int combined = (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) |
   //                         ((unsigned int)player << (2 * SIDE_WINDOW_SIZE)) | forward;
-  unsigned int combined =
-      (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) | (0 << (2 * SIDE_WINDOW_SIZE)) | forward;
+  unsigned int combined = (revBackward << (2 * (SIDE_WINDOW_SIZE + 1))) |
+                          (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forward;
   if (player == PLAYER_1) {
     score = patternScoreTablePlayerOne[combined];
   } else if (player == PLAYER_2) {
