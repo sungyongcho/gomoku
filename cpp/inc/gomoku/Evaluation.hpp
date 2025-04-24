@@ -25,6 +25,7 @@
 #define CONTINUOUS_CLOSED_3 4000  // It blocks a capture
 #define CONTINUOUS_OPEN_2 1000
 
+#define BLOCK_CLOSE_3 3500
 #define BLOCK_OPEN_2 1800
 #define BLOCK_OPEN_1 1500
 

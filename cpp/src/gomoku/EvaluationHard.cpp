@@ -14,7 +14,6 @@ void printEvalEntry(EvaluationEntry eval) {
 
   printEvalCounts("openFourCount", eval.counts.openFourCount);
   printEvalCounts("closedFourCount", eval.counts.closedFourCount);
-  printEvalCounts("closedFourCount", eval.counts.closedFourCount);
   printEvalCounts("openThreeCount", eval.counts.openThreeCount);
   printEvalCounts("closedThreeCount", eval.counts.closedThreeCount);
   printEvalCounts("openTwoCount", eval.counts.openTwoCount);
@@ -164,13 +163,19 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
 
   // if continuous opponent is bigger or equal, should block asap
   if (totalBlockContinuous >= 4) {
-    returnValue.counts.fourBlockCount += 1;
     totalBlockContinuous = 4;
+  }
+  if (totalBlockContinuous == 4) {
+    if (!(forwardBlockClosedEnd && backwardBlockClosedEnd)) {
+      returnValue.counts.fourBlockCount += 1;
+    }
   }
 
   if (totalBlockContinuous == 3) {
     if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
       returnValue.counts.openThreeBlockCount += 1;
+    } else {
+      returnValue.counts.closedThreeBlockCount += 1;
     }
   }
 
@@ -480,10 +485,10 @@ static bool hasCaptureBlockOnOpponentCriticalLine(Board* board, int x, int y, in
       unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
                               (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
 
-      EvaluationEntry playerEval =
-          player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+      EvaluationEntry opponentEval =
+          opponent == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
 
-      if (playerEval.counts.openThreeBlockCount || playerEval.counts.fourBlockCount) {
+      if (opponentEval.counts.openFourCount) {
         return true;
       }
     }
@@ -727,9 +732,10 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   total.score += total.counts.captureCriticalCount * CAPTURE_CRITICAL;
   total.score += total.counts.captureBlockCriticalCount * CAPTURE_BLOCK_CRITICAL;
   total.score += total.counts.gomokuBlockCount * BLOCK_GOMOKU;
-  // - 6) Open two block
+  // - 6) Simple block
   total.score += total.counts.openTwoBlockCount * BLOCK_OPEN_2;
   total.score += total.counts.openOneBlockCount * BLOCK_OPEN_1;
+  total.score += total.counts.closedThreeBlockCount * BLOCK_CLOSE_3;
 
   // printEvalEntry(total);
 
