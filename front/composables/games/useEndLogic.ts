@@ -117,7 +117,6 @@ export const useEndLogic = () => {
       let cnt = 0;
       for (const stoneOnLine of winLine) {
         if (stoneOnLine.stone === turn) cnt++;
-        else cnt = 0;
       }
       if (cnt >= 5)
         return {
