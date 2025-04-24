@@ -8,11 +8,16 @@
 #include "Board.hpp"
 #include "Gomoku.hpp"
 
-#define CAPTURE_WIN 50000
-#define GOMOKU 49000
-#define CAPTURE_CRITICAL 19000
-#define CAPTURE_BLOCK_CRITICAL 30000
-#define BLOCK_CRITICAL_LINE 39500  // block open 3, 4
+#define MINIMAX_TERMINATION 1000000
+
+// Critical points
+#define CAPTURE_WIN 2200000
+#define GOMOKU 2100000
+#define BLOCK_CRITICAL_LINE 1800000     // block open 3, 4
+#define CAPTURE_BLOCK_CRITICAL 1700000  // block opponent by capturing opponent's critical line
+#define CAPTURE_CRITICAL 1600000
+#define PERFECT_CRITICAL_LINE 1500000  // make perfect (non-breakable) line
+#define BLOCK_GOMOKU 1400000
 
 #define CONTINUOUS_OPEN_4 9000
 #define CONTINUOUS_CLOSED_4 5000
@@ -20,10 +25,8 @@
 #define CONTINUOUS_CLOSED_3 4000  // It blocks a capture
 #define CONTINUOUS_OPEN_2 1000
 
-#define BLOCK_GOMOKU 20000
 #define BLOCK_OPEN_2 1800
 #define BLOCK_OPEN_1 1500
-#define PERFECT_CRITICAL_LINE 18000
 
 #define CAPTURE 6000
 #define CAPTURE_THREAT 3300

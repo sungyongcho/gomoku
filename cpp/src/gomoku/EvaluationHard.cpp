@@ -2,51 +2,39 @@
 
 namespace Evaluation {
 
+void printEvalCounts(std::string fieldName, int count) {
+  if (count) {
+    std::cout << fieldName << ": " << count << std::endl;
+  }
+}
+
 void printEvalEntry(EvaluationEntry eval) {
   std::cout << "=== EvalEntry ===" << std::endl;
   std::cout << "Score: " << eval.score << std::endl;
-  if (eval.counts.openFourCount)
-    std::cout << "openFourCount: " << eval.counts.openFourCount << std::endl;
-  if (eval.counts.closedFourCount)
-    std::cout << "closedFourCount: " << eval.counts.closedFourCount << std::endl;
-  if (eval.counts.openThreeCount)
-    std::cout << "openThreeCount: " << eval.counts.openThreeCount << std::endl;
-  if (eval.counts.closedThreeCount)
-    std::cout << "closedThreeCount: " << eval.counts.closedThreeCount << std::endl;
-  if (eval.counts.openTwoCount)
-    std::cout << "openTwoCount: " << eval.counts.openTwoCount << std::endl;
-  if (eval.counts.threatCount) std::cout << "threatCount: " << eval.counts.threatCount << std::endl;
-  if (eval.counts.captureCount)
-    std::cout << "captureCount: " << eval.counts.captureCount << std::endl;
-  if (eval.counts.fourBlockCount)
-    std::cout << "fourBlockCount: " << eval.counts.fourBlockCount << std::endl;
-  if (eval.counts.gomokuBlockCount)
-    std::cout << "gomokuBlockCount: " << eval.counts.gomokuBlockCount << std::endl;
-  if (eval.counts.openThreeBlockCount)
-    std::cout << "openThreeBlockCount: " << eval.counts.openThreeBlockCount << std::endl;
-  if (eval.counts.openTwoBlockCount)
-    std::cout << "openTwoBlockCount: " << eval.counts.openTwoBlockCount << std::endl;
-  if (eval.counts.closedThreeBlockCount)
-    std::cout << "closedThreeBlockCount: " << eval.counts.closedThreeBlockCount << std::endl;
-  if (eval.counts.openOneBlockCount)
-    std::cout << "openOneBlockCount: " << eval.counts.openOneBlockCount << std::endl;
-  if (eval.counts.captureVulnerable)
-    std::cout << "captureVulnerable: " << eval.counts.captureVulnerable << std::endl;
-  if (eval.counts.captureBlockCount)
-    std::cout << "captureBlockCount: " << eval.counts.captureBlockCount << std::endl;
-  if (eval.counts.captureThreatCount)
-    std::cout << "captureThreatCount: " << eval.counts.captureThreatCount << std::endl;
-  if (eval.counts.captureCriticalCount)
-    std::cout << "captureCriticalCount: " << eval.counts.captureCriticalCount << std::endl;
-  if (eval.counts.captureBlockCriticalCount)
-    std::cout << "captureBlockCriticalCount: " << eval.counts.captureBlockCriticalCount
-              << std::endl;
-  if (eval.counts.captureWin) std::cout << "captureWin: " << eval.counts.captureWin << std::endl;
-  if (eval.counts.gomokuCount) std::cout << "gomokuCount: " << eval.counts.gomokuCount << std::endl;
-  if (eval.counts.fixBreakableGomoku)
-    std::cout << "fixBreakableGomoku: " << eval.counts.fixBreakableGomoku << std::endl;
-  if (eval.counts.perfectCritical)
-    std::cout << "perfectCritical: " << eval.counts.perfectCritical << std::endl;
+
+  printEvalCounts("openFourCount", eval.counts.openFourCount);
+  printEvalCounts("closedFourCount", eval.counts.closedFourCount);
+  printEvalCounts("closedFourCount", eval.counts.closedFourCount);
+  printEvalCounts("openThreeCount", eval.counts.openThreeCount);
+  printEvalCounts("closedThreeCount", eval.counts.closedThreeCount);
+  printEvalCounts("openTwoCount", eval.counts.openTwoCount);
+  printEvalCounts("threatCount", eval.counts.threatCount);
+  printEvalCounts("captureCount", eval.counts.captureCount);
+  printEvalCounts("fourBlockCount", eval.counts.fourBlockCount);
+  printEvalCounts("gomokuBlockCount", eval.counts.gomokuBlockCount);
+  printEvalCounts("openThreeBlockCount", eval.counts.openThreeBlockCount);
+  printEvalCounts("openTwoBlockCount", eval.counts.openTwoBlockCount);
+  printEvalCounts("closedThreeBlockCount", eval.counts.closedThreeBlockCount);
+  printEvalCounts("openOneBlockCount", eval.counts.openOneBlockCount);
+  printEvalCounts("captureVulnerable", eval.counts.captureVulnerable);
+  printEvalCounts("captureBlockCount", eval.counts.captureBlockCount);
+  printEvalCounts("captureThreatCount", eval.counts.captureThreatCount);
+  printEvalCounts("captureCriticalCount", eval.counts.captureCriticalCount);
+  printEvalCounts("captureBlockCriticalCount", eval.counts.captureBlockCriticalCount);
+  printEvalCounts("captureWin", eval.counts.captureWin);
+  printEvalCounts("gomokuCount", eval.counts.gomokuCount);
+  printEvalCounts("fixBreakableGomoku", eval.counts.fixBreakableGomoku);
+  printEvalCounts("perfectCritical", eval.counts.perfectCritical);
   std::cout << "=================" << std::endl;
 }
 
