@@ -11,25 +11,32 @@ void sendJsonResponse(struct lws *wsi, const std::string &response) {
 }
 
 bool extractMoveFields(const rapidjson::Document &doc, int &x, int &y, std::string &last_player,
-                       std::string &next_player, int &goal, std::string &difficulty) {
+                       std::string &next_player, int &goal, std::string &difficulty,
+                       bool &enable_capture, bool &enable_double_three_restriction) {
   x = doc["lastPlay"]["coordinate"]["x"].GetInt();
   y = doc["lastPlay"]["coordinate"]["y"].GetInt();
   last_player = doc["lastPlay"]["stone"].GetString();
   next_player = doc["nextPlayer"].GetString();
   goal = doc["goal"].GetInt();
   difficulty = doc["difficulty"].GetString();
+  enable_capture = doc["enableCapture"].GetBool();
+  enable_double_three_restriction = doc["enableDoubleThreeRestriction"].GetBool();
 
   std::cout << "Move received:" << std::endl;
   std::cout << "  Last Play: (" << x << ", " << y << ") by " << last_player << std::endl;
   std::cout << "  Next Player: " << next_player << std::endl;
   std::cout << "  Goal: " << goal << std::endl;
-  // std::cout << "  Difficulty: " << difficulty << std::endl;
+  std::cout << "  Difficulty: " << difficulty << std::endl;
+  std::cout << "  Enable Capture: " << enable_capture << std::endl;
+  std::cout << "  Enable Double Three Restriction: " << enable_double_three_restriction
+            << std::endl;
 
   return true;
 }
 
 bool extractEvaluationFields(const rapidjson::Document &doc, int &x, int &y,
-                             std::string &last_player, std::string &next_player, int &goal) {
+                             std::string &last_player, std::string &next_player, int &goal,
+                             bool &enable_capture, bool &enable_double_three_restriction) {
   next_player = doc["nextPlayer"].GetString();
   last_player = (next_player[0] == PLAYER_X) ? PLAYER_O : PLAYER_X;
   // x = doc["coordinate"]["x"].GetInt();
@@ -38,11 +45,16 @@ bool extractEvaluationFields(const rapidjson::Document &doc, int &x, int &y,
   x = doc["lastPlay"]["coordinate"]["x"].GetInt();
   y = doc["lastPlay"]["coordinate"]["y"].GetInt();
   goal = doc["goal"].GetInt();
+  enable_capture = doc["enableCapture"].GetBool();
+  enable_double_three_restriction = doc["enableDoubleThreeRestriction"].GetBool();
 
   std::cout << "Move received:" << std::endl;
   std::cout << "  Last Play: (" << x << ", " << y << ") by " << last_player << std::endl;
   std::cout << "  Next Player: " << next_player << std::endl;
   std::cout << "  Goal: " << goal << std::endl;
+  std::cout << "  Enable Capture: " << enable_capture << std::endl;
+  std::cout << "  Enable Double Three Restriction: " << enable_double_three_restriction
+            << std::endl;
 
   return true;
 }
@@ -99,6 +111,8 @@ ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std
   std::vector<std::vector<char> > board_data;
   int last_player_score = 0;
   int next_player_score = 0;
+  bool enable_capture = false;
+  bool enable_double_three_restriction = false;
 
   pBoard = NULL;
   error.clear();
@@ -108,7 +122,8 @@ ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std
     return ERROR_NO_LAST_PLAY;
   }
 
-  if (!extractMoveFields(doc, x, y, last_player, next_player, goal, difficulty)) {
+  if (!extractMoveFields(doc, x, y, last_player, next_player, goal, difficulty, enable_capture,
+                         enable_double_three_restriction)) {
     error = "Missing required fields.";
     return ERROR_UNKNOWN;
   }
@@ -128,7 +143,7 @@ ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std
   int next_player_int = next_player[0] == 'X' ? PLAYER_1 : PLAYER_2;
 
   pBoard = new Board(board_data, goal, last_player_int, next_player_int, last_player_score,
-                     next_player_score);
+                     next_player_score, enable_capture, enable_double_three_restriction);
 
   pBoard->printBitboard();
 
@@ -143,11 +158,14 @@ ParseResult parseEvaluateRequest(const rapidjson::Document &doc, Board *&pBoard,
   std::vector<std::vector<char> > board_data;
   int last_player_score = 0;
   int next_player_score = 0;
+  bool enable_capture = false;
+  bool enable_double_three_restriction = false;
 
   pBoard = NULL;
   error.clear();
 
-  if (!extractEvaluationFields(doc, x, y, last_player, next_player, goal)) {
+  if (!extractEvaluationFields(doc, x, y, last_player, next_player, goal, enable_capture,
+                               enable_double_three_restriction)) {
     error = "Missing required fields.";
     return ERROR_UNKNOWN;
   }
@@ -169,7 +187,7 @@ ParseResult parseEvaluateRequest(const rapidjson::Document &doc, Board *&pBoard,
   int next_player_int = next_player[0] == 'X' ? PLAYER_1 : PLAYER_2;
 
   pBoard = new Board(board_data, goal, last_player_int, next_player_int, last_player_score,
-                     next_player_score);
+                     next_player_score, enable_capture, enable_double_three_restriction);
 
   return PARSE_OK;
 }

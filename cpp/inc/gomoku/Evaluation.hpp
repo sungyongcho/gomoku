@@ -38,7 +38,7 @@
 // TODO needs to check
 #define INVALID_PATTERN -133
 #define CAPTURE_VULNERABLE_PENALTY 10000
-#define DOUBLE_THREE_PENALTY 1800  // same as BLOCK_OPEN_2
+#define BLOCK_DOUBLE_THREE_PENALTY 1800  // same as BLOCK_OPEN_2
 
 // not used in hard eval
 #define CONTINUOUS_LINE_4 10000

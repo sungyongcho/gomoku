@@ -60,7 +60,7 @@ watch(
           label="Enable Capture"
         />
         <BToggleSwitch
-          v-model="settings.enableDoubleThreeProhibition"
+          v-model="settings.enableDoubleThreeRestriction"
           label="Enable Double-Three Prohibition"
         />
         <BButtonGroupSwitch

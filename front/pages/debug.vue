@@ -73,6 +73,8 @@ const onSendData = (
       difficulty: settings.value.difficulty,
       nextPlayer: lastHistory.value?.stone === "X" ? "O" : "X",
       goal: settings.value.totalPairCaptured,
+      enableCapture: settings.value.enableCapture,
+      enableDoubleThreeRestriction: settings.value.enableDoubleThreeRestriction,
       lastPlay: coordinate
         ? {
             coordinate: {

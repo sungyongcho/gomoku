@@ -38,7 +38,7 @@ export const useGameStore = defineStore("game", () => {
   const showSettings = ref(false);
   const settings = useStorage<Settings>("settings", {
     enableCapture: true,
-    enableDoubleThreeProhibition: true,
+    enableDoubleThreeRestriction: true,
     totalPairCaptured: 5,
     firstMove: "X",
     advantage1: 0,
@@ -265,7 +265,7 @@ export const useGameStore = defineStore("game", () => {
     boardData: { stone: Stone }[][],
     capturedStones: BoardStone[],
   ) => {
-    if (!settings.value.enableDoubleThreeProhibition) return false;
+    if (!settings.value.enableDoubleThreeRestriction) return false;
 
     // Check double-three (double-three can be bypassed by capturing)
     if (

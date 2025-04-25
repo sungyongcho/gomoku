@@ -550,11 +550,6 @@ static bool isNonVulnerableLine(Board* board, int x, int y, int dx, int dy, int 
   int checkX = x;
   int checkY = y;
 
-  // if (board->getValueBit(checkX + dx, checkY + dy) != player) {
-  //   dx = -dx;
-  //   dy = -dy;
-  // }
-
   for (int i = 0; i < 4; ++i) {
     int checkDx = DIRECTIONS[i][0];
     int checkDy = DIRECTIONS[i][1];
@@ -766,8 +761,8 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   total.score -=
       total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY * vulnerablePenaltyCoefficient;
   // - 3) Avoid opponent double three spot (no priority)
-  if (total.counts.openTwoBlockCount >= 2) {
-    total.score -= total.counts.openTwoBlockCount * DOUBLE_THREE_PENALTY;
+  if (board->getEnableDoubleThreeRestriction() && total.counts.openTwoBlockCount >= 2) {
+    total.score -= total.counts.openTwoBlockCount * BLOCK_DOUBLE_THREE_PENALTY;
   }
 
   // - 4) Avoid capture
@@ -783,6 +778,11 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   total.score += total.counts.openOneBlockCount * BLOCK_OPEN_1;
   total.score += total.counts.closedThreeBlockCount * BLOCK_CLOSE_3;
 
+  // Special case
+  // - 1) If game enable double-three restriction, player must avoid double three
+  if (board->getEnableDoubleThreeRestriction() && total.counts.openThreeCount >= 2) {
+    total.score = 0;
+  }
   // printEvalEntry(total);
 
   return total.score;

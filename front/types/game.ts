@@ -47,6 +47,8 @@ export type SocketMoveRequest = {
     coordinate: { x: number; y: number };
     stone: Stone;
   };
+  enableCapture: boolean;
+  enableDoubleThreeRestriction: boolean;
   board: Stone[][];
   scores: { player: Stone; score: number }[];
 };
@@ -84,7 +86,7 @@ export type TestCase = {
 
 export type Settings = {
   enableCapture: boolean;
-  enableDoubleThreeProhibition: boolean;
+  enableDoubleThreeRestriction: boolean;
   totalPairCaptured: number;
   firstMove: "X" | "O";
   advantage1: number;
