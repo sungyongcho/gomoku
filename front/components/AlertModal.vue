@@ -36,6 +36,17 @@ const _visible = computed({
     <p>
       {{ alert?.message }}
     </p>
+
+    <template #footer v-if="alert?.actionLabel">
+      <Button
+        :label="alert?.actionLabel"
+        :icon="alert?.actionIcon"
+        @click="alert?.action"
+        severity="primary"
+        autofocus
+        class="w-full"
+      />
+    </template>
   </Dialog>
 </template>
 

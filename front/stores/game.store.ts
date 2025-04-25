@@ -35,17 +35,17 @@ export const useGameStore = defineStore("game", () => {
     isDrawEnded,
     isPerfectFiveEnded,
   } = useGameLogic();
+  const showSettings = ref(false);
   const settings = useStorage<Settings>("settings", {
-    capture: true,
-    doubleThree: true,
+    enableCapture: true,
+    enableDoubleThreeProhibition: true,
     totalPairCaptured: 5,
-    firstMove: true,
+    firstMove: "X",
     advantage1: 0,
     advantage2: 0,
     isPlayer2AI: true,
     isDebugTurnLocked: true,
     difficulty: "hard", // easy, medium, hard
-    ai: "minmax", // minmax, alphago
   });
 
   const initialBoard = () => {
@@ -160,7 +160,7 @@ export const useGameStore = defineStore("game", () => {
   });
 
   const initGame = () => {
-    turn.value = "X";
+    turn.value = settings.value.firstMove;
     gameOver.value = false;
     histories.value = [];
     boardData.value = initialBoard();
@@ -186,6 +186,7 @@ export const useGameStore = defineStore("game", () => {
     capturedStones: BoardStone[],
   ) => {
     boardData[y][x].stone = stone;
+
     capturedStones.forEach(({ x, y }) => {
       boardData[y][x].stone = ".";
     });
@@ -230,11 +231,11 @@ export const useGameStore = defineStore("game", () => {
 
         if (perfectFiveEnded.result === GAME_END_SCENARIO.FIVE_OR_MORE_STONES) {
           gameOver.value = true;
-          return doAlert(
-            "Game Over",
-            `${perfectFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
-            "Info",
-          );
+          return doAlert({
+            header: "Game Over",
+            message: `${perfectFiveEnded.winner === "X" ? "Black" : "White"} Win - Five or more stones`,
+            type: "Info",
+          });
         }
       }
     }
@@ -243,11 +244,11 @@ export const useGameStore = defineStore("game", () => {
     const captureEnded = isCaptureEnded(situation);
     if (captureEnded.result === GAME_END_SCENARIO.PAIR_CAPTURED) {
       gameOver.value = true;
-      return doAlert(
-        "Game Over",
-        `${captureEnded.winner === "X" ? "Black" : "White"} Win - Captured ${situation.captured.goal}`,
-        "Info",
-      );
+      return doAlert({
+        header: "Game Over",
+        message: `${captureEnded.winner === "X" ? "Black" : "White"} Win - Captured ${situation.captured.goal}`,
+        type: "Info",
+      });
     }
 
     // Check Draw
@@ -258,6 +259,24 @@ export const useGameStore = defineStore("game", () => {
     }
   };
 
+  const checkDoubleThreeBeforeAddStone = (
+    { x, y }: { x: number; y: number },
+    stone: Stone,
+    boardData: { stone: Stone }[][],
+    capturedStones: BoardStone[],
+  ) => {
+    if (!settings.value.enableDoubleThreeProhibition) return false;
+
+    // Check double-three (double-three can be bypassed by capturing)
+    if (
+      capturedStones.length == 0 &&
+      checkDoubleThree({ x, y, stone, boardData: boardData })
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   const debugAddStoneToBoardData = async (
     { x, y }: { x: number; y: number },
     stone: Stone,
@@ -265,18 +284,28 @@ export const useGameStore = defineStore("game", () => {
     executionTime?: { s: number; ms: number; ns: number },
   ) => {
     // Calculate captured stone
-    const capturedStones = getCapturedStones({
-      x,
-      y,
-      stone,
-      boardData: boardData.value,
-    });
-    // Check double-three (double-three can be bypassed by capturing)
+    const capturedStones = settings.value.enableCapture
+      ? getCapturedStones({
+          x,
+          y,
+          stone,
+          boardData: boardData.value,
+        })
+      : [];
+
     if (
-      capturedStones.length == 0 &&
-      checkDoubleThree({ x, y, stone, boardData: boardData.value })
+      checkDoubleThreeBeforeAddStone(
+        { x, y },
+        stone,
+        boardData.value,
+        capturedStones,
+      )
     ) {
-      doAlert("Caution", "Double-three is not allowed", "Warn");
+      doAlert({
+        header: "Caution",
+        message: "Double-three is not allowed",
+        type: "Warn",
+      });
       return;
     }
 
@@ -325,19 +354,28 @@ export const useGameStore = defineStore("game", () => {
     executionTime?: { s: number; ms: number; ns: number },
   ): Promise<boolean> => {
     // Calculate captured stone
-    const capturedStones = getCapturedStones({
-      x,
-      y,
-      stone,
-      boardData: boardData.value,
-    });
+    const capturedStones = settings.value.enableCapture
+      ? getCapturedStones({
+          x,
+          y,
+          stone,
+          boardData: boardData.value,
+        })
+      : [];
 
-    // Check double-three (double-three can be bypassed by capturing)
     if (
-      capturedStones.length == 0 &&
-      checkDoubleThree({ x, y, stone, boardData: boardData.value })
+      checkDoubleThreeBeforeAddStone(
+        { x, y },
+        stone,
+        boardData.value,
+        capturedStones,
+      )
     ) {
-      doAlert("Caution", "Double-three is not allowed", "Warn");
+      doAlert({
+        header: "Caution",
+        message: "Double-three is not allowed",
+        type: "Warn",
+      });
       return false;
     }
 
@@ -457,5 +495,6 @@ export const useGameStore = defineStore("game", () => {
     exportJson,
     initialBoard,
     getPlayerTotalCaptured,
+    showSettings,
   };
 });

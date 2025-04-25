@@ -17,9 +17,13 @@ watch(
 </script>
 <template>
   <div class="relative">
-    <button class="px-4 py-3 lg:hidden" @click="isOpen = true">
-      <i class="pi pi-bars text-lg text-white"></i>
-    </button>
+    <Button
+      icon="pi pi-bars"
+      variant="text"
+      rounded
+      class="text-white lg:hidden"
+      @click="isOpen = true"
+    />
 
     <Transition name="slide-left">
       <div

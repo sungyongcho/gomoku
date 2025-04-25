@@ -83,14 +83,13 @@ export type TestCase = {
 };
 
 export type Settings = {
-  capture: boolean;
-  doubleThree: boolean;
+  enableCapture: boolean;
+  enableDoubleThreeProhibition: boolean;
   totalPairCaptured: number;
-  firstMove: boolean;
+  firstMove: "X" | "O";
   advantage1: number;
   advantage2: number;
   isPlayer2AI: boolean;
   isDebugTurnLocked: boolean;
   difficulty: "easy" | "medium" | "hard"; // easy, medium, hard
-  ai: "minmax" | "alphago"; // minmax, alphago
 };
