@@ -23,14 +23,14 @@ const { data, send, close, status } = useWebSocket(
   `ws://${window.location.hostname}:8005/ws/debug`,
   {
     autoReconnect: {
-      retries: 3,
-      delay: 500,
+      retries: 0,
       onFailed() {
-        doAlert(
-          "Error",
-          "WebSocket connection failed. Please refresh the page to retry",
-          "Warn",
-        );
+        doAlert({
+          header: "Error",
+          message:
+            "WebSocket connection failed. Please refresh the page to retry",
+          type: "Warn",
+        });
         isAiThinking.value = false;
       },
     },
@@ -153,7 +153,11 @@ watch(data, (rawData) => {
 
     if (res.type === "error") {
       console.error(res);
-      doAlert("Caution", res.error, "Warn");
+      doAlert({
+        header: "Caution",
+        message: res.error as stiring,
+        type: "Warn",
+      });
       return;
     }
 
@@ -165,11 +169,11 @@ watch(data, (rawData) => {
     triggeredTestLabel.value = "";
   } catch (error) {
     console.error("Error processing WebSocket data:", error);
-    doAlert(
-      "Error",
-      "An unexpected error occurred while processing data.",
-      "Warn",
-    );
+    doAlert({
+      header: "Error",
+      message: "An unexpected error occurred while processing data.",
+      type: "Warn",
+    });
     triggeredTestLabel.value = "";
   }
 });

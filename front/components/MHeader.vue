@@ -17,26 +17,55 @@ const props = defineProps({
     default: false,
   },
 });
-const { player1TotalCaptured, player2TotalCaptured, settings, turn } =
-  storeToRefs(useGameStore());
+const {
+  player1TotalCaptured,
+  player2TotalCaptured,
+  settings,
+  turn,
+  showSettings,
+} = storeToRefs(useGameStore());
+const { initGame } = useGameStore();
 const { isAiThinking } = storeToRefs(useGameStore());
+const $router = useRouter();
+const $route = useRoute();
+
+const onGameDebug = () => {
+  settings.value.isPlayer2AI = false;
+  initGame();
+  $router.push("/debug");
+};
 </script>
 
 <template>
-  <header class="w-full bg-black">
-    <div
-      class="mx-auto flex max-w-[1280px] items-center -lg:flex-col -sm:gap-3"
-    >
-      <div class="flex w-full justify-between">
+  <header class="w-full bg-black px-4 py-2 -sm:px-0">
+    <div class="mx-auto flex max-w-[1140px] items-center -lg:flex-col">
+      <div class="flex w-full shrink-0 justify-between">
         <nuxt-link
           to="/"
-          class="px-4 py-2 text-2xl font-extrabold uppercase text-white -sm:text-sm"
-          :class="{ '!text-2xl': nonGamePage }"
+          class="flex items-center px-4 py-2 text-2xl font-extrabold uppercase text-white"
         >
           omok
         </nuxt-link>
 
-        <MobileInfoBoard v-if="!nonGamePage" class="lg:hidden" />
+        <div class="my-2 mr-2 flex items-center gap-1">
+          <Button
+            icon="pi pi-cog"
+            variant="text"
+            rounded
+            class="text-white"
+            @click="showSettings = true"
+          />
+          <MobileInfoBoard v-if="!nonGamePage" class="lg:hidden" />
+
+          <Button
+            icon="pi pi-wrench"
+            rounded
+            variant="text"
+            class="text-white"
+            @click="onGameDebug"
+            v-if="$route.path === '/'"
+          />
+        </div>
       </div>
 
       <div class="shrink-0 py-2 text-white" v-if="!testPage && !nonGamePage">
@@ -58,6 +87,7 @@ const { isAiThinking } = storeToRefs(useGameStore());
             <div
               class="ml-1 rounded-lg border-2 border-white px-2 py-1 -sm:px-1 -sm:py-0"
               :class="{ ['!border-yellow-500']: turn === 'X' }"
+              v-if="settings.enableCapture"
             >
               <span class="text-lg">
                 {{ player1TotalCaptured }}
@@ -74,6 +104,7 @@ const { isAiThinking } = storeToRefs(useGameStore());
             <div
               class="mr-1 rounded-lg border-2 border-white px-2 py-1 -sm:px-1 -sm:py-0"
               :class="{ ['!border-yellow-500']: turn === 'O' }"
+              v-if="settings.enableCapture"
             >
               <span class="text-lg">
                 {{ player2TotalCaptured }}

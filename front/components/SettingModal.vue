@@ -47,23 +47,26 @@ watch(
         />
 
         <BButtonGroupSwitch
-          v-model="settings.ai"
+          v-model="settings.firstMove"
           :options="[
-            { value: 'minmax', label: 'Min-Max' },
-            { value: 'alphago', label: 'Alphago' },
+            { value: 'X', label: 'black' },
+            { value: 'O', label: 'white' },
           ]"
-          label="AI Select"
+          label="First move"
         />
 
-        <BToggleSwitch v-model="settings.capture" label="Capture Stones" />
-        <BToggleSwitch v-model="settings.doubleThree" label="Double Three" />
         <BToggleSwitch
-          v-model="settings.firstMove"
-          label="Player1 first move"
+          v-model="settings.enableCapture"
+          label="Enable Capture"
+        />
+        <BToggleSwitch
+          v-model="settings.enableDoubleThreeProhibition"
+          label="Enable Double-Three Prohibition"
         />
         <BButtonGroupSwitch
-          v-if="settings.capture"
+          v-if="settings.enableCapture"
           v-model="settings.totalPairCaptured"
+          class="col-span-2"
           :options="[
             { value: 3, label: '3' },
             { value: 4, label: '4' },
@@ -74,13 +77,13 @@ watch(
           label="Total of captured pair stones"
         />
         <BSlider
-          v-if="settings.capture"
+          v-if="settings.enableCapture"
           v-model="settings.advantage1"
           :max="settings.totalPairCaptured - 1"
           label="Player1 Advantage"
         />
         <BSlider
-          v-if="settings.capture"
+          v-if="settings.enableCapture"
           v-model="settings.advantage2"
           :max="settings.totalPairCaptured - 1"
           label="Player2 Advantage"

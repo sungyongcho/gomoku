@@ -6,7 +6,11 @@ export default defineNuxtRouteMiddleware((to, from) => {
     try {
       importData(to.query.data as string);
     } catch (e) {
-      doAlert("Import Data Error", "Invalid data", "Warn");
+      doAlert({
+        header: "Import Data Error",
+        message: "Invalid data",
+        type: "Warn",
+      });
     }
 
     return navigateTo({

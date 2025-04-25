@@ -33,20 +33,28 @@ const {
 } = useGameStore();
 
 const lastHistory = computed(() => histories.value.at(-1));
-const { doAlert } = useAlertStore();
+const { doAlert, closeAlert } = useAlertStore();
 
 const { data, send, close, status, open } = useWebSocket(
   `ws://${window.location.hostname}:8005/ws/debug`,
   {
     autoReconnect: {
-      retries: 3,
+      retries: 0,
       delay: 500,
       onFailed() {
-        doAlert(
-          "Error",
-          "WebSocket connection failed. Please refresh the page to retry",
-          "Warn",
-        );
+        doAlert({
+          header: "Error",
+          message:
+            "WebSocket connection failed. Please refresh the page to retry",
+          type: "Warn",
+          actionIcon: "pi pi-undo",
+          actionLabel: "Retry",
+          action: () => {
+            open();
+            closeAlert();
+          },
+        });
+
         isAiThinking.value = false;
       },
     },
@@ -58,16 +66,6 @@ const onPutStone = async ({ x, y }: { x: number; y: number }) => {
   await nextTick();
 
   if (isSuccessToPutStone && settings.value.isPlayer2AI && !gameOver.value) {
-    if (status.value === "CLOSED") {
-      // retry to connect
-
-      doAlert(
-        "Error",
-        "WebSocket connection failed. refresh the page to retry",
-        "Warn",
-      );
-      return;
-    }
     onSendStone();
   }
 };
@@ -102,6 +100,21 @@ const onSendData = (
 };
 
 const onSendStone = () => {
+  if (status.value === "CLOSED") {
+    doAlert({
+      header: "Error",
+      message: "WebSocket connection failed. Please refresh the page to retry",
+      type: "Warn",
+      actionIcon: "pi pi-undo",
+      actionLabel: "Retry",
+      action: () => {
+        open();
+        closeAlert();
+      },
+    });
+    return;
+  }
+
   onSendData(
     "move",
     lastHistory.value?.coordinate ? lastHistory.value.coordinate : undefined,
@@ -142,7 +155,11 @@ watch(data, (rawData) => {
 
     if (res.type === "error") {
       console.error(res);
-      doAlert("Caution", res.error, "Warn");
+      doAlert({
+        header: "Caution",
+        message: res.error as string,
+        type: "Warn",
+      });
       purgeState();
       return;
     }
@@ -154,11 +171,11 @@ watch(data, (rawData) => {
     );
   } catch (error) {
     console.error("Error processing WebSocket data:", error);
-    doAlert(
-      "Error",
-      "An unexpected error occurred while processing data.",
-      "Warn",
-    );
+    doAlert({
+      header: "Error",
+      message: "An unexpected error occurred while processing data.",
+      type: "Warn",
+    });
   } finally {
     purgeState();
   }

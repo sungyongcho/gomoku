@@ -99,6 +99,7 @@ watch(
     </section>
 
     <CapturedScore
+      v-if="settings.enableCapture"
       class="w-full"
       :player1-total-captured="player1TotalCaptured"
       :player2-total-captured="player2TotalCaptured"
