@@ -23,7 +23,7 @@
 #define CONTINUOUS_CLOSED_4 5000
 #define CONTINUOUS_OPEN_3 4500
 #define CONTINUOUS_CLOSED_3 4000  // It blocks a capture
-#define CONTINUOUS_OPEN_2 1000
+#define CONTINUOUS_OPEN_2 -3000
 
 #define BLOCK_CLOSE_3 3500
 #define BLOCK_OPEN_2 1800
@@ -170,6 +170,7 @@ static const int blockScores[6] = {
     0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
 void printAxis(int forward, int backward);
+void printCombined(unsigned int combined);
 bool isValidBackwardPattern(unsigned int sidePattern);
 bool isValidForwardPattern(unsigned int sidePattern);
 bool isCaptureWarning(int side, int player, bool reverse);

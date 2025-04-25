@@ -537,31 +537,45 @@ static bool isNonVulnerableLine(Board* board, int x, int y, int dx, int dy, int 
   int checkX = x;
   int checkY = y;
 
-  if (board->getValueBit(checkX + dx, checkY + dy) != player) {
-    dx = -dx;
-    dy = -dy;
-  }
+  // if (board->getValueBit(checkX + dx, checkY + dy) != player) {
+  //   dx = -dx;
+  //   dy = -dy;
+  // }
 
-  for (int j = 0; j < 2; ++j) {
-    checkX += dx;
-    checkY += dy;
+  for (int i = 0; i < 4; ++i) {
+    int checkDx = DIRECTIONS[i][0];
+    int checkDy = DIRECTIONS[i][1];
+    if ((checkDx == dx && checkDy == dy) || (checkDx == -dx && checkDy == -dy)) continue;
 
-    for (int i = 0; i < 4; ++i) {
-      int checkDx = DIRECTIONS[i][0];
-      int checkDy = DIRECTIONS[i][1];
-      if ((checkDx == dx && checkDy == dy) || (checkDx == -dx && checkDy == -dy)) continue;
+    // middle
+    unsigned int combined = extractLineAsBitsFromBoard(board, checkX, checkY, checkDx, checkDy);
+    EvaluationEntry playerEval =
+        player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+    if (playerEval.counts.captureVulnerable > 0) {
+      return false;
+    }
 
-      unsigned int forwardBits =
-          board->extractLineAsBits(checkX, checkY, checkDx, checkDy, SIDE_WINDOW_SIZE);
-      unsigned int backwardBits =
-          board->extractLineAsBits(checkX, checkY, -checkDx, -checkDy, SIDE_WINDOW_SIZE);
-      unsigned int reversedBackwardBits = reversePattern(backwardBits, SIDE_WINDOW_SIZE);
-      unsigned int combined = (reversedBackwardBits << (2 * (SIDE_WINDOW_SIZE + 1))) |
-                              (WINDOW_CENTER_VALUE << (2 * SIDE_WINDOW_SIZE)) | forwardBits;
-
+    // forward
+    while (board->getValueBit(checkX + dx, checkY + dy) == player) {
+      checkX += dx;
+      checkY += dy;
+      unsigned int combined = extractLineAsBitsFromBoard(board, checkX, checkY, checkDx, checkDy);
       EvaluationEntry playerEval =
           player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
+      if (playerEval.counts.captureVulnerable > 0) {
+        return false;
+      }
+    }
 
+    // backward
+    checkX = x;
+    checkY = y;
+    while (board->getValueBit(checkX - dx, checkY - dy) == player) {
+      checkX -= dx;
+      checkY -= dy;
+      unsigned int combined = extractLineAsBitsFromBoard(board, checkX, checkY, checkDx, checkDy);
+      EvaluationEntry playerEval =
+          player == PLAYER_1 ? patternPlayerOne[combined] : patternPlayerTwo[combined];
       if (playerEval.counts.captureVulnerable > 0) {
         return false;
       }
@@ -708,7 +722,12 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
 
   // Score calculation
   // Critical Case
-  total.score += total.counts.gomokuCount * GOMOKU;
+  if (total.counts.gomokuCount && !total.counts.perfectCritical) {
+    // if gomoku is not perfect, block opponent opponent first...
+    total.score += total.counts.gomokuCount * CONTINUOUS_OPEN_4;
+  } else {
+    total.score += total.counts.gomokuCount * GOMOKU;
+  }
   total.score += total.counts.captureWin * CAPTURE_WIN;
   total.score += total.counts.fixBreakableGomoku * (GOMOKU * 2);
   total.score += total.counts.perfectCritical * PERFECT_CRITICAL_LINE;
