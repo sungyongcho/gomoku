@@ -48,6 +48,31 @@ void printAxis(int forward, int backward) {
   std::cout << std::endl;
 }
 
+void printCombined(unsigned int combined) {
+  for (int i = 8; i >= 0; i--) {
+    int val = (combined >> (i * 2)) & 0x03;
+    if (i == 4) {
+      std::cout << "[.]";
+      continue;
+    }
+    switch (val) {
+      case 0:
+        std::cout << ".";
+        break;
+      case 1:
+        std::cout << "1";
+        break;
+      case 2:
+        std::cout << "2";
+        break;
+      case 3:
+        std::cout << "X";
+        break;
+    }
+  }
+  std::cout << std::endl;
+}
+
 bool isValidBackwardPattern(unsigned int sidePattern) {
   bool encounteredValid = false;
 
