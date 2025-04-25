@@ -45,6 +45,8 @@ class Board {
   int next_player;
   int last_player_score;
   int next_player_score;
+  bool enable_capture;
+  bool enable_double_three_restriction;
 
   uint64_t last_player_board[BOARD_SIZE];
   uint64_t next_player_board[BOARD_SIZE];
@@ -61,8 +63,8 @@ class Board {
   Board();
   Board(const Board &other);
   Board(const std::vector<std::vector<char> > &board_data, int goal, int last_player_int,
-        int next_player_int, int last_score, int next_score);
-  Board(int goal, int last_player_int, int next_player_int, int last_score, int next_score);
+        int next_player_int, int last_score, int next_score, bool enable_capture,
+        bool enable_double_three_restriction);
 
   // Board State & Accessors
   int getValueBit(int col, int row) const;                  // Get stone type at (col, row)
@@ -78,6 +80,8 @@ class Board {
   std::pair<int, int> getCurrentScore()
       const;            // Returns {next_player_score, last_player_score} ? Clarify order if needed.
   int getGoal() const;  // Score needed to win
+  bool getEnableCapture() const;
+  bool getEnableDoubleThreeRestriction() const;
 
   // Move Execution & Captures
   void setValueBit(int col, int row, int stone);      // Place a stone (updates hash internally)

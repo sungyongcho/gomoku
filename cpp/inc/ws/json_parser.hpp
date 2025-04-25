@@ -23,11 +23,13 @@ enum ParseResult {
 };
 
 bool extractMoveFields(const rapidjson::Document &doc, int &x, int &y, std::string &last_player,
-                       std::string &next_player, int &goal);
+                       std::string &next_player, int &goal, bool &enable_capture,
+                       bool &enable_double_three_restriction);
 
 bool extractEvaluationFields(const rapidjson::Document &doc, int &x, int &y,
                              std::string &last_player, std::string &next_player, int &goal,
-                             std::string &difficulty);
+                             std::string &difficulty, bool &enable_capture,
+                             bool &enable_double_three_restriction);
 
 bool parseBoard(const rapidjson::Document &doc, std::vector<std::vector<char> > &board_data);
 bool parseScores(const rapidjson::Document &doc, std::string last_player, std::string next_player,

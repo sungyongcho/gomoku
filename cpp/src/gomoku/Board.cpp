@@ -35,37 +35,21 @@ Board::Board(const Board &other)
 }
 
 Board::Board(const std::vector<std::vector<char> > &board_data, int goal, int last_player_int,
-             int next_player_int, int last_score, int next_score)
+             int next_player_int, int last_score, int next_score, bool enableCapture,
+             bool enableDoubleThreeRestriction)
     : goal(goal),
       last_player(last_player_int),
       next_player(next_player_int),
       last_player_score(last_score),
       next_player_score(next_score),
+      enable_capture(enableCapture),
+      enable_double_three_restriction(enableDoubleThreeRestriction),
       currentHash(0) {
   assert(Zobrist::initialized &&
          "Zobrist keys must be initialized before creating a Board object!");
 
   this->reset_bitboard();
   this->init_bitboard_from_data(board_data);
-
-  currentHash ^= Zobrist::capture_keys[this->last_player][this->last_player_score];
-  currentHash ^= Zobrist::capture_keys[this->next_player][this->next_player_score];
-
-  if (this->next_player == PLAYER_2) {
-    currentHash ^= Zobrist::turn_key;
-  }
-}
-
-Board::Board(int goal, int last_player_int, int next_player_int, int last_score, int next_score)
-    : goal(goal),
-      last_player(last_player_int),
-      next_player(next_player_int),
-      last_player_score(last_score),
-      next_player_score(next_score),
-      currentHash(0) {
-  assert(Zobrist::initialized &&
-         "Zobrist keys must be initialized before creating a Board object!");
-  this->reset_bitboard();
 
   currentHash ^= Zobrist::capture_keys[this->last_player][this->last_player_score];
   currentHash ^= Zobrist::capture_keys[this->next_player][this->next_player_score];
@@ -139,6 +123,11 @@ std::pair<int, int> Board::getCurrentScore() const {
 }
 
 int Board::getGoal() const { return this->goal; }
+
+bool Board::getEnableCapture() const { return this->enable_capture; }
+bool Board::getEnableDoubleThreeRestriction() const {
+  return this->enable_double_three_restriction;
+}
 
 /**
  * Executions

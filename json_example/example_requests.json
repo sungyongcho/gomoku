@@ -8,6 +8,8 @@
   },
   "goal": 5,
   "board": [],
+  "enableDoubleThreeRestriction": true,
+  "enableCapture": true,
   "scores": [
     { "player": "O", "score": 1 },
     { "player": "X", "score": 3 }
@@ -21,6 +23,8 @@
     "stone": "X"
   },
   "board": [],
+  "enableDoubleThreeRestriction": true,
+  "enableCapture": true,
   "coordinate": { "x": 9, "y": 10 },
   "goal": 5,
   "scores": [
