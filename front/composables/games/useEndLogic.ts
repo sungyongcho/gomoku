@@ -117,6 +117,8 @@ export const useEndLogic = () => {
       let cnt = 0;
       for (const stoneOnLine of winLine) {
         if (stoneOnLine.stone === turn) cnt++;
+        else if (cnt < 5) cnt = 0;
+        else break;
       }
       if (cnt >= 5)
         return {
@@ -127,23 +129,6 @@ export const useEndLogic = () => {
 
     // Perfect 5 stones not exist
     return {};
-  };
-
-  const checkFiveStones = ({ x, y, stone, boardData }: BoardInput): boolean => {
-    for (const { x: dx, y: dy } of directions.slice(0, 4)) {
-      const edgeStone = moveToEdgeOfLine(
-        { x, y, stone, boardData },
-        { dx, dy },
-      );
-
-      const stonesInLine = getStonesInLine(
-        { x: edgeStone.x, y: edgeStone.y, stone: edgeStone.stone, boardData },
-        { dx: -dx, dy: -dy },
-      );
-
-      if (stonesInLine.length >= 5) return true;
-    }
-    return false;
   };
 
   const isDrawEnded = (situation: GameSituation): GameResult => {
