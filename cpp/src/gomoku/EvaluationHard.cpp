@@ -150,7 +150,6 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
       returnValue.counts.openThreeCount += 1;
     } else if (!forwardClosedEnd || !backwardClosedEnd) {
       // closed three
-      // returnValue.counts.threatCount += 1;
       returnValue.counts.closedThreeCount += 1;
     }
   }
@@ -626,11 +625,12 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
 
   // 1. HIGH PRIORITY CASE
   // - 1) If the player can reach the target score by capture, he must take it.
-  if (activeCaptureScore + total.counts.captureCount >= board->getGoal()) {
+  if (board->getEnableCapture() &&
+      activeCaptureScore + total.counts.captureCount >= board->getGoal()) {
     total.counts.captureWin += 1;
   }
   // - 2) If the player can't win by breakable gomoku, he must solve it.
-  if (total.counts.closedThreeCount) {
+  if (board->getEnableCapture() && total.counts.closedThreeCount) {
     for (std::vector<int>::iterator it = opponentCaptureDirections.begin();
          it != opponentCaptureDirections.end(); ++it) {
       int dx = DIRECTIONS[*it][0];
@@ -640,10 +640,11 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
         total.counts.fixBreakableGomoku += 1;
       }
     }
+    opponentCaptureDirections.clear();
   }
 
   // - 3) If the player can make perfect gomoku, he must take it
-  if (total.counts.gomokuCount > 0) {
+  if (board->getEnableCapture() && total.counts.gomokuCount > 0) {
     for (std::vector<int>::iterator it = gomokuDirections.begin(); it != gomokuDirections.end();
          ++it) {
       int dx = DIRECTIONS[*it][0];
@@ -654,8 +655,10 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
         total.counts.perfectCritical += 1;
       }
     }
+    gomokuDirections.clear();
   }
-  if (total.counts.openFourCount > 0) {
+
+  if (board->getEnableCapture() && total.counts.openFourCount > 0) {
     for (std::vector<int>::iterator it = openFourDirections.begin(); it != openFourDirections.end();
          ++it) {
       int dx = DIRECTIONS[*it][0];
@@ -666,12 +669,13 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
         total.counts.perfectCritical += 1;
       }
     }
+    openFourDirections.clear();
   }
 
   // 3. DEFENSE CASE
 
   // - 1) If player can break opponent's open 3+ or 4 stone, he must break.
-  if (total.counts.captureCount > 0) {
+  if (board->getEnableCapture() && total.counts.captureCount > 0) {
     for (std::vector<int>::iterator it = captureDirections.begin(); it != captureDirections.end();
          ++it) {
       int dir = *it;
@@ -729,22 +733,17 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   }
 
   // Score calculation
-  // Critical Case
+  // - 1) Critical Case
   if (total.counts.gomokuCount && !total.counts.perfectCritical) {
     // if gomoku is not perfect, block opponent opponent first...
     total.score += total.counts.gomokuCount * CONTINUOUS_OPEN_4;
   } else {
     total.score += total.counts.gomokuCount * GOMOKU;
   }
-  total.score += total.counts.captureWin * CAPTURE_WIN;
-  total.score += total.counts.fixBreakableGomoku * (GOMOKU * 2);
   total.score += total.counts.perfectCritical * PERFECT_CRITICAL_LINE;
   // Attack Case
-  // - 1) If player can catch, he must catch.
-  total.score += total.counts.captureCount * CAPTURE;
   // - 2) If player can threat, he must threat
   total.score += total.counts.threatCount * THREAT;
-  total.score += total.counts.captureThreatCount * CAPTURE_THREAT;
   total.score += total.counts.openFourCount * CONTINUOUS_OPEN_4;
   total.score += total.counts.closedFourCount * CONTINUOUS_CLOSED_4;
   total.score += total.counts.openThreeCount * CONTINUOUS_OPEN_3;
@@ -755,23 +754,14 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   // - 1) Center priority
   int boardCenter = BOARD_SIZE / 2;
   total.score += CENTER_BONUS - (abs(x - boardCenter) + abs(y - boardCenter)) * 100;
-  // - 2) Avoid capture vulnerability
-  float vulnerablePenaltyCoefficient =
-      std::max(float(opponentCaptureScore + 1) / (board->getGoal()), float(0.5));
-  total.score -=
-      total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY * vulnerablePenaltyCoefficient;
-  // - 3) Avoid opponent double three spot (no priority)
+  // - 2) Avoid opponent double three spot (no priority)
   if (board->getEnableDoubleThreeRestriction() && total.counts.openTwoBlockCount >= 2) {
     total.score -= total.counts.openTwoBlockCount * BLOCK_DOUBLE_THREE_PENALTY;
   }
 
-  // - 4) Avoid capture
-  total.score += total.counts.captureBlockCount * CAPTURE;
   // - 5) If opponent made open three or four, player must block it
   total.score += total.counts.fourBlockCount * BLOCK_CRITICAL_LINE;
   total.score += total.counts.openThreeBlockCount * BLOCK_CRITICAL_LINE;
-  total.score += total.counts.captureCriticalCount * CAPTURE_CRITICAL;
-  total.score += total.counts.captureBlockCriticalCount * CAPTURE_BLOCK_CRITICAL;
   total.score += total.counts.gomokuBlockCount * BLOCK_GOMOKU;
   // - 6) Simple block
   total.score += total.counts.openTwoBlockCount * BLOCK_OPEN_2;
@@ -783,6 +773,24 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   if (board->getEnableDoubleThreeRestriction() && total.counts.openThreeCount >= 2) {
     total.score = 0;
   }
+  // - 2) If game enable capture, consider capture case
+  if (board->getEnableCapture()) {
+    // - Avoid to be captured
+    total.score += total.counts.captureBlockCount * CAPTURE;
+    // - Avoid capture vulnerability
+    float vulnerablePenaltyCoefficient =
+        std::max(float(opponentCaptureScore + 1) / (board->getGoal()), float(0.5));
+    total.score -=
+        total.counts.captureVulnerable * CAPTURE_VULNERABLE_PENALTY * vulnerablePenaltyCoefficient;
+    total.score += total.counts.captureCriticalCount * CAPTURE_CRITICAL;
+    total.score += total.counts.captureBlockCriticalCount * CAPTURE_BLOCK_CRITICAL;
+    total.score += total.counts.captureWin * CAPTURE_WIN;
+    total.score += total.counts.captureThreatCount * CAPTURE_THREAT;
+    // If player can catch, he must catch.
+    total.score += total.counts.captureCount * CAPTURE;
+    total.score += total.counts.fixBreakableGomoku * (GOMOKU * 2);
+  }
+
   // printEvalEntry(total);
 
   return total.score;
