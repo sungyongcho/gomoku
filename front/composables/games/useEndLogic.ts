@@ -43,6 +43,7 @@ export const useEndLogic = () => {
   };
 
   const isPerfectFiveEnded = (situation: GameSituation): GameResult => {
+    const { settings } = storeToRefs(useGameStore());
     const winLines: BoardStone[][] = [];
     const { x, y, turn, boardData } = situation;
 
@@ -66,6 +67,14 @@ export const useEndLogic = () => {
     const oppositeStone = getOppositeStone(turn);
 
     if (winLines.length === 0) return {};
+
+    if (!settings.value.enableCapture) {
+      console.log("HERE!!");
+      return {
+        result: GAME_END_SCENARIO.FIVE_OR_MORE_STONES,
+        winner: turn,
+      };
+    }
 
     // Check non-breakable line exist
     for (const winLine of winLines) {
