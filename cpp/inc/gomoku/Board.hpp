@@ -20,6 +20,24 @@ struct CapturedStone {
   int player;
 };
 
+struct UndoInfo {
+  // The move that was made
+  std::pair<int, int> move;
+
+  // List of stones captured BY this move (player is the one whose stone was removed)
+  std::vector<CapturedStone> capturedStonesInfo;  // Stores {x, y, player} for each stone captured
+
+  // Score of the player *who made the move* BEFORE any captures in this move occurred.
+  // Needed to correctly revert the score and score hash update.
+  int scoreBeforeCapture;
+
+  // Constructor (optional, but good for initialization)
+  // Using C++98 style initialization
+  UndoInfo() : move(-1, -1), scoreBeforeCapture(0) {
+    // capturedStonesInfo starts empty by default
+  }
+};
+
 class Board {
  private:
   int goal;
@@ -81,6 +99,9 @@ class Board {
                                 rapidjson::Document::AllocatorType &allocator) const;
   static void printLinePattern(unsigned int pattern, int length);
   static void printLinePatternReverse(unsigned int pattern, int length);
+
+  UndoInfo makeMove(int col, int row);
+  void undoMove(const UndoInfo &undo_data);
 };
 
 #endif  // BOARD_HPP

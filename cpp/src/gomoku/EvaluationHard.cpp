@@ -598,7 +598,7 @@ static bool isNonVulnerableLine(Board* board, int x, int y, int dx, int dy, int 
   return true;
 }
 
-int evaluatePositionHard(Board*& board, int player, int x, int y) {
+int evaluatePositionHard(Board* board, int player, int x, int y) {
   EvaluationEntry total;
   int activeCaptureScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
                                                               : board->getNextPlayerScore();
