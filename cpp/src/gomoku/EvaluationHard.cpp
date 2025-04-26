@@ -770,7 +770,7 @@ int evaluatePositionHard(Board*& board, int player, int x, int y) {
   total.score += total.counts.openOneBlockCount * BLOCK_OPEN_1;
   total.score += total.counts.closedThreeBlockCount * BLOCK_CLOSE_3;
 
-  printEvalEntry(total);
+  // printEvalEntry(total);
 
   return total.score;
 }
