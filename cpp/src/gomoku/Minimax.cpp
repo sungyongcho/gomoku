@@ -219,6 +219,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
             bool isMaximizing) {
   // Terminal condition: if we've reached maximum depth.
   if (depth == 0 || Rules::isWinningMove(board, currentPlayer, lastX, lastY)) {
+    // board->printBitboard();
     int eval = Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
     return eval;
   }
@@ -236,9 +237,12 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     // Use the new comparator that takes depth.
     bestEval = std::numeric_limits<int>::min();
     for (size_t i = 0; i < moves.size(); ++i) {
+      UndoInfo info = board->makeMove(moves[i].first, moves[i].second);
+      int playerMakingMove = board->getNextPlayer();  // Get player before making move
       // childMax->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-      int eval = minimax(board, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
+      int eval = minimax(board, depth - 1, alpha, beta, playerMakingMove, moves[i].first,
                          moves[i].second, false);
+      board->undoMove(info);
       if (eval > bestEval) {
         bestEval = eval;
       }
@@ -255,9 +259,11 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   } else {
     bestEval = std::numeric_limits<int>::max();
     for (size_t i = 0; i < moves.size(); ++i) {
-      // childMin->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-      int eval = minimax(board, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
+      UndoInfo info = board->makeMove(moves[i].first, moves[i].second);
+      int playerMakingMove = board->getNextPlayer();  // Get player before making move
+      int eval = minimax(board, depth - 1, alpha, beta, playerMakingMove, moves[i].first,
                          moves[i].second, true);
+      board->undoMove(info);
       if (eval < bestEval) {
         bestEval = eval;
       }
@@ -279,15 +285,14 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 std::pair<int, int> getBestMove(Board *board, int depth) {
   int bestScore = std::numeric_limits<int>::min();
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
-
+  int currentPlayer = board->getNextPlayer();
   int root_alpha = std::numeric_limits<int>::min();  // Initial alpha = -infinity
   int root_beta = std::numeric_limits<int>::max();   // Initial beta = +infinity
-  int currentPlayer = board->getNextPlayer();
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
 
   // Order moves for the maximizing player.
-  MoveComparatorMax cmp(board, currentPlayer, depth);
+  MoveComparatorMax cmp(board, board->getNextPlayer(), depth);
   std::sort(moves.begin(), moves.end(), cmp);
 
   std::cout << "depth: " << depth << " player" << currentPlayer << std::endl;
@@ -296,14 +301,18 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
     if (Evaluation::evaluatePositionHard(board, currentPlayer, moves[i].first, moves[i].second) >
         MINIMAX_TERMINATION)
       return moves[i];
+    int playerMakingMove = board->getNextPlayer();  // Get player before making move
 
-    int score = minimax(board, depth - 1, root_alpha, root_beta, currentPlayer, moves[i].first,
+    UndoInfo info = board->makeMove(moves[i].first, moves[i].second);
+    int score = minimax(board, depth - 1, root_alpha, root_beta, playerMakingMove, moves[i].first,
                         moves[i].second, false);
+    board->undoMove(info);
     if (score > bestScore) {
       bestScore = score;
       bestMove = moves[i];
     }
   }
+  std::cout << "final: " << board->getNextPlayer() << std::endl;
   return bestMove;
 }
 

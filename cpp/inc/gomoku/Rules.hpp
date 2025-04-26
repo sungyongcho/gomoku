@@ -3,10 +3,10 @@
 
 #include <vector>
 
-#include "Board.hpp"
 #include "Evaluation.hpp"
 #include "Gomoku.hpp"
 
+class Board;
 class Rules {
  public:
   static bool detectCaptureStones(Board &board, int x, int y, int player);

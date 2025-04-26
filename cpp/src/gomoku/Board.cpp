@@ -1,5 +1,7 @@
 #include "Board.hpp"
 
+#include "Rules.hpp"
+
 Board::Board()
     : goal(5),
       last_player(PLAYER_1),
@@ -225,7 +227,7 @@ void Board::applyCapture(bool clearCapture) {
 const std::vector<CapturedStone> &Board::getCapturedStones() const { return this->captured_stones; }
 
 void Board::switchTurn() {
-  int tmp = last_player;
+  int tmp = this->next_player;
   this->next_player = this->last_player;
   this->last_player = tmp;
 
@@ -368,4 +370,55 @@ void printLinePatternReverse(unsigned int pattern, int length) {
 
 void Board::printLinePattern(unsigned int pattern, int length) {
   print_line_pattern_impl(pattern, length, false);
+}
+
+UndoInfo Board::makeMove(int col, int row) {
+  UndoInfo undo_data;
+
+  int player = this->next_player;
+  if (!isValidCoordinate(col, row) || this->getValueBit(col, row) != EMPTY_SPACE)
+    throw std::runtime_error("Invalid move: Square occupied or out of bounds");
+
+  undo_data.move = std::make_pair(col, row);
+
+  if (player == this->next_player)
+    undo_data.scoreBeforeCapture = this->next_player_score;
+  else  // Should technically be the next_player, but handle if state is unusual
+    undo_data.scoreBeforeCapture = this->last_player_score;  // Or fetch based on 'player' ID
+
+  this->setValueBit(col, row, player);
+
+  if (Rules::detectCaptureStones(*this, col, row, player)) {
+    undo_data.capturedStonesInfo = captured_stones;
+    applyCapture(true);
+  }
+  this->switchTurn();
+  return undo_data;
+}
+
+void Board::undoMove(const UndoInfo &undo_data) {
+  this->switchTurn();
+
+  if (!undo_data.capturedStonesInfo.empty()) {
+    int player_who_moved = this->last_player;
+    int score_after_capture = this->last_player_score;  // Current score is the one after capture
+    int score_before_capture =
+        undo_data.scoreBeforeCapture;  // Get score before capture from undo info
+
+    // Only update if score actually changed during makeMove
+    // Update Zobrist hash for score change: XOR out new(current), XOR in old.
+    // Use player_who_moved (1 or 2) directly as index.
+    this->currentHash ^= Zobrist::capture_keys[player_who_moved][score_after_capture];
+    this->currentHash ^= Zobrist::capture_keys[player_who_moved][score_before_capture];
+
+    // Restore the player's score member variable
+    this->last_player_score = score_before_capture;
+    for (std::vector<CapturedStone>::const_iterator it = undo_data.capturedStonesInfo.begin();
+         it != undo_data.capturedStonesInfo.end(); it++) {
+      const CapturedStone &cap = *it;
+      this->setValueBit(cap.x, cap.y, cap.player);
+    }
+  }
+
+  this->setValueBit(undo_data.move.first, undo_data.move.second, EMPTY_SPACE);
 }
