@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "Board.hpp"
+
 // Bitmask-based capture check that stores captured stone coordinates.
 // It checks for the pattern: opponent stone at (x+dx, y+dy) and (x+2*dx,
 // y+2*dy), with currentPlayer’s stone at (x+3*dx, y+3*dy). If the pattern is
