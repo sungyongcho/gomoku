@@ -99,52 +99,56 @@ bool isKillerMove(int depth, const std::pair<int, int> &move) {
 }
 
 struct MoveComparatorMax {
-  const Board *board;
+  Board *board;
   int player;
   int depth;  // Current search depth
-  MoveComparatorMax(const Board *b, int p, int d) : board(b), player(p), depth(d) {}
+  MoveComparatorMax(Board *b, int p, int d) : board(b), player(p), depth(d) {}
 
   bool operator()(const std::pair<int, int> &m1, const std::pair<int, int> &m2) const {
     // Give a bonus if the move is a killer move.
-    int bonus1 = isKillerMove(depth, m1) ? 1000 : 0;
-    int bonus2 = isKillerMove(depth, m2) ? 1000 : 0;
+    bool m1_is_killer = false;
+    bool m2_is_killer = false;
+    // if (depth >= 0 && depth < MAX_DEPTH_LIMIT) { // Add appropriate depth check
+    m1_is_killer = (m1 == killerMoves[depth][0] || m1 == killerMoves[depth][1]);
+    m2_is_killer = (m2 == killerMoves[depth][0] || m2 == killerMoves[depth][1]);
+    // }
 
-    // Evaluate each move with a shallow evaluation and add the bonus.
-    Board *child1 = new Board(*board);
-    child1->setValueBit(m1.first, m1.second, player);
-    int score1 = Evaluation::evaluatePositionHard(child1, player, m1.first, m1.second) + bonus1;
-    delete child1;
+    if (m1_is_killer && !m2_is_killer) {
+      return true;  // m1 is killer, m2 is not -> m1 first
+    }
+    if (!m1_is_killer && m2_is_killer) {
+      return false;  // m2 is killer, m1 is not -> m2 first
+    }
 
-    Board *child2 = new Board(*board);
-    child2->setValueBit(m2.first, m2.second, player);
-    int score2 = Evaluation::evaluatePositionHard(child2, player, m2.first, m2.second) + bonus2;
-    delete child2;
-
-    return score1 > score2;  // Higher score first.
+    return Evaluation::evaluatePositionHard(board, player, m1.first, m1.second) >
+           Evaluation::evaluatePositionHard(board, player, m2.first, m2.second);
   }
 };
 
 struct MoveComparatorMin {
-  const Board *board;
+  Board *board;
   int player;
-  int depth;
-  MoveComparatorMin(const Board *b, int p, int d) : board(b), player(p), depth(d) {}
+  int depth;  // Current search depth
+  MoveComparatorMin(Board *b, int p, int d) : board(b), player(p), depth(d) {}
 
   bool operator()(const std::pair<int, int> &m1, const std::pair<int, int> &m2) const {
-    int bonus1 = isKillerMove(depth, m1) ? 1000 : 0;
-    int bonus2 = isKillerMove(depth, m2) ? 1000 : 0;
+    // Give a bonus if the move is a killer move.
+    bool m1_is_killer = false;
+    bool m2_is_killer = false;
+    // if (depth >= 0 && depth < MAX_DEPTH_LIMIT) { // Add appropriate depth check
+    m1_is_killer = (m1 == killerMoves[depth][0] || m1 == killerMoves[depth][1]);
+    m2_is_killer = (m2 == killerMoves[depth][0] || m2 == killerMoves[depth][1]);
+    // }
 
-    Board *child1 = new Board(*board);
-    child1->setValueBit(m1.first, m1.second, player);
-    int score1 = Evaluation::evaluatePositionHard(child1, player, m1.first, m1.second) + bonus1;
-    delete child1;
+    if (m1_is_killer && !m2_is_killer) {
+      return true;  // m1 is killer, m2 is not -> m1 first
+    }
+    if (!m1_is_killer && m2_is_killer) {
+      return false;  // m2 is killer, m1 is not -> m2 first
+    }
 
-    Board *child2 = new Board(*board);
-    child2->setValueBit(m2.first, m2.second, player);
-    int score2 = Evaluation::evaluatePositionHard(child2, player, m2.first, m2.second) + bonus2;
-    delete child2;
-
-    return score1 < score2;  // Lower score first for minimizer.
+    return Evaluation::evaluatePositionHard(board, player, m1.first, m1.second) <
+           Evaluation::evaluatePositionHard(board, player, m2.first, m2.second);
   }
 };
 
@@ -181,7 +185,8 @@ struct MoveComparatorMin {
 //       Board *child = Board::cloneBoard(board);
 //       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
 //       // Recurse: switch player and turn.
-//       int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
+//       int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer),
+//       moves[i].first,
 //                          moves[i].second, false);
 //       if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
 //         board->applyCapture(true);
@@ -196,7 +201,8 @@ struct MoveComparatorMin {
 //     for (size_t i = 0; i < moves.size(); ++i) {
 //       Board *child = Board::cloneBoard(board);
 //       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-//       int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
+//       int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer),
+//       moves[i].first,
 //                          moves[i].second, true);
 //       if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
 //         board->applyCapture(true);
@@ -212,56 +218,29 @@ struct MoveComparatorMin {
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
             bool isMaximizing) {
   // Terminal condition: if we've reached maximum depth.
-  Board *child;
   if (depth == 0 || Rules::isWinningMove(board, currentPlayer, lastX, lastY)) {
-    child = new Board(*board);
-    int eval = Evaluation::evaluatePositionHard(child, currentPlayer, lastX, lastY);
-    child->setValueBit(lastX, lastY, currentPlayer);
-    if (Rules::detectCaptureStones(*child, lastX, lastY, currentPlayer)) child->applyCapture(true);
-    TTEntry entry = {eval, depth, std::make_pair(lastX, lastY), EXACT};
-    transTable[child->getHash()] = entry;
-
-    if (depth != 0) return eval * depth;
+    int eval = Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
     return eval;
   }
-  // Compute the current board's hash.
-  child = new Board(*board);
-  child->setValueBit(lastX, lastY, currentPlayer);
-  if (Rules::detectCaptureStones(*child, lastX, lastY, currentPlayer)) child->applyCapture(true);
-  // std::cout << "-----------depth: " << depth << "----------" << std::endl;
-  // child->printBitboard();
-  // std::cout << "-----------depth: " << depth << "----------" << std::endl;
-  uint64_t hash = child->getHash();
 
   // Generate candidate moves.
-  std::vector<std::pair<int, int> > moves = generateCandidateMoves(child);
+  std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) {
-    int eval = Evaluation::evaluatePositionHard(child, currentPlayer, lastX, lastY);
-    TTEntry entry = {eval, depth, std::make_pair(-1, -1), EXACT};
-    transTable[hash] = entry;
+    int eval = Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
     return eval;
   }
 
   int bestEval;
-  // Save original alpha and beta for later bound determination.
-  int originalAlpha = alpha;
-  int originalBeta = beta;
-  std::pair<int, int> bestMove = std::make_pair(-1, -1);
 
   if (isMaximizing) {
     // Use the new comparator that takes depth.
-    MoveComparatorMax cmp(child, currentPlayer, depth);
-    std::sort(moves.begin(), moves.end(), cmp);
     bestEval = std::numeric_limits<int>::min();
     for (size_t i = 0; i < moves.size(); ++i) {
-      Board *childMax = new Board(*child);
       // childMax->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-      int eval = minimax(childMax, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
+      int eval = minimax(board, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
                          moves[i].second, false);
-      delete childMax;
       if (eval > bestEval) {
         bestEval = eval;
-        bestMove = moves[i];
       }
       alpha = std::max(alpha, eval);
       if (beta <= alpha) {
@@ -274,18 +253,13 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
       }
     }
   } else {
-    MoveComparatorMin cmp(child, currentPlayer, depth);
-    std::sort(moves.begin(), moves.end(), cmp);
     bestEval = std::numeric_limits<int>::max();
     for (size_t i = 0; i < moves.size(); ++i) {
-      Board *childMin = new Board(*child);
       // childMin->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-      int eval = minimax(childMin, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
+      int eval = minimax(board, depth - 1, alpha, beta, OPPONENT(currentPlayer), moves[i].first,
                          moves[i].second, true);
-      delete childMin;
       if (eval < bestEval) {
         bestEval = eval;
-        bestMove = moves[i];
       }
       beta = std::min(beta, eval);
       if (beta <= alpha) {
@@ -299,25 +273,15 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     }
   }
 
-  // Determine the bound type for the entry.
-  BoundType flag;
-  if (bestEval <= originalAlpha)
-    flag = UPPERBOUND;
-  else if (bestEval >= originalBeta)
-    flag = LOWERBOUND;
-  else
-    flag = EXACT;
-
-  // Store the computed value in the transposition table.
-  TTEntry newEntry = {bestEval, depth, bestMove, flag};
-  transTable[hash] = newEntry;
-  delete child;
   return bestEval;
 }
 
 std::pair<int, int> getBestMove(Board *board, int depth) {
   int bestScore = std::numeric_limits<int>::min();
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
+
+  int root_alpha = std::numeric_limits<int>::min();  // Initial alpha = -infinity
+  int root_beta = std::numeric_limits<int>::max();   // Initial beta = +infinity
   int currentPlayer = board->getNextPlayer();
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
@@ -329,24 +293,17 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   std::cout << "depth: " << depth << " player" << currentPlayer << std::endl;
   // Evaluate each candidate move.
   for (size_t i = 0; i < moves.size(); ++i) {
-    // Use minimax for deeper evaluation (switching to opponent's turn).
-    int minimaxScore =
-        minimax(board, depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(),
-                currentPlayer, moves[i].first, moves[i].second, true);
-    std::cout << "---------move---------" << std::endl;
-    std::cout << Board::convertIndexToCoordinates(moves[i].first, moves[i].second) << std::endl;
-    std::cout << "minimaxScore " << minimaxScore << std::endl;
-    std::cout << "---------move---------" << std::endl;
+    if (Evaluation::evaluatePositionHard(board, currentPlayer, moves[i].first, moves[i].second) >
+        MINIMAX_TERMINATION)
+      return moves[i];
 
-    if (minimaxScore > bestScore) {
-      bestScore = minimaxScore;
+    int score = minimax(board, depth - 1, root_alpha, root_beta, currentPlayer, moves[i].first,
+                        moves[i].second, false);
+    if (score > bestScore) {
+      bestScore = score;
       bestMove = moves[i];
     }
   }
-  std::cout << "-------------" << std::endl;
-  std::cout << Board::convertIndexToCoordinates(bestMove.first, bestMove.second) << std::endl;
-  std::cout << "bestScore " << bestScore << std::endl;
-  std::cout << "-------------" << std::endl;
   return bestMove;
 }
 
@@ -375,7 +332,8 @@ std::pair<int, int> getBestMovePV(Board *board, int depth, std::pair<int, int> &
     Board *child = new Board(*board);
 
     // int immediateScore =
-    //     Evaluation::evaluatePositionHard(child, currentPlayer, moves[i].first, moves[i].second);
+    //     Evaluation::evaluatePositionHard(child, currentPlayer, moves[i].first,
+    //     moves[i].second);
 
     // // Apply the move.
     // child->setValueBit(moves[i].first, moves[i].second, currentPlayer);

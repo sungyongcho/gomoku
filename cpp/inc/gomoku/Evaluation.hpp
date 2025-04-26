@@ -188,9 +188,9 @@ int checkCapture(unsigned int side, unsigned int player);
 
 unsigned int reversePattern(unsigned int pattern, int windowSize);
 
-int evaluatePosition(Board *&board, int player, int x, int y);
+int evaluatePosition(Board *board, int player, int x, int y);
 
-int evaluatePositionHard(Board *&board, int player, int x, int y);
+int evaluatePositionHard(Board *board, int player, int x, int y);
 
 int getEvaluationPercentage(int score);
 

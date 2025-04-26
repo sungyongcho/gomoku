@@ -394,7 +394,7 @@ int checkVPattern(Board *board, int player, int x, int y, int i) {
   return result;
 }
 
-int evaluatePosition(Board *&board, int player, int x, int y) {
+int evaluatePosition(Board *board, int player, int x, int y) {
   int totalScore = 0;
 
   // if (board->getValueBit(x, y) == EMPTY_SPACE) return 0;
