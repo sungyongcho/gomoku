@@ -2,7 +2,11 @@
 #define GOMOKU_HPP
 
 #include <stdint.h>
-// Define constants
+
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+#include <ctime>
+#include <iostream>
 
 #define PLAYER_1 1
 #define PLAYER_2 2
@@ -47,13 +51,16 @@ inline unsigned int pack_cells_1(unsigned int a) { return a; }
  * for zobrist table
  */
 
-static const int NUM_CELLS = BOARD_SIZE * BOARD_SIZE;
-static const uint64_t LAST_SCORE_MULTIPLIER = 2654435761UL;
-static const uint64_t NEXT_SCORE_MULTIPLIER = 1597334677UL;  // Different prime constant
+typedef uint64_t ZobristKey;
+namespace Zobrist {
+extern ZobristKey piece_keys[BOARD_SIZE][BOARD_SIZE][3];  //
+extern ZobristKey capture_keys[3][5 + 1];
+extern ZobristKey turn_key;
+extern bool initialized;
+}  // namespace Zobrist
 
-extern uint64_t zobristTable[NUM_CELLS]
-                            [3];  // For each cell and state (0: empty, 1: black, 2: white).
-extern uint64_t zobristTurn[3];   // For turn: index 1 for BLACK, 2 for WHITE.
+// global boost random number generator
+extern boost::random::mt19937 global_boost_rng;
 
 void initZobrist();
 
