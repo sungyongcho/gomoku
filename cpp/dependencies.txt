@@ -2,5 +2,6 @@ g++
 cmake
 make
 libwebsockets-dev
+libboost-dev
 rapidjson-dev
 git
