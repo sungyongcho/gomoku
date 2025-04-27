@@ -35,6 +35,17 @@ services:
       - ./cpp:/app
     ports:
       - "8005:8005"  # Use a different host port
+  cpp_server_debug:
+    build:
+      context: ./cpp
+      dockerfile: Dockerfile
+    volumes:
+      - ./cpp:/app
+    ports:
+      - "8005:8005"   # If you want to test server manually
+      - "8006:8006"   # gdbserver
+    command: >
+      sh -c "make debug && gdbserver :8006 ./server_debug"
 
 volumes:
   node_modules:

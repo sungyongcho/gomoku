@@ -5,3 +5,5 @@ libwebsockets-dev
 libboost-dev
 rapidjson-dev
 git
+gdb
+gdbserver

@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Docker C++ server",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/cpp/server_debug", // <--- update this
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/cpp",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerServerAddress": "localhost:8006",
+      "miDebuggerPath": "/usr/bin/gdb"
+    }
+  ]
+}
