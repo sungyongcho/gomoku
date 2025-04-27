@@ -208,7 +208,6 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing) {
   int playerWhoseTurnItIs = board->getNextPlayer();
   // Use -1,-1 or appropriate dummy coords if last move isn't relevant here
   int stand_pat_score = Evaluation::evaluatePositionHard(board, playerWhoseTurnItIs, -1, -1);
-
   // 2. Initial Pruning based on Stand-Pat
   if (isMaximizing) {
     if (stand_pat_score >= beta) {
@@ -368,7 +367,7 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   int root_beta = std::numeric_limits<int>::max();   // Initial beta = +infinity
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
-
+  initKillerMoves();
   // Order moves for the maximizing player.
   MoveComparatorMax cmp(board, board->getNextPlayer(), depth);
   std::sort(moves.begin(), moves.end(), cmp);
@@ -388,6 +387,7 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
     if (score > bestScore) {
       bestScore = score;
       bestMove = moves[i];
+      root_alpha = std::max(root_alpha, score);
     }
   }
   std::cout << "final: " << board->getNextPlayer() << std::endl;
