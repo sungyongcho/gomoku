@@ -264,8 +264,39 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   if (lastX != -1 && Rules::isWinningMove(board, playerWhoJustMoved, lastX, lastY)) {
     return Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
   }
+
   if (depth == 0) {
     return quiescenceSearch(board, alpha, beta, isMaximizing);
+  }
+
+  const int NULL_MOVE_REDUCTION = 2;
+  // Preconditions: Check if NMP is applicable
+  // - Depth must be high enough (e.g., depth >= NULL_MOVE_REDUCTION + 1)
+  // - Not in quiescence search (this function isn't QSearch, so okay)
+  // - Avoid near end-game? (Less critical in Gomoku perhaps)
+  // - Not root node? (Sometimes NMP is skipped at root or near-root)
+  if (depth >= (NULL_MOVE_REDUCTION + 1) /* && other conditions if needed */) {
+    // 1. Make Null Move (conceptually switch player)
+    // board->switchPlayer(); // Or however you handle turn switching
+    // uint64_t originalHash = board->getHash(); // If hash includes side-to-move
+    // board->updateHashForSideToMove();
+
+    // 2. Recursive Call with reduced depth and swapped bounds
+    // Note: Pass the *opponent's* perspective for alpha/beta
+    int null_score = -minimax(board, depth - 1 - NULL_MOVE_REDUCTION, -beta, -beta + 1,
+                              (currentPlayer == PLAYER_1 ? PLAYER_2 : PLAYER_1), -1,
+                              -1,              // No real last move for null move
+                              !isMaximizing);  // Flip maximizing flag
+
+    // 3. Undo Null Move
+    // board->switchPlayer();
+    // board->setHash(originalHash); // Restore hash if needed
+
+    // 4. Check result and prune if null_score >= beta
+    if (null_score >= beta) {
+      // Null move indicates the position is strong enough to likely cause a cutoff
+      return beta;  // Return beta (fail-hard)
+    }
   }
 
   // Generate candidate moves.
