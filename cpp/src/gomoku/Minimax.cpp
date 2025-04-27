@@ -373,9 +373,7 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   std::cout << "depth: " << depth << " player" << currentPlayer << std::endl;
   // Evaluate each candidate move.
   for (size_t i = 0; i < scored_moves.size(); ++i) {
-    if (Evaluation::evaluatePositionHard(board, currentPlayer, scored_moves[i].move.first,
-                                         scored_moves[i].move.second) > MINIMAX_TERMINATION)
-      return scored_moves[i].move;
+    if (scored_moves[i].score > MINIMAX_TERMINATION) return scored_moves[i].move;
     int playerMakingMove = board->getNextPlayer();  // Get player before making move
 
     UndoInfo info = board->makeMove(scored_moves[i].move.first, scored_moves[i].move.second);
