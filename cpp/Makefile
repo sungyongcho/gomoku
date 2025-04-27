@@ -1,6 +1,7 @@
 # Compiler and flags
 CXX        := g++
 CXXFLAGS   := -std=c++98 -Wall -Wextra -Werror -Wreorder -Iinc -Iinc/gomoku -Iinc/ws -O2
+DBGFLAGS   := -std=c++98 -Wall -Wextra -Werror -Wreorder -Iinc -Iinc/gomoku -Iinc/ws -g
 LDFLAGS    := -lwebsockets -lpthread
 
 # Directories
@@ -26,7 +27,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 $(DEBUG_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(@D)
-	$(CXX) $(CXXFLAGS) -g   -c $< -o $@
+	$(CXX) $(DBGFLAGS)   -c $< -o $@
 
 # Link — only runs if any .o is newer than the executable
 $(TARGET): $(OBJS)
