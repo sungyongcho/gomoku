@@ -58,6 +58,26 @@ std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board) {
   return moves;
 }
 
+std::vector<std::pair<int, int> > generateCaptureMoves(Board *&board) {
+  std::vector<std::pair<int, int> > moves;
+  uint64_t occupancy[BOARD_SIZE];
+  uint64_t neighbor[BOARD_SIZE];
+
+  board->getOccupancy(occupancy);
+  computeNeighborMask(occupancy, neighbor);
+
+  for (int row = 0; row < BOARD_SIZE; row++) {
+    uint64_t candidates = neighbor[row] & (~occupancy[row]) & rowMask;
+    for (int col = 0; col < BOARD_SIZE; col++) {
+      if (candidates & (1ULL << col)) {
+        if (Rules::detectCaptureStonesNotStore(*board, col, row, board->getNextPlayer()))
+          moves.push_back(std::make_pair(col, row));
+      }
+    }
+  }
+  return moves;
+}
+
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates) {
   // Create a 2D display grid.
   std::vector<std::vector<char> > display(BOARD_SIZE, std::vector<char>(BOARD_SIZE, '.'));
@@ -152,76 +172,77 @@ struct MoveComparatorMin {
   }
 };
 
-// int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int
-// lastY,
-//             bool isMaximizing) {
-//   // Terminal condition: if we've reached the maximum search depth.
-//   if (depth == 0) {
-//     // Evaluate board based on the last move (played by opponent of currentPlayer)
-//     return Evaluation::evaluatePositionHard(board, OPPONENT(currentPlayer), lastX, lastY);
-//   }
+int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing) {
+  // 1. Evaluate Stand-Pat Score
+  //    Perspective is crucial. Evaluate from the point of view of the player whose turn it is.
+  int playerWhoseTurnItIs = board->getNextPlayer();
+  // Use -1,-1 or appropriate dummy coords if last move isn't relevant here
+  int stand_pat_score = Evaluation::evaluatePositionHard(board, playerWhoseTurnItIs, -1, -1);
 
-//   // Generate candidate moves.
-//   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
-//   if (moves.empty())
-//     return Evaluation::evaluatePositionHard(board, OPPONENT(currentPlayer), lastX, lastY);
+  // 2. Initial Pruning based on Stand-Pat
+  if (isMaximizing) {
+    if (stand_pat_score >= beta) {
+      return beta;  // Fail-hard beta cutoff
+    }
+    alpha = std::max(alpha, stand_pat_score);
+  } else {  // Minimizing
+    if (stand_pat_score <= alpha) {
+      return alpha;  // Fail-hard alpha cutoff
+    }
+    beta = std::min(beta, stand_pat_score);
+  }
 
-//   if (isMaximizing) {
-//     MoveComparatorMax cmp(board, currentPlayer);
-//     std::sort(moves.begin(), moves.end(), cmp);
-//   } else {
-//     MoveComparatorMin cmp(board, currentPlayer);
-//     std::sort(moves.begin(), moves.end(), cmp);
-//   }
+  // 3. Generate Only Capture Moves
+  std::vector<std::pair<int, int> > captureMoves = generateCaptureMoves(board);
 
-//   // if (moves.size() > 1) {
-//   //   moves.resize(moves.size() / 2);
-//   // }
+  // 4. Base Case: No captures means position is quiet
+  if (captureMoves.empty()) {
+    return stand_pat_score;
+  }
 
-//   if (isMaximizing) {
-//     int maxEval = std::numeric_limits<int>::min();
-//     for (size_t i = 0; i < moves.size(); ++i) {
-//       // Create a child board state.
-//       Board *child = Board::cloneBoard(board);
-//       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-//       // Recurse: switch player and turn.
-//       int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer),
-//       moves[i].first,
-//                          moves[i].second, false);
-//       if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
-//         board->applyCapture(true);
-//       delete child;
-//       maxEval = std::max(maxEval, eval);
-//       alpha = std::max(alpha, eval);
-//       if (beta <= alpha) break;  // Beta cutoff.
-//     }
-//     return maxEval;
-//   } else {
-//     int minEval = std::numeric_limits<int>::max();
-//     for (size_t i = 0; i < moves.size(); ++i) {
-//       Board *child = Board::cloneBoard(board);
-//       child->setValueBit(moves[i].first, moves[i].second, currentPlayer);
-//       int eval = minimax(child, depth - 1, alpha, beta, OPPONENT(currentPlayer),
-//       moves[i].first,
-//                          moves[i].second, true);
-//       if (Rules::detectCaptureStones(*board, moves[i].first, moves[i].second, currentPlayer))
-//         board->applyCapture(true);
-//       delete child;
-//       minEval = std::min(minEval, eval);
-//       beta = std::min(beta, eval);
-//       if (beta <= alpha) break;  // Alpha cutoff.
-//     }
-//     return minEval;
-//   }
-// }
+  // --- Optional: Order capture moves (e.g., most valuable first) ---
+
+  // 5. Explore Capture Moves
+  int bestEval = stand_pat_score;  // Initialize with stand-pat
+
+  for (size_t i = 0; i < captureMoves.size(); ++i) {
+    UndoInfo info = board->makeMove(captureMoves[i].first, captureMoves[i].second);
+    // Recursively call quiescence search for the opponent
+    int eval = quiescenceSearch(board, alpha, beta, !isMaximizing);
+    board->undoMove(info);
+
+    if (isMaximizing) {
+      bestEval = std::max(bestEval, eval);  // Update best score found
+      alpha = std::max(alpha, eval);        // Update alpha
+      if (beta <= alpha) {
+        break;  // Beta cutoff
+      }
+    } else {                                // Minimizing
+      bestEval = std::min(bestEval, eval);  // Update best score found
+      beta = std::min(beta, eval);          // Update beta
+      if (beta <= alpha) {
+        break;  // Alpha cutoff
+      }
+    }
+  }
+  return bestEval;
+}
 
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
             bool isMaximizing) {
+  int playerWhoJustMoved =
+      (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;  // Or get from board if tracked
+
   // Terminal condition: if we've reached maximum depth.
-  if (depth == 0 || Rules::isWinningMove(board, currentPlayer, lastX, lastY)) {
+  if (Rules::isWinningMove(board, playerWhoJustMoved, lastX, lastY)) {
     // board->printBitboard();
-    int eval = Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
-    return eval;
+    return Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
+  }
+
+  if (depth == 0) {
+    // Note: currentPlayer is the player whose turn it is AT THIS NODE.
+    // Pass the current alpha, beta, and whether this node is maximizing.
+    return quiescenceSearch(board, alpha, beta, isMaximizing);
   }
 
   // Generate candidate moves.
