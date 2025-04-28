@@ -212,6 +212,7 @@ static const int blockScores[6] = {
     0, BLOCK_LINE_1, BLOCK_LINE_2, BLOCK_LINE_3, BLOCK_LINE_4, BLOCK_LINE_5};
 
 void printAxis(int forward, int backward);
+void printEvalEntry(EvaluationEntry eval);
 void printCombined(unsigned int combined);
 bool isValidBackwardPattern(unsigned int sidePattern);
 bool isValidForwardPattern(unsigned int sidePattern);

@@ -224,7 +224,6 @@ Evaluation::EvaluationEntry minimax(Board *board, int depth, Evaluation::Evaluat
   }
 
   if (depth == 0) {
-    std::cout << "i'm working" << std::endl;
     if (board->getCapturedStones().size() > 0) {
       board->applyCapture(true);
     }
@@ -356,6 +355,10 @@ Evaluation::EvaluationEntry minimax(Board *board, int depth, Evaluation::Evaluat
     }
   }
 
+  // std::cout << "BESTEVAL DEPTH " << currentPlayer << " (" << depth << ") " << lastX << "," <<
+  // lastY
+  //           << std::endl;
+  Evaluation::printEvalEntry(bestEval);
   return bestEval;
 }
 
@@ -371,7 +374,9 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   root_beta.score = std::numeric_limits<int>::max();   // Initial beta = +infinity
 
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
-  if (moves.empty()) return bestMove;
+  if (moves.empty()) {
+    return bestMove;
+  }
 
   initKillerMoves();
   // Order moves for the maximizing player.
@@ -398,23 +403,32 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   // ***** END PRE-CALCULATION & SORTING *****
 
   std::cout << "depth: " << depth << " player" << currentPlayer << std::endl;
+
+  Evaluation::EvaluationEntry bestEval;
   // Evaluate each candidate move.
   for (size_t i = 0; i < scored_moves.size(); ++i) {
-    if (scored_moves[i].score > MINIMAX_TERMINATION) return scored_moves[i].move;
+    if (scored_moves[i].score > MINIMAX_TERMINATION) {
+      return scored_moves[i].move;
+    }
     int playerMakingMove = board->getNextPlayer();  // Get player before making move
 
     UndoInfo info = board->makeMove(scored_moves[i].move.first, scored_moves[i].move.second);
-    Evaluation::EvaluationEntry minimax_eval =
-        minimax(board, depth - 1, root_alpha, root_beta, playerMakingMove,
-                scored_moves[i].move.first, scored_moves[i].move.second, false);
+    bestEval = minimax(board, depth - 1, root_alpha, root_beta, playerMakingMove,
+                       scored_moves[i].move.first, scored_moves[i].move.second, false);
     board->undoMove(info);
-    if (minimax_eval.score > bestScore) {
-      bestScore = minimax_eval.score;
+    if (bestEval.score > bestScore) {
+      bestScore = bestEval.score;
       bestMove = scored_moves[i].move;
-      root_alpha = std::max(root_alpha, minimax_eval);
+      root_alpha = std::max(root_alpha, bestEval);
     }
   }
   std::cout << "final: " << board->getNextPlayer() << std::endl;
+  std::cout << "getBestMove position: " << bestMove.first << ", " << bestMove.second << std::endl;
+  std::cout << "getBestMove score: " << bestScore << std::endl;
+  std::cout << "score" << board->getNextPlayerScore() << std::endl;
+  std::cout << "score" << board->getLastPlayerScore() << std::endl;
+  Evaluation::printEvalEntry(bestEval);
+
   return bestMove;
 }
 
