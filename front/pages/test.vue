@@ -19,7 +19,7 @@ const { initialBoard, getPlayerTotalCaptured, importGame } = useGameStore();
 
 const { doAlert, closeAlert } = useAlertStore();
 
-const { data, send, close, status } = useWebSocket(
+const { data, send, close, open, status } = useWebSocket(
   `ws://${window.location.hostname}:8005/ws/debug`,
   {
     autoReconnect: {
@@ -27,11 +27,10 @@ const { data, send, close, status } = useWebSocket(
       onFailed() {
         doAlert({
           header: "Error",
-          message:
-            "WebSocket connection failed. Please refresh the page to retry",
+          message: "WebSocket connection failed. Click button to reconnect",
           type: "Warn",
           actionIcon: "pi pi-undo",
-          actionLabel: "Retry",
+          actionLabel: "Reconnect",
           action: () => {
             open();
             closeAlert();
@@ -44,6 +43,24 @@ const { data, send, close, status } = useWebSocket(
 );
 
 const onSendData = (type: RequestType, testCase: TestCase) => {
+  if (status.value === "CLOSED") {
+    doAlert({
+      header: "Error",
+      message: "WebSocket connection failed. Click button to reconnect",
+      type: "Warn",
+      actionIcon: "pi pi-undo",
+      actionLabel: "Reconnect",
+      action: () => {
+        open();
+        nextTick(() => {
+          closeAlert();
+        });
+      },
+    });
+    isAiThinking.value = false;
+    return;
+  }
+
   const lastPlay = testCase.histories.at(-1);
   send(
     JSON.stringify({
