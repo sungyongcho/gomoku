@@ -13,7 +13,7 @@
 #include "Gomoku.hpp"
 #include "Rules.hpp"
 
-#define MAX_DEPTH 5
+#define MAX_DEPTH 11
 // Bound types used for alpha-beta entries.
 enum BoundType { EXACT, LOWERBOUND, UPPERBOUND };
 

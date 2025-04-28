@@ -26,8 +26,8 @@ Board::Board(const Board &other)
       next_player(other.next_player),
       last_player_score(other.last_player_score),
       next_player_score(other.next_player_score),
-      captured_stones(other.captured_stones),
-      currentHash(other.currentHash) {
+      currentHash(other.currentHash),
+      captured_stones(other.captured_stones) {
   for (int i = 0; i < BOARD_SIZE; ++i) {
     last_player_board[i] = other.last_player_board[i];
     next_player_board[i] = other.next_player_board[i];
@@ -378,8 +378,7 @@ UndoInfo Board::makeMove(int col, int row) {
   this->setValueBit(col, row, player);
 
   if (Rules::detectCaptureStones(*this, col, row, player)) {
-    undo_data.capturedStonesInfo = captured_stones;
-    applyCapture(true);
+    undo_data.capturedStonesInfo = this->captured_stones;
   }
   this->switchTurn();
   return undo_data;

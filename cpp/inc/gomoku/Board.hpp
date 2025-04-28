@@ -51,14 +51,13 @@ class Board {
   uint64_t last_player_board[BOARD_SIZE];
   uint64_t next_player_board[BOARD_SIZE];
 
-  std::vector<CapturedStone> captured_stones;
-
   uint64_t currentHash;
 
   void reset_bitboard();
   void init_bitboard_from_data(const std::vector<std::vector<char> > &board_data);
 
  public:
+  std::vector<CapturedStone> captured_stones;
   // Constructors
   Board();
   Board(const Board &other);
