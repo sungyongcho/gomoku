@@ -415,8 +415,8 @@
     { "coordinate": { "x": 12, "y": 11 }, "stone": "O", "capturedStones": [] }
   ],
   "settings": {
-    "capture": true,
-    "doubleThree": true,
+    "enableCapture": true,
+    "enableDoubleThreeRestriction": true,
     "totalPairCaptured": 5,
     "firstMove": false,
     "advantage1": 0,
