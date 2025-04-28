@@ -17,7 +17,7 @@ const { isAiThinking, settings } = storeToRefs(useGameStore());
 const isAllTesting = ref(false);
 const { initialBoard, getPlayerTotalCaptured, importGame } = useGameStore();
 
-const { doAlert } = useAlertStore();
+const { doAlert, closeAlert } = useAlertStore();
 
 const { data, send, close, status } = useWebSocket(
   `ws://${window.location.hostname}:8005/ws/debug`,
@@ -30,6 +30,12 @@ const { data, send, close, status } = useWebSocket(
           message:
             "WebSocket connection failed. Please refresh the page to retry",
           type: "Warn",
+          actionIcon: "pi pi-undo",
+          actionLabel: "Retry",
+          action: () => {
+            open();
+            closeAlert();
+          },
         });
         isAiThinking.value = false;
       },
