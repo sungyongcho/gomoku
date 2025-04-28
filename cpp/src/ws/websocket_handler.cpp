@@ -346,15 +346,17 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         //     pBoard, pBoard->getLastPlayer(), pBoard->getLastX(), pBoard->getLastY()));
 
         // p1 mapped as x and p2 mapped as o
-        int x_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_1, eval_x, eval_y);
-        int o_scores = Evaluation::evaluatePositionHard(pBoard, PLAYER_2, eval_x, eval_y);
+        Evaluation::EvaluationEntry x_scores =
+            Evaluation::evaluatePositionHard(pBoard, PLAYER_1, eval_x, eval_y);
+        Evaluation::EvaluationEntry o_scores =
+            Evaluation::evaluatePositionHard(pBoard, PLAYER_2, eval_x, eval_y);
 
-        int x_percentage = Evaluation::getEvaluationPercentage(x_scores);
-        int o_percentage = Evaluation::getEvaluationPercentage(o_scores);
-        std::cout << "x_scores: " << x_scores << " y_scores: " << o_scores << std::endl;
+        int x_percentage = Evaluation::getEvaluationPercentage(x_scores.score);
+        int o_percentage = Evaluation::getEvaluationPercentage(o_scores.score);
+        std::cout << "x_scores: " << x_scores.score << " y_scores: " << o_scores.score << std::endl;
         std::cout << "x_percentage: " << x_percentage << " y_percentage: " << o_percentage
                   << std::endl;
-        responseSuccessEvaluate(wsi, x_scores, o_scores);
+        responseSuccessEvaluate(wsi, x_scores.score, o_scores.score);
 
         delete pBoard;
         return 0;

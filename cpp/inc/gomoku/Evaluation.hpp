@@ -118,6 +118,37 @@ struct PatternCounts {
         captureWin(0),
         fixBreakableGomoku(0),
         perfectCritical(0) {}
+
+  PatternCounts &operator=(const PatternCounts &other) {
+    if (this != &other) {
+      gomokuCount = other.gomokuCount;
+      openFourCount = other.openFourCount;
+      closedFourCount = other.closedFourCount;
+      openThreeCount = other.openThreeCount;
+      closedThreeCount = other.closedThreeCount;
+      openTwoCount = other.openTwoCount;
+      threatCount = other.threatCount;
+      captureCount = other.captureCount;
+
+      fourBlockCount = other.fourBlockCount;
+      gomokuBlockCount = other.gomokuBlockCount;
+      closedThreeBlockCount = other.closedThreeBlockCount;
+      openThreeBlockCount = other.openThreeBlockCount;
+      openTwoBlockCount = other.openTwoBlockCount;
+      openOneBlockCount = other.openOneBlockCount;
+
+      captureVulnerable = other.captureVulnerable;
+      captureBlockCount = other.captureBlockCount;
+      captureThreatCount = other.captureThreatCount;
+      captureCriticalCount = other.captureCriticalCount;
+      captureBlockCriticalCount = other.captureBlockCriticalCount;
+
+      captureWin = other.captureWin;
+      fixBreakableGomoku = other.fixBreakableGomoku;
+      perfectCritical = other.perfectCritical;
+    }
+    return *this;
+  }
 };
 
 struct EvaluationEntry {
@@ -128,6 +159,17 @@ struct EvaluationEntry {
 
   EvaluationEntry(int s, const PatternCounts &pc) : score(s), counts(pc) {}
   // Overload operator += to combine two EvaluationEntries.
+  bool operator<(const EvaluationEntry &other) const { return score < other.score; }
+  bool operator>(const EvaluationEntry &other) const { return score > other.score; }
+  bool operator<=(const EvaluationEntry &other) const { return score <= other.score; }
+  bool operator>=(const EvaluationEntry &other) const { return score >= other.score; }
+  EvaluationEntry &operator=(const EvaluationEntry &other) {
+    if (this != &other) {
+      score = other.score;
+      counts = other.counts;
+    }
+    return *this;
+  }
   EvaluationEntry &operator+=(const EvaluationEntry &other) {
     score += other.score;
     counts.openFourCount += other.counts.openFourCount;
@@ -190,7 +232,7 @@ unsigned int reversePattern(unsigned int pattern, int windowSize);
 
 int evaluatePosition(Board *board, int player, int x, int y);
 
-int evaluatePositionHard(Board *board, int player, int x, int y);
+EvaluationEntry evaluatePositionHard(Board *board, int player, int x, int y);
 
 int getEvaluationPercentage(int score);
 

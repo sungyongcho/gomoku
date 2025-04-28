@@ -250,6 +250,7 @@ bool Rules::detectDoublethreeBit(Board &board, int x, int y, int player) {
 }
 
 bool Rules::isWinningMove(Board *board, int player, int x, int y) {
-  if (MINIMAX_TERMINATION <= Evaluation::evaluatePositionHard(board, player, x, y)) return true;
+  if (MINIMAX_TERMINATION <= Evaluation::evaluatePositionHard(board, player, x, y).score)
+    return true;
   return false;
 }

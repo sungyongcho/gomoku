@@ -152,23 +152,25 @@ struct CompareScoredMovesMin {
   }
 };
 
-int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing) {
+Evaluation::EvaluationEntry quiescenceSearch(Board *board, Evaluation::EvaluationEntry alpha,
+                                             Evaluation::EvaluationEntry beta, bool isMaximizing) {
   // 1. Evaluate Stand-Pat Score
   //    Perspective is crucial. Evaluate from the point of view of the player whose turn it is.
   int playerWhoseTurnItIs = board->getNextPlayer();
   // Use -1,-1 or appropriate dummy coords if last move isn't relevant here
-  int stand_pat_score = Evaluation::evaluatePositionHard(board, playerWhoseTurnItIs, -1, -1);
+  Evaluation::EvaluationEntry stand_pat =
+      Evaluation::evaluatePositionHard(board, playerWhoseTurnItIs, -1, -1);
   // 2. Initial Pruning based on Stand-Pat
   if (isMaximizing) {
-    if (stand_pat_score >= beta) {
+    if (stand_pat >= beta) {
       return beta;  // Fail-hard beta cutoff
     }
-    alpha = std::max(alpha, stand_pat_score);
+    alpha = std::max(alpha, stand_pat);
   } else {  // Minimizing
-    if (stand_pat_score <= alpha) {
+    if (stand_pat <= alpha) {
       return alpha;  // Fail-hard alpha cutoff
     }
-    beta = std::min(beta, stand_pat_score);
+    beta = std::min(beta, stand_pat);
   }
 
   // 3. Generate Only Capture Moves
@@ -176,18 +178,18 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing) {
 
   // 4. Base Case: No captures means position is quiet
   if (captureMoves.empty()) {
-    return stand_pat_score;
+    return stand_pat;
   }
 
   // --- Optional: Order capture moves (e.g., most valuable first) ---
 
   // 5. Explore Capture Moves
-  int bestEval = stand_pat_score;  // Initialize with stand-pat
+  Evaluation::EvaluationEntry bestEval = stand_pat;  // Initialize with stand-pat
 
   for (size_t i = 0; i < captureMoves.size(); ++i) {
     UndoInfo info = board->makeMove(captureMoves[i].first, captureMoves[i].second);
     // Recursively call quiescence search for the opponent
-    int eval = quiescenceSearch(board, alpha, beta, !isMaximizing);
+    Evaluation::EvaluationEntry eval = quiescenceSearch(board, alpha, beta, !isMaximizing);
     board->undoMove(info);
 
     if (isMaximizing) {
@@ -207,12 +209,14 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing) {
   return bestEval;
 }
 
-int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
-            bool isMaximizing) {
+Evaluation::EvaluationEntry minimax(Board *board, int depth, Evaluation::EvaluationEntry alpha,
+                                    Evaluation::EvaluationEntry beta, int currentPlayer, int lastX,
+                                    int lastY, bool isMaximizing) {
   // --- [Win check, depth check (calling quiescenceSearch), etc. as before] ---
   int playerWhoJustMoved = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
-  int evalScore = Evaluation::evaluatePositionHard(board, playerWhoJustMoved, lastX, lastY);
-  if (lastX != -1 && evalScore >= MINIMAX_TERMINATION) {
+  Evaluation::EvaluationEntry evalScore =
+      Evaluation::evaluatePositionHard(board, playerWhoJustMoved, lastX, lastY);
+  if (lastX != -1 && evalScore.score >= MINIMAX_TERMINATION) {
     if (board->getCapturedStones().size() > 0) {
       board->applyCapture(true);
     }
@@ -277,14 +281,15 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   for (std::vector<std::pair<int, int> >::const_iterator it = moves.begin(); it != moves.end();
        ++it) {
     const std::pair<int, int> &m = *it;  // Explicit type for the move
-    int move_score = Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
+    Evaluation::EvaluationEntry move_score =
+        Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
     // Check killer status (ensure 'm' can be compared to killerMoves elements)
     bool is_killer = false;
     if (depth >= 0 /* && depth < MAX_DEPTH_LIMIT */) {  // Add bounds check if necessary
       is_killer = (m == killerMoves[depth][0] || m == killerMoves[depth][1]);
     }
     // Add to vector using push_back and explicit constructor call
-    scored_moves.push_back(ScoredMove(move_score, m, is_killer));
+    scored_moves.push_back(ScoredMove(move_score.score, m, is_killer));
   }
 
   // 3. Sort the scored_moves vector using the appropriate functor
@@ -296,11 +301,11 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 
   // ***** END OF MOVE ORDERING *****
 
-  int bestEval;
+  Evaluation::EvaluationEntry bestEval;
 
   // 4. Iterate through the *sorted* scored_moves (using iterators)
   if (isMaximizing) {
-    bestEval = std::numeric_limits<int>::min();
+    bestEval.score = std::numeric_limits<int>::min();
     for (std::vector<ScoredMove>::const_iterator it = scored_moves.begin();
          it != scored_moves.end(); ++it) {
       const ScoredMove &scored_move = *it;                 // Explicit type
@@ -308,7 +313,8 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 
       UndoInfo info = board->makeMove(move.first, move.second);
       int nextPlayer = board->getNextPlayer();
-      int eval = minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, false);
+      Evaluation::EvaluationEntry eval =
+          minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, false);
       board->undoMove(info);
 
       bestEval = std::max(bestEval, eval);
@@ -324,7 +330,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
       }
     }
   } else {  // Minimizing
-    bestEval = std::numeric_limits<int>::max();
+    bestEval.score = std::numeric_limits<int>::max();
     for (std::vector<ScoredMove>::const_iterator it = scored_moves.begin();
          it != scored_moves.end(); ++it) {
       const ScoredMove &scored_move = *it;                 // Explicit type
@@ -332,7 +338,8 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 
       UndoInfo info = board->makeMove(move.first, move.second);
       int nextPlayer = board->getNextPlayer();
-      int eval = minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, true);
+      Evaluation::EvaluationEntry eval =
+          minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, true);
       board->undoMove(info);
 
       bestEval = std::min(bestEval, eval);
@@ -357,8 +364,11 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
 
   int currentPlayer = board->getNextPlayer();
-  int root_alpha = std::numeric_limits<int>::min();  // Initial alpha = -infinity
-  int root_beta = std::numeric_limits<int>::max();   // Initial beta = +infinity
+  Evaluation::EvaluationEntry root_alpha;
+  Evaluation::EvaluationEntry root_beta;
+
+  root_alpha.score = std::numeric_limits<int>::min();  // Initial alpha = -infinity
+  root_beta.score = std::numeric_limits<int>::max();   // Initial beta = +infinity
 
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
@@ -373,14 +383,15 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   for (std::vector<std::pair<int, int> >::const_iterator it = moves.begin(); it != moves.end();
        ++it) {
     const std::pair<int, int> &m = *it;  // Explicit type for the move
-    int move_score = Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
+    Evaluation::EvaluationEntry move_eval =
+        Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
     // Check killer status (ensure 'm' can be compared to killerMoves elements)
     bool is_killer = false;
     if (depth >= 0 /* && depth < MAX_DEPTH_LIMIT */) {  // Add bounds check if necessary
       is_killer = (m == killerMoves[depth][0] || m == killerMoves[depth][1]);
     }
     // Add to vector using push_back and explicit constructor call
-    scored_moves.push_back(ScoredMove(move_score, m, is_killer));
+    scored_moves.push_back(ScoredMove(move_eval.score, m, is_killer));
   }
 
   std::sort(scored_moves.begin(), scored_moves.end(), CompareScoredMovesMax());
@@ -393,13 +404,14 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
     int playerMakingMove = board->getNextPlayer();  // Get player before making move
 
     UndoInfo info = board->makeMove(scored_moves[i].move.first, scored_moves[i].move.second);
-    int score = minimax(board, depth - 1, root_alpha, root_beta, playerMakingMove,
-                        scored_moves[i].move.first, scored_moves[i].move.second, false);
+    Evaluation::EvaluationEntry minimax_eval =
+        minimax(board, depth - 1, root_alpha, root_beta, playerMakingMove,
+                scored_moves[i].move.first, scored_moves[i].move.second, false);
     board->undoMove(info);
-    if (score > bestScore) {
-      bestScore = score;
+    if (minimax_eval.score > bestScore) {
+      bestScore = minimax_eval.score;
       bestMove = scored_moves[i].move;
-      root_alpha = std::max(root_alpha, score);
+      root_alpha = std::max(root_alpha, minimax_eval);
     }
   }
   std::cout << "final: " << board->getNextPlayer() << std::endl;

@@ -592,7 +592,7 @@ static bool isNonVulnerableLine(Board* board, int x, int y, int dx, int dy, int 
   return true;
 }
 
-int evaluatePositionHard(Board* board, int player, int x, int y) {
+EvaluationEntry evaluatePositionHard(Board* board, int player, int x, int y) {
   EvaluationEntry total;
   int activeCaptureScore = (player == board->getLastPlayer()) ? board->getLastPlayerScore()
                                                               : board->getNextPlayerScore();
@@ -791,9 +791,7 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
     total.score += total.counts.fixBreakableGomoku * (GOMOKU * 2);
   }
 
-  // printEvalEntry(total);
-
-  return total.score;
+  return total;
 }
 
 }  // namespace Evaluation
