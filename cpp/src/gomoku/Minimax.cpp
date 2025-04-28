@@ -211,12 +211,24 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
             bool isMaximizing) {
   // --- [Win check, depth check (calling quiescenceSearch), etc. as before] ---
   int playerWhoJustMoved = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
-  if (lastX != -1 && Rules::isWinningMove(board, playerWhoJustMoved, lastX, lastY)) {
-    return Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
+  int evalScore = Evaluation::evaluatePositionHard(board, playerWhoJustMoved, lastX, lastY);
+  if (lastX != -1 && evalScore >= MINIMAX_TERMINATION) {
+    if (board->captured_stones.size() > 0) {
+      board->applyCapture(true);
+    }
+    return evalScore;
   }
 
   if (depth == 0) {
-    return Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
+    std::cout << "i'm working" << std::endl;
+    if (board->captured_stones.size() > 0) {
+      board->applyCapture(true);
+    }
+    return evalScore;
+  }
+
+  if (board->captured_stones.size() > 0) {
+    board->applyCapture(true);
   }
 
   // const int NULL_MOVE_REDUCTION = 2;
