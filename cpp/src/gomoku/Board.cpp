@@ -26,8 +26,7 @@ Board::Board(const Board &other)
       next_player(other.next_player),
       last_player_score(other.last_player_score),
       next_player_score(other.next_player_score),
-      currentHash(other.currentHash),
-      captured_stones(other.captured_stones) {
+      currentHash(other.currentHash) {
   for (int i = 0; i < BOARD_SIZE; ++i) {
     last_player_board[i] = other.last_player_board[i];
     next_player_board[i] = other.next_player_board[i];

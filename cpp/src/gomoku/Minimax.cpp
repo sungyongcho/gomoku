@@ -213,7 +213,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   int playerWhoJustMoved = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
   int evalScore = Evaluation::evaluatePositionHard(board, playerWhoJustMoved, lastX, lastY);
   if (lastX != -1 && evalScore >= MINIMAX_TERMINATION) {
-    if (board->captured_stones.size() > 0) {
+    if (board->getCapturedStones().size() > 0) {
       board->applyCapture(true);
     }
     return evalScore;
@@ -221,13 +221,13 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 
   if (depth == 0) {
     std::cout << "i'm working" << std::endl;
-    if (board->captured_stones.size() > 0) {
+    if (board->getCapturedStones().size() > 0) {
       board->applyCapture(true);
     }
     return evalScore;
   }
 
-  if (board->captured_stones.size() > 0) {
+  if (board->getCapturedStones().size() > 0) {
     board->applyCapture(true);
   }
 
