@@ -13,7 +13,7 @@ definePageMeta({
   layout: "test",
 });
 
-const { isAiThinking } = storeToRefs(useGameStore());
+const { isAiThinking, settings } = storeToRefs(useGameStore());
 const isAllTesting = ref(false);
 const { initialBoard, getPlayerTotalCaptured, importGame } = useGameStore();
 
@@ -45,6 +45,8 @@ const onSendData = (type: RequestType, testCase: TestCase) => {
       difficulty: "hard",
       nextPlayer: lastPlay ? (lastPlay?.stone === "X" ? "O" : "X") : "O",
       goal: 5,
+      enableCapture: settings.value.enableCapture,
+      enableDoubleThreeRestriction: settings.value.enableDoubleThreeRestriction,
       lastPlay: lastPlay
         ? {
             coordinate: {

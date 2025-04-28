@@ -416,8 +416,8 @@
     }
   ],
   "settings": {
-    "capture": true,
-    "doubleThree": true,
+    "enableCapture": true,
+    "enableDoubleThreeRestriction": true,
     "totalPairCaptured": 5,
     "firstMove": true,
     "advantage1": 0,
