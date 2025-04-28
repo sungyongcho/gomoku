@@ -34,7 +34,7 @@ const {
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert, closeAlert } = useAlertStore();
 
-const { data, send, close, status } = useWebSocket(
+const { data, send, close, open, status } = useWebSocket(
   `ws://${window.location.hostname}:8005/ws/debug`,
   {
     autoReconnect: {
@@ -42,11 +42,10 @@ const { data, send, close, status } = useWebSocket(
       onFailed() {
         doAlert({
           header: "Error",
-          message:
-            "WebSocket connection failed. Please refresh the page to retry",
+          message: "WebSocket connection failed. Click button to reconnect",
           type: "Warn",
           actionIcon: "pi pi-undo",
-          actionLabel: "Retry",
+          actionLabel: "Reconnect",
           action: () => {
             open();
             closeAlert();
@@ -97,10 +96,10 @@ const onSendStone = () => {
   if (status.value === "CLOSED") {
     doAlert({
       header: "Error",
-      message: "WebSocket connection failed. Please refresh the page to retry",
+      message: "WebSocket connection failed. Click button to reconnect",
       type: "Warn",
       actionIcon: "pi pi-undo",
-      actionLabel: "Retry",
+      actionLabel: "Reconnect",
       action: () => {
         open();
         nextTick(() => {

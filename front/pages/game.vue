@@ -44,11 +44,10 @@ const { data, send, close, status, open } = useWebSocket(
       onFailed() {
         doAlert({
           header: "Error",
-          message:
-            "WebSocket connection failed. Please refresh the page to retry",
+          message: "WebSocket connection failed. Click button to reconnect",
           type: "Warn",
           actionIcon: "pi pi-undo",
-          actionLabel: "Retry",
+          actionLabel: "Reconnect",
           action: () => {
             open();
             closeAlert();
@@ -105,10 +104,10 @@ const onSendStone = () => {
   if (status.value === "CLOSED") {
     doAlert({
       header: "Error",
-      message: "WebSocket connection failed. Please refresh the page to retry",
+      message: "WebSocket connection failed. Click button to reconnect",
       type: "Warn",
       actionIcon: "pi pi-undo",
-      actionLabel: "Retry",
+      actionLabel: "Reconnect",
       action: () => {
         open();
         closeAlert();
