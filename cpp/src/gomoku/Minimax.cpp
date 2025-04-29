@@ -82,6 +82,34 @@ std::vector<std::pair<int, int> > generateCaptureMoves(Board *&board) {
   return moves;
 }
 
+// Generate candidate moves using row-based neighbor mask.
+std::vector<std::pair<int, int> > generateCriticalMoves(Board *&board, int player) {
+  std::vector<std::pair<int, int> > moves;
+  uint64_t occupancy[BOARD_SIZE];
+  uint64_t neighbor[BOARD_SIZE];
+
+  board->getOccupancy(occupancy);
+  computeNeighborMask(occupancy, neighbor);
+
+  for (int row = 0; row < BOARD_SIZE; row++) {
+    uint64_t candidates = neighbor[row] & (~occupancy[row]) & rowMask;
+    for (int col = 0; col < BOARD_SIZE; col++) {
+      if (candidates & (1ULL << col)) {
+        bool enableDoubleThreeRestriction = board->getEnableDoubleThreeRestriction();
+        bool isDoubleThree =
+            enableDoubleThreeRestriction
+                ? Rules::detectDoublethreeBit(*board, col, row, board->getNextPlayer())
+                : false;
+        if ((!isDoubleThree ||
+             Rules::detectCaptureStonesNotStore(*board, col, row, board->getNextPlayer())) &&
+            Rules::isWinningMove(board, player, col, row))
+          moves.push_back(std::make_pair(col, row));
+      }
+    }
+  }
+  return moves;
+}
+
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates) {
   // Create a 2D display grid.
   std::vector<std::vector<char> > display(BOARD_SIZE, std::vector<char>(BOARD_SIZE, '.'));
@@ -152,27 +180,37 @@ struct CompareScoredMovesMin {
   }
 };
 
-int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing) {
+int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x, int y) {
   // 1. Evaluate Stand-Pat Score
   //    Perspective is crucial. Evaluate from the point of view of the player whose turn it is.
   int playerWhoseTurnItIs = board->getNextPlayer();
   // Use -1,-1 or appropriate dummy coords if last move isn't relevant here
-  int stand_pat_score = Evaluation::evaluatePositionHard(board, playerWhoseTurnItIs, -1, -1);
+  int stand_pat_score = Evaluation::evaluatePositionHard(board, playerWhoseTurnItIs, x, y);
   // 2. Initial Pruning based on Stand-Pat
   if (isMaximizing) {
     if (stand_pat_score >= beta) {
+      if (board->getCapturedStones().size() > 0) {
+        board->applyCapture(true);
+      }
       return beta;  // Fail-hard beta cutoff
     }
     alpha = std::max(alpha, stand_pat_score);
   } else {  // Minimizing
     if (stand_pat_score <= alpha) {
+      if (board->getCapturedStones().size() > 0) {
+        board->applyCapture(true);
+      }
       return alpha;  // Fail-hard alpha cutoff
     }
     beta = std::min(beta, stand_pat_score);
   }
 
+  if (board->getCapturedStones().size() > 0) {
+    board->applyCapture(true);
+  }
+
   // 3. Generate Only Capture Moves
-  std::vector<std::pair<int, int> > captureMoves = generateCandidateMoves(board);
+  std::vector<std::pair<int, int> > captureMoves = generateCaptureMoves(board);
 
   // 4. Base Case: No captures means position is quiet
   if (captureMoves.empty()) {
@@ -187,7 +225,8 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing) {
   for (size_t i = 0; i < captureMoves.size(); ++i) {
     UndoInfo info = board->makeMove(captureMoves[i].first, captureMoves[i].second);
     // Recursively call quiescence search for the opponent
-    int eval = quiescenceSearch(board, alpha, beta, !isMaximizing);
+    int eval = quiescenceSearch(board, alpha, beta, !isMaximizing, captureMoves[i].first,
+                                captureMoves[i].second);
     board->undoMove(info);
 
     if (isMaximizing) {
@@ -220,11 +259,11 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   }
 
   if (depth == 0) {
-    // std::cout << "i'm working" << std::endl;
+    int quiescenceSearchScore = quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY);
     if (board->getCapturedStones().size() > 0) {
       board->applyCapture(true);
     }
-    return evalScore;
+    return quiescenceSearchScore;
   }
 
   if (board->getCapturedStones().size() > 0) {
