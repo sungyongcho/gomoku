@@ -294,7 +294,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     return evalScore;
   }
 
-  if (depth == 0) {
+  if (depth <= 0) {
     int quiescenceSearchScore = quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY);
     if (board->getCapturedStones().size() > 0) {
       board->applyCapture(true);
@@ -314,6 +314,24 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     // Store this terminal evaluation in TT
     transTable[currentHash] = TTEntry(final_eval, depth, std::make_pair(-1, -1), EXACT);
     return final_eval;
+  }
+
+  const int NULL_MOVE_REDUCTION = 3;
+  const int MIN_DEPTH_FOR_NMP = NULL_MOVE_REDUCTION + 1;
+  if (depth >= MIN_DEPTH_FOR_NMP) {
+    for (size_t i = 0; i < moves.size(); i++) {
+      int opponent = (currentPlayer == PLAYER_1 ? PLAYER_2 : PLAYER_1);
+      board->switchTurn();
+      UndoInfo undo_info = board->makeMove(moves[i].first, moves[i].second);
+      int null_score_raw = minimax(board, depth - 1 - NULL_MOVE_REDUCTION, -beta, -beta + 1,
+                                   opponent, moves[i].first, moves[i].second, !isMaximizing);
+      board->undoMove(undo_info);
+      board->switchTurn();
+      int null_score = -null_score_raw;
+      if (null_score >= beta) {
+        return beta;
+      }
+    }
   }
 
   int bestEval;  // Will hold the best score found for this node
