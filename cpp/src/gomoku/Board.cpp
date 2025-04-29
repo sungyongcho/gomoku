@@ -58,6 +58,29 @@ Board::Board(const std::vector<std::vector<char> > &board_data, int goal, int la
   }
 }
 
+Board::Board(int goal, int last_player_int, int next_player_int, int last_score, int next_score,
+             bool enableCapture, bool enableDoubleThreeRestriction)
+    : goal(goal),
+      last_player(last_player_int),
+      next_player(next_player_int),
+      last_player_score(last_score),
+      next_player_score(next_score),
+      enable_capture(enableCapture),
+      enable_double_three_restriction(enableDoubleThreeRestriction),
+      currentHash(0) {
+  assert(Zobrist::initialized &&
+         "Zobrist keys must be initialized before creating a Board object!");
+
+  this->reset_bitboard();
+
+  currentHash ^= Zobrist::capture_keys[this->last_player][this->last_player_score];
+  currentHash ^= Zobrist::capture_keys[this->next_player][this->next_player_score];
+
+  if (this->next_player == PLAYER_2) {
+    currentHash ^= Zobrist::turn_key;
+  }
+}
+
 /**
  * Private Methods
  */
@@ -382,30 +405,37 @@ UndoInfo Board::makeMove(int col, int row) {
   this->switchTurn();
   return undo_data;
 }
-
 void Board::undoMove(const UndoInfo &undo_data) {
-  this->switchTurn();
+  this->switchTurn();  // Switch back to the player who made the move
 
+  int player_who_moved = this->next_player;  // Player is now the one who moved
+
+  // Undo stone placement
+  this->setValueBit(undo_data.move.first, undo_data.move.second, EMPTY_SPACE);
+  // Update hash for stone removal (assuming setValueBit handles this)
+
+  // Undo captures if any occurred
   if (!undo_data.capturedStonesInfo.empty()) {
-    int player_who_moved = this->last_player;
-    int score_after_capture = this->last_player_score;  // Current score is the one after capture
-    int score_before_capture =
-        undo_data.scoreBeforeCapture;  // Get score before capture from undo info
+    // int score_change = (undo_data.capturedStonesInfo.size() / 2);  // Calculate score delta
+    int score_after_capture = this->next_player_score;  // Score before undoing capture points
+    // int score_before_capture =
+    //     score_after_capture - score_change;  // Calculate the score before capture
 
-    // Only update if score actually changed during makeMove
-    // Update Zobrist hash for score change: XOR out new(current), XOR in old.
-    // Use player_who_moved (1 or 2) directly as index.
+    // Update Zobrist hash for score change *before* changing the score variable
     this->currentHash ^= Zobrist::capture_keys[player_who_moved][score_after_capture];
-    this->currentHash ^= Zobrist::capture_keys[player_who_moved][score_before_capture];
+    this->currentHash ^= Zobrist::capture_keys
+        [player_who_moved][undo_data.scoreBeforeCapture];  // Assumes keys are for absolute scores
 
     // Restore the player's score member variable
-    this->last_player_score = score_before_capture;
+    this->next_player_score = undo_data.scoreBeforeCapture;
+
+    // Restore the captured stones on the board
     for (std::vector<CapturedStone>::const_iterator it = undo_data.capturedStonesInfo.begin();
          it != undo_data.capturedStonesInfo.end(); it++) {
       const CapturedStone &cap = *it;
+      // Assuming setValueBit updates the hash for placing the stone back
       this->setValueBit(cap.x, cap.y, cap.player);
     }
   }
-
-  this->setValueBit(undo_data.move.first, undo_data.move.second, EMPTY_SPACE);
+  // Note: Removed switchTurn() from the end, it should only be at the beginning.
 }
