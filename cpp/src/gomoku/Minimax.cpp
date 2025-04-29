@@ -278,6 +278,13 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
        ++it) {
     const std::pair<int, int> &m = *it;  // Explicit type for the move
     int move_score = Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
+
+    // RANDOM TERMINATION PRUNINIG
+    if (move_score >= MINIMAX_TERMINATION) {
+      // Found an immediate win via heuristic check for the current player.
+      // Optional: Could store this move as a killer/hash move if TT is implemented.
+      return move_score;  // Return the winning score.
+    }
     // Check killer status (ensure 'm' can be compared to killerMoves elements)
     bool is_killer = false;
     if (depth >= 0 /* && depth < MAX_DEPTH_LIMIT */) {  // Add bounds check if necessary
@@ -290,8 +297,25 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   // 3. Sort the scored_moves vector using the appropriate functor
   if (isMaximizing) {
     std::sort(scored_moves.begin(), scored_moves.end(), CompareScoredMovesMax());
+    // if (!scored_moves.empty() && scored_moves[0].score >= MINIMAX_TERMINATION) {
+    //   // The best move guarantees a win, return its score (the highest possible)
+    //   return scored_moves[0].score;
+    // }
   } else {  // Minimizing
     std::sort(scored_moves.begin(), scored_moves.end(), CompareScoredMovesMin());
+    // Standard index-based reverse loop (C++98 compatible)
+    // for (int i = scored_moves.size() - 1; i >= 0; --i) {
+    //   if (scored_moves[i].score >= MINIMAX_TERMINATION) {
+    //     // Found the highest score that is also a win for the minimizer.
+    //     return scored_moves[i].score;
+    //   }
+    //   // Optimization: If we encounter a score below WIN_SCORE,
+    //   // since the list is sorted ascending, no further scores
+    //   // will be >= WIN_SCORE, so we can stop checking.
+    //   if (scored_moves[i].score < MINIMAX_TERMINATION) {
+    //     break;
+    //   }
+    // }
   }
 
   // ***** END OF MOVE ORDERING *****
