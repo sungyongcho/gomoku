@@ -217,9 +217,6 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x
     return stand_pat_score;
   }
 
-  // --- Optional: Order capture moves (e.g., most valuable first) ---
-
-  // 5. Explore Capture Moves
   int bestEval = stand_pat_score;  // Initialize with stand-pat
 
   for (size_t i = 0; i < captureMoves.size(); ++i) {
@@ -248,10 +245,49 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x
 
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
             bool isMaximizing) {
-  // --- [Win check, depth check (calling quiescenceSearch), etc. as before] ---
+  // --- Alpha-Beta Preamble ---
+  int initial_alpha = alpha;                // Store original alpha for TT storing logic later
+  uint64_t currentHash = board->getHash();  // *** Requires Board::getHash() ***
+  std::pair<int, int> bestMoveFromTT = std::make_pair(-1, -1);  // Candidate Hash Move from TT
+
+  boost::unordered_map<uint64_t, TTEntry>::iterator tt_it = transTable.find(currentHash);
+  if (tt_it != transTable.end()) {
+    const TTEntry &entry = tt_it->second;  // Use const reference
+    bestMoveFromTT = entry.bestMove;       // Get potential hash move for ordering
+
+    // Check if stored depth is sufficient to use the score/bound
+    if (entry.depth >= depth) {
+      int stored_score = entry.score;
+      if (entry.flag == EXACT) {
+        if (board->getCapturedStones().size() > 0) {
+          board->applyCapture(true);
+        }
+        return stored_score;  // Exact score found, return immediately
+      } else if (entry.flag == LOWERBOUND) {
+        // Stored score is a lower bound, update our alpha
+        alpha = std::max(alpha, stored_score);
+      } else if (entry.flag == UPPERBOUND) {
+        // Stored score is an upper bound, update our beta
+        beta = std::min(beta, stored_score);
+      }
+      // Check for cutoff after potentially updating bounds from TT
+      if (alpha >= beta) {
+        // The stored information caused a cutoff
+        if (board->getCapturedStones().size() > 0) {
+          board->applyCapture(true);
+        }
+        return stored_score;  // Return the score that caused the cutoff
+      }
+    }
+    // If depth wasn't sufficient, we can still use 'bestMoveFromTT' for ordering below
+  }
+
   int playerWhoJustMoved = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
   int evalScore = Evaluation::evaluatePositionHard(board, playerWhoJustMoved, lastX, lastY);
   if (lastX != -1 && evalScore >= MINIMAX_TERMINATION) {
+    // Optional: Store this terminal state in TT? Could use a large depth.
+    // transTable[currentHash] = TTEntry(evalScore, MAX_DEPTH + depth, std::make_pair(-1,-1),
+    // EXACT);
     if (board->getCapturedStones().size() > 0) {
       board->applyCapture(true);
     }
@@ -270,40 +306,53 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     board->applyCapture(true);
   }
 
-  // const int NULL_MOVE_REDUCTION = 2;
-  // // Preconditions: Check if NMP is applicable
-  // // - Depth must be high enough (e.g., depth >= NULL_MOVE_REDUCTION + 1)
-  // // - Not in quiescence search (this function isn't QSearch, so okay)
-  // // - Avoid near end-game? (Less critical in Gomoku perhaps)
-  // // - Not root node? (Sometimes NMP is skipped at root or near-root)
-  // if (depth >= (NULL_MOVE_REDUCTION + 1) /* && other conditions if needed */) {
-  //   // 1. Make Null Move (conceptually switch player)
-  //   // board->switchPlayer(); // Or however you handle turn switching
-  //   // uint64_t originalHash = board->getHash(); // If hash includes side-to-move
-  //   // board->updateHashForSideToMove();
-
-  //   // 2. Recursive Call with reduced depth and swapped bounds
-  //   // Note: Pass the *opponent's* perspective for alpha/beta
-  //   int null_score = -minimax(board, depth - 1 - NULL_MOVE_REDUCTION, -beta, -beta + 1,
-  //                             (currentPlayer == PLAYER_1 ? PLAYER_2 : PLAYER_1), -1,
-  //                             -1,              // No real last move for null move
-  //                             !isMaximizing);  // Flip maximizing flag
-
-  //   // 3. Undo Null Move
-  //   // board->switchPlayer();
-  //   // board->setHash(originalHash); // Restore hash if needed
-
-  //   // 4. Check result and prune if null_score >= beta
-  //   if (null_score >= beta) {
-  //     // Null move indicates the position is strong enough to likely cause a cutoff
-  //     return beta;  // Return beta (fail-hard)
-  //   }
-  // }
-
+  currentHash = board->getHash();  // *** Requires Board::getHash() ***
   // Generate candidate moves.
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) {
-    return Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
+    int final_eval = Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
+    // Store this terminal evaluation in TT
+    transTable[currentHash] = TTEntry(final_eval, depth, std::make_pair(-1, -1), EXACT);
+    return final_eval;
+  }
+
+  int bestEval;  // Will hold the best score found for this node
+  std::pair<int, int> bestMoveForNode =
+      std::make_pair(-1, -1);  // Track best move found at this node
+  bool processed_hash_move = false;
+
+  // 1. Try the Hash Move first (if it exists and is valid)
+  if (bestMoveFromTT.first != -1) {
+    // Optional: Verify bestMoveFromTT is in 'moves'. Assume it is for now if hashing is correct.
+    const std::pair<int, int> &move = bestMoveFromTT;
+    UndoInfo info = board->makeMove(move.first, move.second);
+    int nextPlayer = board->getNextPlayer();
+    int eval =
+        minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, !isMaximizing);
+    board->undoMove(info);
+    processed_hash_move = true;  // Mark hash move as processed
+
+    // Initialize bestEval and bestMoveForNode with the hash move's result
+    bestEval = eval;
+    bestMoveForNode = move;  // Initially assume hash move is best
+
+    // Update alpha/beta based on hash move result
+    if (isMaximizing) {
+      alpha = std::max(alpha, eval);
+    } else {  // Minimizing
+      beta = std::min(beta, eval);
+    }
+
+    // Check for cutoff immediately after the hash move
+    if (alpha >= beta) {
+      // Hash move caused cutoff. Store TT entry.
+      BoundType flag = isMaximizing ? LOWERBOUND : UPPERBOUND;  // Cutoff means we found a bound
+      transTable[currentHash] = TTEntry(bestEval, depth, bestMoveForNode, flag);
+      return bestEval;  // Return score causing cutoff
+    }
+  } else {
+    // Initialize bestEval if hash move wasn't processed
+    bestEval = isMaximizing ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
   }
 
   // ***** MOVE ORDERING (C++98 VERSION) *****
@@ -316,13 +365,16 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   for (std::vector<std::pair<int, int> >::const_iterator it = moves.begin(); it != moves.end();
        ++it) {
     const std::pair<int, int> &m = *it;  // Explicit type for the move
+
+    if (processed_hash_move && m == bestMoveFromTT) {
+      continue;
+    }
+
     int move_score = Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
 
     // RANDOM TERMINATION PRUNINIG
     if (move_score >= MINIMAX_TERMINATION) {
-      // Found an immediate win via heuristic check for the current player.
-      // Optional: Could store this move as a killer/hash move if TT is implemented.
-      return move_score;  // Return the winning score.
+      return move_score;
     }
     // Check killer status (ensure 'm' can be compared to killerMoves elements)
     bool is_killer = false;
@@ -336,81 +388,76 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   // 3. Sort the scored_moves vector using the appropriate functor
   if (isMaximizing) {
     std::sort(scored_moves.begin(), scored_moves.end(), CompareScoredMovesMax());
-    // if (!scored_moves.empty() && scored_moves[0].score >= MINIMAX_TERMINATION) {
-    //   // The best move guarantees a win, return its score (the highest possible)
-    //   return scored_moves[0].score;
-    // }
   } else {  // Minimizing
     std::sort(scored_moves.begin(), scored_moves.end(), CompareScoredMovesMin());
-    // Standard index-based reverse loop (C++98 compatible)
-    // for (int i = scored_moves.size() - 1; i >= 0; --i) {
-    //   if (scored_moves[i].score >= MINIMAX_TERMINATION) {
-    //     // Found the highest score that is also a win for the minimizer.
-    //     return scored_moves[i].score;
-    //   }
-    //   // Optimization: If we encounter a score below WIN_SCORE,
-    //   // since the list is sorted ascending, no further scores
-    //   // will be >= WIN_SCORE, so we can stop checking.
-    //   if (scored_moves[i].score < MINIMAX_TERMINATION) {
-    //     break;
-    //   }
-    // }
   }
 
   // ***** END OF MOVE ORDERING *****
 
-  int bestEval;
-
   // 4. Iterate through the *sorted* scored_moves (using iterators)
-  if (isMaximizing) {
-    bestEval = std::numeric_limits<int>::min();
-    for (std::vector<ScoredMove>::const_iterator it = scored_moves.begin();
-         it != scored_moves.end(); ++it) {
-      const ScoredMove &scored_move = *it;                 // Explicit type
-      const std::pair<int, int> &move = scored_move.move;  // Get the actual move pair
+  for (std::vector<ScoredMove>::const_iterator it = scored_moves.begin(); it != scored_moves.end();
+       ++it) {
+    const ScoredMove &scored_move = *it;
+    const std::pair<int, int> &move = scored_move.move;
 
-      UndoInfo info = board->makeMove(move.first, move.second);
-      int nextPlayer = board->getNextPlayer();
-      int eval = minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, false);
-      board->undoMove(info);
-
-      bestEval = std::max(bestEval, eval);
-      alpha = std::max(alpha, eval);
-
-      if (beta <= alpha) {
-        // Store killer move (use 'move', the std::pair)
+    UndoInfo info = board->makeMove(move.first, move.second);
+    int nextPlayer = board->getNextPlayer();
+    // --- Recursive Call ---
+    int eval =
+        minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, !isMaximizing);
+    board->undoMove(info);
+    // --- Evaluation & Pruning ---
+    if (isMaximizing) {
+      if (eval > bestEval) {  // Found a new best move
+        bestEval = eval;
+        bestMoveForNode = move;             // Update best move for TT
+        alpha = std::max(alpha, bestEval);  // Update alpha
+      }
+      if (alpha >= beta) {  // Beta cutoff
+        // Store killer move
         if (killerMoves[depth][0] != move && killerMoves[depth][1] != move) {
           killerMoves[depth][1] = killerMoves[depth][0];
           killerMoves[depth][0] = move;
         }
-        break;  // Beta cutoff.
+        // Store TT entry causing cutoff
+        transTable[currentHash] =
+            TTEntry(bestEval, depth, bestMoveForNode, LOWERBOUND);  // Fail high => Lower bound
+        return bestEval;
       }
-    }
-  } else {  // Minimizing
-    bestEval = std::numeric_limits<int>::max();
-    for (std::vector<ScoredMove>::const_iterator it = scored_moves.begin();
-         it != scored_moves.end(); ++it) {
-      const ScoredMove &scored_move = *it;                 // Explicit type
-      const std::pair<int, int> &move = scored_move.move;  // Get the actual move pair
-
-      UndoInfo info = board->makeMove(move.first, move.second);
-      int nextPlayer = board->getNextPlayer();
-      int eval = minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, true);
-      board->undoMove(info);
-
-      bestEval = std::min(bestEval, eval);
-      beta = std::min(beta, eval);
-
-      if (beta <= alpha) {
-        // Store killer move (use 'move', the std::pair)
+    } else {                  // Minimizing
+      if (eval < bestEval) {  // Found a new best move
+        bestEval = eval;
+        bestMoveForNode = move;           // Update best move for TT
+        beta = std::min(beta, bestEval);  // Update beta
+      }
+      if (alpha >= beta) {  // Alpha cutoff
+        // Store killer move
         if (killerMoves[depth][0] != move && killerMoves[depth][1] != move) {
           killerMoves[depth][1] = killerMoves[depth][0];
           killerMoves[depth][0] = move;
         }
-        break;  // Alpha cutoff.
+        // Store TT entry causing cutoff
+        transTable[currentHash] =
+            TTEntry(bestEval, depth, bestMoveForNode, UPPERBOUND);  // Fail low => Upper bound
+        return bestEval;
       }
     }
+  }  // End loop over sorted moves
+     // --- Store Final Result in TT Before Returning ---
+  // If we reach here, no cutoff occurred for the remaining moves.
+  // Determine the correct flag based on the initial alpha.
+  BoundType flag;
+  if (bestEval <= initial_alpha) {
+    flag = UPPERBOUND;  // Failed low relative to initial window
+  } else {
+    // Since beta cutoff didn't happen, bestEval must be < beta.
+    // And since we are here, bestEval > initial_alpha.
+    flag = EXACT;  // Score is within the initial alpha-beta window
   }
+
+  // Store the final result. Consider TT replacement strategy (e.g., only store if depth is >=
+  // existing depth) if TT gets full. Simple overwrite for now:
+  transTable[currentHash] = TTEntry(bestEval, depth, bestMoveForNode, flag);
 
   return bestEval;
 }
@@ -423,12 +470,65 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   int root_alpha = std::numeric_limits<int>::min();  // Initial alpha = -infinity
   int root_beta = std::numeric_limits<int>::max();   // Initial beta = +infinity
 
+  uint64_t initialHash = board->getHash();                      // Get hash of the root position
+  std::pair<int, int> bestMoveFromTT = std::make_pair(-1, -1);  // Initialize hash move candidate
+  boost::unordered_map<uint64_t, TTEntry>::iterator tt_it = transTable.find(initialHash);
+
+  if (tt_it != transTable.end()) {
+    const TTEntry &entry = tt_it->second;
+    // We primarily care about the best move for ordering at the root.
+    // We could potentially use the score if depth is sufficient and flag is EXACT,
+    // but the main search loop below will confirm it anyway.
+    bestMoveFromTT = entry.bestMove;
+    std::cout << "TT Hit at root. Suggests move: (" << bestMoveFromTT.first << ","
+              << bestMoveFromTT.second << ")" << std::endl;
+  }
+
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return bestMove;
 
   initKillerMoves();
-  // Order moves for the maximizing player.
-  // ***** APPLY PRE-CALCULATION & SORTING HERE *****
+
+  bool processed_hash_move = false;
+
+  // --- Process Hash Move First (if valid) ---
+  if (bestMoveFromTT.first != -1) {
+    // Check if the TT move is actually in the list of legal moves
+    bool found = false;
+    for (size_t i = 0; i < moves.size(); ++i) {
+      if (moves[i] == bestMoveFromTT) {
+        found = true;
+        break;
+      }
+    }
+
+    if (found) {
+      std::cout << "Processing Hash Move first: (" << bestMoveFromTT.first << ","
+                << bestMoveFromTT.second << ")" << std::endl;
+      const std::pair<int, int> &move = bestMoveFromTT;
+      int playerMakingMove = board->getNextPlayer();  // Should be currentPlayer
+
+      UndoInfo info = board->makeMove(move.first, move.second);
+      // Call minimax for the opponent (isMaximizing = false)
+      int score = minimax(board, depth - 1, root_alpha, root_beta, playerMakingMove, move.first,
+                          move.second, false);
+      board->undoMove(info);
+
+      // Update best score and move found so far
+      bestScore = score;
+      bestMove = move;
+      root_alpha = std::max(root_alpha, score);  // Update alpha
+      processed_hash_move = true;
+      std::cout << "Hash Move score: " << score << std::endl;
+
+      // Note: In a full root implementation with pruning, we might check
+      // if root_alpha >= root_beta here, but this function evaluates all moves.
+    } else {
+      std::cout << "Hash Move from TT was not found in legal moves." << std::endl;
+      bestMoveFromTT = std::make_pair(-1, -1);  // Invalidate TT move if not legal
+    }
+  }
+
   std::vector<ScoredMove> scored_moves;
   scored_moves.reserve(moves.size());  // Good practice, C++98 compatible
 
@@ -436,6 +536,11 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   for (std::vector<std::pair<int, int> >::const_iterator it = moves.begin(); it != moves.end();
        ++it) {
     const std::pair<int, int> &m = *it;  // Explicit type for the move
+
+    if (processed_hash_move && m == bestMoveFromTT) {
+      continue;
+    }
+
     int move_score = Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
     // Check killer status (ensure 'm' can be compared to killerMoves elements)
     bool is_killer = false;
@@ -465,6 +570,8 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
       root_alpha = std::max(root_alpha, score);
     }
   }
+
+  if (bestMove.first != -1) transTable[initialHash] = TTEntry(bestScore, depth, bestMove, EXACT);
   std::cout << "final: " << board->getNextPlayer() << std::endl;
   return bestMove;
 }
