@@ -220,7 +220,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   }
 
   if (depth == 0) {
-    std::cout << "i'm working" << std::endl;
+    // std::cout << "i'm working" << std::endl;
     if (board->getCapturedStones().size() > 0) {
       board->applyCapture(true);
     }

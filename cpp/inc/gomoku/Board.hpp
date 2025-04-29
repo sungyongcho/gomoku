@@ -65,6 +65,8 @@ class Board {
   Board(const std::vector<std::vector<char> > &board_data, int goal, int last_player_int,
         int next_player_int, int last_score, int next_score, bool enable_capture,
         bool enable_double_three_restriction);
+  Board(int goal, int last_player_int, int next_player_int, int last_score, int next_score,
+        bool enable_capture, bool enable_double_three_restriction);
 
   // Board State & Accessors
   int getValueBit(int col, int row) const;                  // Get stone type at (col, row)
