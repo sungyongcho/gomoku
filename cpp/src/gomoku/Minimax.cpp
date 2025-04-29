@@ -373,9 +373,9 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     int move_score = Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
 
     // RANDOM TERMINATION PRUNINIG
-    if (move_score >= MINIMAX_TERMINATION) {
-      return move_score;
-    }
+    // if (move_score >= MINIMAX_TERMINATION) {
+    //   return move_score;
+    // }
     // Check killer status (ensure 'm' can be compared to killerMoves elements)
     bool is_killer = false;
     if (depth >= 0 /* && depth < MAX_DEPTH_LIMIT */) {  // Add bounds check if necessary
@@ -574,6 +574,227 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
   if (bestMove.first != -1) transTable[initialHash] = TTEntry(bestScore, depth, bestMove, EXACT);
   std::cout << "final: " << board->getNextPlayer() << std::endl;
   return bestMove;
+}
+
+struct SearchResult {
+  std::pair<int, int> bestMove;
+  int score;
+  int depthSearched;  // Depth actually completed
+
+  SearchResult() : bestMove(-1, -1), score(std::numeric_limits<int>::min()), depthSearched(0) {}
+};
+
+// The main iterative deepening function
+std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLimitSeconds) {
+  // Timekeeping (C++98 style using clock())
+  clock_t startTime = clock();
+  clock_t timeLimitClocks = (clock_t)(timeLimitSeconds * CLOCKS_PER_SEC);
+
+  SearchResult bestResultSoFar;  // Store best result from completed depths
+  int currentPlayer = board->getNextPlayer();
+
+  initKillerMoves();  // Initialize killers at the start of ID
+
+  // --- Iterative Deepening Loop ---
+  for (int currentDepth = 1; currentDepth <= maxDepth; ++currentDepth) {
+    std::cout << "Starting search at depth: " << currentDepth << std::endl;
+
+    int bestScoreThisIteration = std::numeric_limits<int>::min();
+    std::pair<int, int> bestMoveThisIteration = std::make_pair(-1, -1);
+    int root_alpha = std::numeric_limits<int>::min();
+    int root_beta = std::numeric_limits<int>::max();
+
+    // --- Root Move Generation & Ordering ---
+    uint64_t initialHash = board->getHash();
+    std::pair<int, int> bestMoveFromPrevIterOrTT =
+        bestResultSoFar.bestMove;  // Use prev iter's move first
+
+    // Check TT for the root node for potentially better move suggestion or score estimate
+    boost::unordered_map<uint64_t, TTEntry>::iterator tt_it = transTable.find(initialHash);
+    if (tt_it != transTable.end()) {
+      const TTEntry &entry = tt_it->second;
+      // If TT suggests a move and we don't have one from prev iter, use TT's suggestion
+      if (bestMoveFromPrevIterOrTT.first == -1 && entry.bestMove.first != -1) {
+        bestMoveFromPrevIterOrTT = entry.bestMove;
+        std::cout << "Using TT suggested move for ordering: (" << bestMoveFromPrevIterOrTT.first
+                  << "," << bestMoveFromPrevIterOrTT.second << ")" << std::endl;
+      }
+      // Could potentially use entry.score as a guess for MTD(f) later or to center aspiration
+      // window
+    }
+
+    std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
+    if (moves.empty()) {
+      std::cout << "No moves available." << std::endl;
+      // Return immediately if no moves at depth 1, else return previous best
+      return (currentDepth == 1) ? std::make_pair(-1, -1) : bestResultSoFar.bestMove;
+    }
+
+    // Prepare for sorting - prioritize the best move from previous iteration or TT
+    std::vector<ScoredMove> scored_moves;
+    scored_moves.reserve(moves.size());
+    bool processed_priority_move = false;
+
+    // Process the priority move first IF it's valid
+    if (bestMoveFromPrevIterOrTT.first != -1) {
+      bool found = false;
+      for (size_t i = 0; i < moves.size(); ++i) {
+        if (moves[i] == bestMoveFromPrevIterOrTT) {
+          found = true;
+          break;
+        }
+      }
+
+      if (found) {
+        // Evaluate the priority move first
+        std::cout << "Processing Priority Move first: (" << bestMoveFromPrevIterOrTT.first << ","
+                  << bestMoveFromPrevIterOrTT.second << ")" << std::endl;
+        const std::pair<int, int> &move = bestMoveFromPrevIterOrTT;
+        int playerMakingMove = board->getNextPlayer();
+        UndoInfo info = board->makeMove(move.first, move.second);
+        int score = minimax(board, currentDepth - 1, root_alpha, root_beta, playerMakingMove,
+                            move.first, move.second, false);
+        board->undoMove(info);
+        processed_priority_move = true;
+
+        bestScoreThisIteration = score;
+        bestMoveThisIteration = move;
+        root_alpha = std::max(root_alpha, score);
+        std::cout << "Priority Move score: " << score << std::endl;
+      } else {
+        std::cout << "Priority Move not found in legal moves." << std::endl;
+        bestMoveFromPrevIterOrTT = std::make_pair(-1, -1);  // Invalidate
+      }
+    }
+
+    // Score and prepare remaining moves for sorting
+    for (std::vector<std::pair<int, int> >::const_iterator it = moves.begin(); it != moves.end();
+         ++it) {
+      const std::pair<int, int> &m = *it;
+      if (processed_priority_move && m == bestMoveFromPrevIterOrTT) {
+        continue;
+      }
+
+      int move_score_heuristic =
+          Evaluation::evaluatePositionHard(board, currentPlayer, m.first, m.second);
+      if (move_score_heuristic >= MINIMAX_TERMINATION) {
+        std::cout << "Immediate heuristic win found at root: (" << m.first << "," << m.second
+                  << ") during depth " << currentDepth << std::endl;
+        // Store this iteration's result before returning
+        bestResultSoFar.bestMove = m;
+        bestResultSoFar.score = move_score_heuristic;
+        bestResultSoFar.depthSearched = currentDepth;
+        // Optional TT Store
+        // transTable[initialHash] = TTEntry(move_score_heuristic, currentDepth, m, EXACT);
+        return m;  // Return winning move immediately
+      }
+      bool is_killer = false;   // Killers might need careful indexing with ID (e.g., relative depth
+                                // or flat array) Let's use currentDepth for now, assuming MAX_DEPTH
+                                // is large enough in killer array
+      if (currentDepth >= 0) {  // Index check
+        is_killer = (m == killerMoves[currentDepth][0] || m == killerMoves[currentDepth][1]);
+      }
+      scored_moves.push_back(ScoredMove(move_score_heuristic, m, is_killer));
+    }
+
+    // Sort remaining moves
+    std::sort(scored_moves.begin(), scored_moves.end(), CompareScoredMovesMax());
+
+    // --- Search Remaining Moves ---
+    for (size_t i = 0; i < scored_moves.size(); ++i) {
+      // *** Check Time Limit ***
+      clock_t currentTime = clock();
+      if ((currentTime - startTime) >= timeLimitClocks) {
+        std::cout << "Time limit exceeded during depth " << currentDepth << "!" << std::endl;
+        // Return best move from PREVIOUS completed iteration
+        return bestResultSoFar.bestMove;
+      }
+
+      const std::pair<int, int> &move = scored_moves[i].move;
+      int playerMakingMove = board->getNextPlayer();
+      UndoInfo info = board->makeMove(move.first, move.second);
+      int score = minimax(board, currentDepth - 1, root_alpha, root_beta, playerMakingMove,
+                          move.first, move.second, false);
+      board->undoMove(info);
+
+      std::cout << "  Depth " << currentDepth << " Move (" << move.first << "," << move.second
+                << ") score: " << score << std::endl;
+
+      if (score > bestScoreThisIteration) {
+        bestScoreThisIteration = score;
+        bestMoveThisIteration = move;
+        root_alpha = std::max(root_alpha, score);
+        std::cout << "  New best score for depth " << currentDepth << ": " << bestScoreThisIteration
+                  << " for move (" << bestMoveThisIteration.first << ","
+                  << bestMoveThisIteration.second << ")" << std::endl;
+      }
+    }  // End loop through remaining moves
+
+    // --- Iteration Complete ---
+
+    // Check time *after* completing the depth's search loop
+    clock_t currentTime = clock();
+    if ((currentTime - startTime) >= timeLimitClocks && currentDepth > 1) {
+      std::cout << "Time limit exceeded AFTER completing depth " << currentDepth << " loop."
+                << std::endl;
+      // We finished the iteration just now, but might not have time for the next one.
+      // Still update bestResultSoFar with the results of the depth we just finished.
+      // The return below will handle returning the result from *this* depth.
+    }
+
+    // Check if a valid move was found in this iteration
+    if (bestMoveThisIteration.first != -1) {
+      // Store result of the completed iteration
+      bestResultSoFar.bestMove = bestMoveThisIteration;
+      bestResultSoFar.score = bestScoreThisIteration;
+      bestResultSoFar.depthSearched = currentDepth;
+
+      // Store in TT
+      std::cout << "Storing result in TT for depth " << currentDepth
+                << ": Score=" << bestScoreThisIteration << ", Move=(" << bestMoveThisIteration.first
+                << "," << bestMoveThisIteration.second << ")" << std::endl;
+      transTable[initialHash] =
+          TTEntry(bestScoreThisIteration, currentDepth, bestMoveThisIteration, EXACT);
+
+      std::cout << "Finished depth " << currentDepth << ". Best move: ("
+                << bestMoveThisIteration.first << "," << bestMoveThisIteration.second
+                << ") Score: " << bestScoreThisIteration << std::endl;
+
+    } else if (!processed_priority_move) {
+      // This case should ideally not happen if generateCandidateMoves returned >0 moves initially
+      // Means no move yielded a score better than -infinity. Could be error or draw state?
+      std::cout << "Warning: No best move found for depth " << currentDepth
+                << " although moves exist." << std::endl;
+      // If no move improved score at depth 1, return default or first legal move?
+      // Stick with returning previous best for safety if depth > 1.
+      if (currentDepth == 1) {
+        // Maybe return moves[0]? Or stick with default (-1,-1).
+        return std::make_pair(-1, -1);
+      } else {
+        return bestResultSoFar.bestMove;
+      }
+    }
+    // If only processed hash move, bestResultSoFar still got updated earlier
+
+    // Optional: Early exit if score indicates forced mate?
+    // if (abs(bestResultSoFar.score) >= (WIN_SCORE - maxDepth)) // Adjust score based on depth for
+    // mate distance
+    // {
+    //    std::cout << "Forced mate found at depth " << currentDepth << std::endl;
+    //    break; // Exit ID loop
+    // }
+
+    // Check time *before* starting next iteration (redundant with check inside loop, but safe)
+    if ((clock() - startTime) >= timeLimitClocks) {
+      std::cout << "Time limit reached after completing depth " << currentDepth << "." << std::endl;
+      break;  // Exit ID loop
+    }
+
+  }  // End Iterative Deepening Loop
+
+  std::cout << "Iterative deepening finished. Returning best move from depth "
+            << bestResultSoFar.depthSearched << std::endl;
+  return bestResultSoFar.bestMove;  // Return best move from the deepest fully completed search
 }
 
 }  // namespace Minimax
