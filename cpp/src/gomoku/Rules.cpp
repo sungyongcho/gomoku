@@ -67,23 +67,6 @@ bool is_within_bounds(int x, int y, int offset_x, int offset_y) {
   return (new_x >= 0 && new_x < BOARD_SIZE && new_y >= 0 && new_y < BOARD_SIZE);
 }
 
-// /**
-//  * Helper functions to pack cell values into an unsigned int.
-//  * Each cell uses 2 bits.
-//  */
-// inline unsigned int pack_cells_4(unsigned int a, unsigned int b, unsigned int c, unsigned int d)
-// {
-//   return (a << 6) | (b << 4) | (c << 2) | d;
-// }
-
-// inline unsigned int pack_cells_3(unsigned int a, unsigned int b, unsigned int c) {
-//   return (a << 4) | (b << 2) | c;
-// }
-
-// inline unsigned int pack_cells_2(unsigned int a, unsigned int b) { return (a << 2) | b; }
-
-// inline unsigned int pack_cells_1(unsigned int a) { return a; }
-
 bool check_edge_bit_case_1(unsigned int forward, unsigned int backward, int player, int opponent) {
   unsigned int cond_1a_fwd = pack_cells_4(player, player, EMPTY_SPACE, opponent);
   unsigned int cond_1a_bkwd = pack_cells_2(EMPTY_SPACE, opponent);

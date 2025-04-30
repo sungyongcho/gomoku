@@ -8,7 +8,7 @@
 namespace Minimax {
 
 static const uint64_t rowMask = ((uint64_t)1 << BOARD_SIZE) - 1;
-static std::pair<int, int> killerMoves[MAX_DEPTH][2];
+static std::pair<int, int> killerMoves[MAX_DEPTH + 1][2];
 
 // Horizontal shifts for a row.
 inline uint64_t shiftRowLeft(uint64_t row) { return (row << 1) & rowMask; }
