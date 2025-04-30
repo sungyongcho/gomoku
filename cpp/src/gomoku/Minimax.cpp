@@ -172,7 +172,7 @@ struct CompareScoredMovesMin {
 
 int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x, int y,
                      int depth) {
-  if (depth < -2) std::cout << "depth already exceed 10, depth: " << depth << std::endl;
+  if (depth > 2) std::cout << "depth already exceed 10, depth: " << depth << std::endl;
   // 1. Evaluate Stand-Pat Score
   //    Perspective is crucial. Evaluate from the point of view of the player whose turn it is.
   int playerWhoseTurnItIs = board->getNextPlayer();
@@ -208,7 +208,7 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x
     UndoInfo info = board->makeMove(captureMoves[i].first, captureMoves[i].second);
     // Recursively call quiescence search for the opponent
     int eval = quiescenceSearch(board, alpha, beta, !isMaximizing, captureMoves[i].first,
-                                captureMoves[i].second, depth - 2);
+                                captureMoves[i].second, depth + 1);
     board->undoMove(info);
 
     if (isMaximizing) {
@@ -598,11 +598,11 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
   }
   std::vector<ScoredMove> scored;
   scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored);
-  if (!scored.empty() && scored[0].score >= MINIMAX_TERMINATION) {
-    // std::cout << "Immediate heuristic win found at root: (" << scored[0].move.first << ","
-    //           << scored[0].move.second << ") during depth " << depth << std::endl;
-    return scored[0].score;
-  }
+  // if (!scored.empty() && scored[0].score >= MINIMAX_TERMINATION) {
+  //   // std::cout << "Immediate heuristic win found at root: (" << scored[0].move.first << ","
+  //   //           << scored[0].move.second << ") during depth " << depth << std::endl;
+  //   return scored[0].score;
+  // }
 
   // ---- 4.  Search loop (PVS) ------------------------------
   bool firstChild = true;
