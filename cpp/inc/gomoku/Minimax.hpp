@@ -40,6 +40,14 @@ struct ScoredMove {
   ScoredMove(int s, std::pair<int, int> m, bool ik) : score(s), move(m), is_killer(ik) {}
 };
 
+struct SearchResult {
+  std::pair<int, int> bestMove;
+  int score;
+  int depthSearched;  // Depth actually completed
+
+  SearchResult() : bestMove(-1, -1), score(std::numeric_limits<int>::min()), depthSearched(0) {}
+};
+
 static boost::unordered_map<uint64_t, TTEntry> transTable;
 
 namespace Minimax {
