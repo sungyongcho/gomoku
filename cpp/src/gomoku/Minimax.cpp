@@ -305,6 +305,49 @@ inline bool processHashMove(Board *board, const std::pair<int, int> &mv, int dep
   return alpha >= beta;
 }
 
+inline bool tryMoveAndCutoff(Board *board, const std::pair<int, int> &mv, int depth, int &alpha,
+                             int &beta, bool isMaximizing, int initialAlpha, uint64_t currentHash,
+                             std::pair<int, int> &bestMoveForNode, int &bestEval) {
+  // 1) make
+  UndoInfo ui = board->makeMove(mv.first, mv.second);
+
+  // 2) recurse
+  int nextPlayer = board->getNextPlayer();
+  int eval = minimax(board, depth - 1, alpha, beta, nextPlayer, mv.first, mv.second, !isMaximizing);
+
+  // 3) undo
+  board->undoMove(ui);
+
+  // 4) update bestEval & α/β
+  if (isMaximizing) {
+    if (eval > bestEval) {
+      bestEval = eval;
+      bestMoveForNode = mv;
+    }
+    alpha = std::max(alpha, eval);
+  } else {
+    if (eval < bestEval) {
+      bestEval = eval;
+      bestMoveForNode = mv;
+    }
+    beta = std::min(beta, eval);
+  }
+
+  // 5) on cutoff, record killer & TT and tell caller to exit
+  if (alpha >= beta) {
+    // killer
+    if (killerMoves[depth][0] != mv && killerMoves[depth][1] != mv) {
+      killerMoves[depth][1] = killerMoves[depth][0];
+      killerMoves[depth][0] = mv;
+    }
+    // transposition table
+    storeTT(currentHash, depth, bestMoveForNode, bestEval, initialAlpha, beta);
+    return true;
+  }
+
+  return false;
+}
+
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
             bool isMaximizing) {
   // --- Alpha-Beta Preamble ---
@@ -317,9 +360,6 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   int playerWhoJustMoved = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
   int evalScore = Evaluation::evaluatePositionHard(board, playerWhoJustMoved, lastX, lastY);
   if (lastX != -1 && evalScore >= MINIMAX_TERMINATION) {
-    // Optional: Store this terminal state in TT? Could use a large depth.
-    // transTable[currentHash] = TTEntry(evalScore, MAX_DEPTH + depth, std::make_pair(-1,-1),
-    // EXACT);
     board->flushCaptures();
     return evalScore;
   }
@@ -365,52 +405,11 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   // 4. Iterate through the *sorted* scored_moves (using iterators)
   for (std::vector<ScoredMove>::const_iterator it = scored_moves.begin(); it != scored_moves.end();
        ++it) {
-    const ScoredMove &scored_move = *it;
-    const std::pair<int, int> &move = scored_move.move;
-
-    UndoInfo info = board->makeMove(move.first, move.second);
-    int nextPlayer = board->getNextPlayer();
-    // --- Recursive Call ---
-    int eval =
-        minimax(board, depth - 1, alpha, beta, nextPlayer, move.first, move.second, !isMaximizing);
-    board->undoMove(info);
-    // --- Evaluation & Pruning ---
-    if (isMaximizing) {
-      if (eval > bestEval) {  // Found a new best move
-        bestEval = eval;
-        bestMoveForNode = move;             // Update best move for TT
-        alpha = std::max(alpha, bestEval);  // Update alpha
-      }
-      if (alpha >= beta) {  // Beta cutoff
-        // Store killer move
-        if (killerMoves[depth][0] != move && killerMoves[depth][1] != move) {
-          killerMoves[depth][1] = killerMoves[depth][0];
-          killerMoves[depth][0] = move;
-        }
-        // Store TT entry causing cutoff
-        transTable[currentHash] =
-            TTEntry(bestEval, depth, bestMoveForNode, LOWERBOUND);  // Fail high => Lower bound
-        return bestEval;
-      }
-    } else {                  // Minimizing
-      if (eval < bestEval) {  // Found a new best move
-        bestEval = eval;
-        bestMoveForNode = move;           // Update best move for TT
-        beta = std::min(beta, bestEval);  // Update beta
-      }
-      if (alpha >= beta) {  // Alpha cutoff
-        // Store killer move
-        if (killerMoves[depth][0] != move && killerMoves[depth][1] != move) {
-          killerMoves[depth][1] = killerMoves[depth][0];
-          killerMoves[depth][0] = move;
-        }
-        // Store TT entry causing cutoff
-        transTable[currentHash] =
-            TTEntry(bestEval, depth, bestMoveForNode, UPPERBOUND);  // Fail low => Upper bound
-        return bestEval;
-      }
+    if (tryMoveAndCutoff(board, it->move, depth, alpha, beta, isMaximizing, initial_alpha,
+                         currentHash, bestMoveForNode, bestEval)) {
+      return bestEval;
     }
-  }  // End loop over sorted moves
+  }
   storeTT(currentHash, depth, bestMoveForNode, bestEval, initial_alpha, beta);
 
   return bestEval;
@@ -503,9 +502,6 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
 
     if ((clock() - startTime) >= timeLimitClocks) {
       std::cout << "Time limit exceeded AFTER completing depth " << depth << " loop." << std::endl;
-      // We finished the iteration just now, but might not have time for the next one.
-      // Still update bestResultSoFar with the results of the depth we just finished.
-      // The return below will handle returning the result from *this* depth.
     }
   }
 
@@ -527,14 +523,6 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
 
   return bestMove;
 }
-
-struct SearchResult {
-  std::pair<int, int> bestMove;
-  int score;
-  int depthSearched;  // Depth actually completed
-
-  SearchResult() : bestMove(-1, -1), score(std::numeric_limits<int>::min()), depthSearched(0) {}
-};
 
 // The main iterative deepening function
 std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLimitSeconds) {
