@@ -64,6 +64,21 @@ void scoreAndSortMoves(Board* board, const std::vector<std::pair<int, int> >& in
 
 bool processHashMove(Board* board, const std::pair<int, int>& mv, int depth, int& alpha, int& beta,
                      bool isMaximizing, std::pair<int, int>& bestMoveOut, int& bestEvalOut);
+
+// Timer-aware root search (used by iterativeDeepening).
+bool rootSearch(Board* board, int depth, int& alpha, int& beta, bool isMaximizing,
+                std::pair<int, int>& bestMoveOut, int& bestScoreOut, clock_t startTime,
+                clock_t timeLimitClocks, bool& timedOut);
+
+// Timer-free overload (used by getBestMove).
+inline bool rootSearch(Board* board, int depth, int& alpha, int& beta, bool isMaximizing,
+                       std::pair<int, int>& bestMoveOut, int& bestScoreOut) {
+  bool dummyTimedOut = false;
+  return rootSearch(board, depth, alpha, beta, isMaximizing, bestMoveOut, bestScoreOut,
+                    /*startTime=*/0,
+                    /*timeLimitClocks=*/std::numeric_limits<clock_t>::max(), dummyTimedOut);
+}
+
 }  // namespace Minimax
 
 #endif  // MINMAX_HPP
