@@ -585,9 +585,9 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
   }
   if (depth == 0) {
     // std::cout << "i'mworking" << std::endl;
-    int q = quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth);
+    // int q = quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth);
     board->flushCaptures();
-    return q;
+    return eval;
   }
   board->flushCaptures();
   // ---- 3.  Generate & order moves -------------------------
