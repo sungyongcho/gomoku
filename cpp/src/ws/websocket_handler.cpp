@@ -305,7 +305,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         // std::pair<int, int> a =
         //     Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH, .5);
-        std::pair<int, int> a = Minimax::getBestMovePVS(pBoard, 8);
+        std::pair<int, int> a = Minimax::getBestMovePVS(pBoard, 10);
         // std::pair<int, int> a = Minimax::iterativeDeepening(pBoard, 8, .5);
         //     Minimax::iterativeDeepening(pBoard, 1, 500);
 

@@ -11,8 +11,8 @@
 #define MINIMAX_TERMINATION 1000000
 
 // Critical points
-#define CAPTURE_WIN 2200000
-#define GOMOKU 2100000
+#define CAPTURE_WIN 22000000
+#define GOMOKU 21000000
 #define BLOCK_CRITICAL_LINE 1800000     // block open 3, 4
 #define CAPTURE_BLOCK_CRITICAL 1700000  // block opponent by capturing opponent's critical line
 #define CAPTURE_CRITICAL 1600000
