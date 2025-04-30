@@ -31,18 +31,39 @@ struct TTEntry {
       : score(s), depth(d), bestMove(mv), flag(f) {}
 };
 
+struct ScoredMove {
+  int score;
+  std::pair<int, int> move;
+  bool is_killer;
+
+  // Constructor (C++98 style)
+  ScoredMove(int s, std::pair<int, int> m, bool ik) : score(s), move(m), is_killer(ik) {}
+};
+
 static boost::unordered_map<uint64_t, TTEntry> transTable;
 
 namespace Minimax {
 
 void initKillerMoves();
-std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board);
+std::vector<std::pair<int, int> > generateCandidateMoves(Board*& board);
 
-void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates);
+void printBoardWithCandidates(Board*& board, const std::vector<std::pair<int, int> >& candidates);
 
-std::pair<int, int> getBestMove(Board *board, int depth);
-std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLimitSeconds);
+int minimax(Board* board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
+            bool isMaximizing);
+std::pair<int, int> getBestMove(Board* board, int depth);
+std::pair<int, int> iterativeDeepening(Board* board, int maxDepth, double timeLimitSeconds);
 
+bool probeTT(Board* board, int depth, int& alpha, int& beta, std::pair<int, int>& bestMove,
+             int& scoreOut);
+void storeTT(uint64_t hash, int depth, const std::pair<int, int>& bestMove, int score, int alpha0,
+             int beta);
+
+void scoreAndSortMoves(Board* board, const std::vector<std::pair<int, int> >& in, int player,
+                       int depth, bool maxSide, std::vector<ScoredMove>& out);
+
+bool processHashMove(Board* board, const std::pair<int, int>& mv, int depth, int& alpha, int& beta,
+                     bool isMaximizing, std::pair<int, int>& bestMoveOut, int& bestEvalOut);
 }  // namespace Minimax
 
 #endif  // MINMAX_HPP
