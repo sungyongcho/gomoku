@@ -390,19 +390,11 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     return final_eval;
   }
 
-  std::pair<int, int> bestMoveForNode =
-      std::make_pair(-1, -1);  // Track best move found at this node
+  std::pair<int, int> bestMoveForNode = std::make_pair(-1, -1);
 
-  // ***** MOVE ORDERING (C++98 VERSION) *****
-
-  // 1. Create vector for scored moves
   std::vector<ScoredMove> scored_moves;
-
   scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored_moves);
 
-  // ***** END OF MOVE ORDERING *****
-
-  // 4. Iterate through the *sorted* scored_moves (using iterators)
   for (std::vector<ScoredMove>::const_iterator it = scored_moves.begin(); it != scored_moves.end();
        ++it) {
     if (tryMoveAndCutoff(board, it->move, depth, alpha, beta, isMaximizing, initial_alpha,

@@ -303,9 +303,9 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::clock_t start = std::clock();  // Start time
 
-        // std::pair<int, int> a = Minimax::getBestMove(pBoard, difficulty == "easy" ? 1 :
-        // MAX_DEPTH);
-        std::pair<int, int> a = Minimax::iterativeDeepening(pBoard, 8, .5);
+        std::pair<int, int> a =
+            Minimax::iterativeDeepening(pBoard, difficulty == "easy" ? 1 : MAX_DEPTH, .5);
+        // std::pair<int, int> a = Minimax::iterativeDeepening(pBoard, 8, .5);
         //     Minimax::iterativeDeepening(pBoard, 1, 500);
 
         std::clock_t end = std::clock();  // End time
