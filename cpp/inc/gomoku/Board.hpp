@@ -92,6 +92,7 @@ class Board {
   const std::vector<CapturedStone> &getCapturedStones()
       const;          // Get list of captures from last move
   void switchTurn();  // Switches players (updates hash)
+  void flushCaptures();
 
   // Utility & Static Methods
   static bool isValidCoordinate(int col, int row);

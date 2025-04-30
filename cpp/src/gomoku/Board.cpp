@@ -249,6 +249,12 @@ void Board::switchTurn() {
   this->currentHash ^= Zobrist::turn_key;
 }
 
+void Board::flushCaptures() {
+  if (this->getCapturedStones().size() > 0) {
+    this->applyCapture(true);
+  }
+}
+
 /**
  * Utility
  */
