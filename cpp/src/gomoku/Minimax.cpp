@@ -170,7 +170,9 @@ struct CompareScoredMovesMin {
   }
 };
 
-int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x, int y) {
+int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x, int y,
+                     int depth) {
+  if (depth < -2) std::cout << "depth already exceed 10, depth: " << depth << std::endl;
   // 1. Evaluate Stand-Pat Score
   //    Perspective is crucial. Evaluate from the point of view of the player whose turn it is.
   int playerWhoseTurnItIs = board->getNextPlayer();
@@ -206,7 +208,7 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x
     UndoInfo info = board->makeMove(captureMoves[i].first, captureMoves[i].second);
     // Recursively call quiescence search for the opponent
     int eval = quiescenceSearch(board, alpha, beta, !isMaximizing, captureMoves[i].first,
-                                captureMoves[i].second);
+                                captureMoves[i].second, depth - 2);
     board->undoMove(info);
 
     if (isMaximizing) {
@@ -365,7 +367,8 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   }
 
   if (depth == 0) {
-    int quiescenceSearchScore = quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY);
+    int quiescenceSearchScore =
+        quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth);
     board->flushCaptures();
     return quiescenceSearchScore;
   }
@@ -561,6 +564,141 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
   }
 
   return bestSoFar.bestMove;  // Return best move from the deepest fully completed search
+}
+
+int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
+        bool isMaximizing) {
+  int alphaOrig = alpha;  // for TT flag
+  uint64_t hash = board->getHash();
+  std::pair<int, int> ttMove(-1, -1);
+  int ttScore;
+
+  // ---- 1.  TT probe ---------------------------------------
+  if (probeTT(board, depth, alpha, beta, ttMove, ttScore)) return ttScore;
+
+  // ---- 2.  Terminal / quiescence --------------------------
+  int playerJustMoved = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
+  int eval = Evaluation::evaluatePositionHard(board, playerJustMoved, lastX, lastY);
+  if (lastX != -1 && eval >= MINIMAX_TERMINATION) {
+    board->flushCaptures();
+    return eval;
+  }
+  if (depth == 0) {
+    // std::cout << "i'mworking" << std::endl;
+    int q = quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth);
+    board->flushCaptures();
+    return q;
+  }
+  board->flushCaptures();
+  // ---- 3.  Generate & order moves -------------------------
+  std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
+  if (moves.empty()) {  // stalemate – evaluate statically
+    board->flushCaptures();
+    return Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
+  }
+  std::vector<ScoredMove> scored;
+  scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored);
+  if (!scored.empty() && scored[0].score >= MINIMAX_TERMINATION) {
+    // std::cout << "Immediate heuristic win found at root: (" << scored[0].move.first << ","
+    //           << scored[0].move.second << ") during depth " << depth << std::endl;
+    return scored[0].score;
+  }
+
+  // ---- 4.  Search loop (PVS) ------------------------------
+  bool firstChild = true;
+  std::pair<int, int> bestMove(-1, -1);
+  int bestEval = isMaximizing ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+
+  for (size_t i = 0; i < scored.size(); ++i) {
+    const std::pair<int, int> &mv = scored[i].move;
+
+    // Killer-move bookkeeping handled in tryMoveAndCutoff, so just call it.
+    UndoInfo ui = board->makeMove(mv.first, mv.second);
+    int next = board->getNextPlayer();
+
+    int score;
+    if (firstChild) {
+      // full window
+      score = pvs(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing);
+      firstChild = false;
+    } else {
+      // null window
+      score = pvs(board, depth - 1, alpha + 1, alpha + 1, next, mv.first, mv.second, !isMaximizing);
+      // if it produced something interesting, re-search
+      if (score > alpha && score < beta) {
+        score = pvs(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing);
+      }
+    }
+
+    board->undoMove(ui);
+
+    // ------- α/β update + best-move tracking -------------
+    if (isMaximizing) {
+      if (score > bestEval) {
+        bestEval = score;
+        bestMove = mv;
+      }
+      if (score > alpha) alpha = score;
+    } else {
+      if (score < bestEval) {
+        bestEval = score;
+        bestMove = mv;
+      }
+      if (score < beta) beta = score;
+    }
+    if (alpha >= beta) {  // cut-off
+      // killer-move table
+      if (!isKillerMove(depth, mv)) {
+        killerMoves[depth][1] = killerMoves[depth][0];
+        killerMoves[depth][0] = mv;
+      }
+      break;
+    }
+  }
+
+  // ---- 5.  Store in TT & return ---------------------------
+  storeTT(hash, depth, bestMove, bestEval, alphaOrig, beta);
+  return bestEval;
+}
+
+// ------------------------------------------------------------
+// One-shot “find best move” helper (no iterative deepening).
+// ------------------------------------------------------------
+std::pair<int, int> getBestMovePVS(Board *board, int searchDepth) {
+  initKillerMoves();
+  std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
+  if (moves.empty()) return std::make_pair(-1, -1);
+
+  std::vector<ScoredMove> ordered;
+  scoreAndSortMoves(board, moves, board->getNextPlayer(), searchDepth, /*maxSide=*/true, ordered);
+  if (ordered[0].score >= MINIMAX_TERMINATION) {
+    return ordered[0].move;
+  }
+
+  int alpha = std::numeric_limits<int>::min();
+  int beta = std::numeric_limits<int>::max();
+  std::pair<int, int> bestMove(-1, -1);
+  int bestScore = std::numeric_limits<int>::min();
+
+  for (size_t i = 0; i < ordered.size(); ++i) {
+    const std::pair<int, int> &mv = ordered[i].move;
+    UndoInfo ui = board->makeMove(mv.first, mv.second);
+    int next = board->getNextPlayer();
+    int score =
+        pvs(board, searchDepth - 1, alpha, beta, next, mv.first, mv.second, /*isMaximizing=*/false);
+
+    board->undoMove(ui);
+    if (score >= MINIMAX_TERMINATION) {
+      return mv;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = mv;
+    }
+    if (score > alpha) alpha = score;
+  }
+  return bestMove;
 }
 
 }  // namespace Minimax

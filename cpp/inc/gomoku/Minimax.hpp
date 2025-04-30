@@ -60,6 +60,7 @@ void printBoardWithCandidates(Board*& board, const std::vector<std::pair<int, in
 int minimax(Board* board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
             bool isMaximizing);
 std::pair<int, int> getBestMove(Board* board, int depth);
+std::pair<int, int> getBestMovePVS(Board* board, int depth);
 std::pair<int, int> iterativeDeepening(Board* board, int maxDepth, double timeLimitSeconds);
 
 bool probeTT(Board* board, int depth, int& alpha, int& beta, std::pair<int, int>& bestMove,
