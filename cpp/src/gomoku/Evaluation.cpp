@@ -287,7 +287,7 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
 }
 
 void initCombinedPatternScoreTables() {
-  std::fill(patternScoreTablePlayerTwo, patternScoreTablePlayerOne + LOOKUP_TABLE_SIZE,
+  std::fill(patternScoreTablePlayerOne, patternScoreTablePlayerOne + LOOKUP_TABLE_SIZE,
             INVALID_PATTERN);
   std::fill(patternScoreTablePlayerTwo, patternScoreTablePlayerTwo + LOOKUP_TABLE_SIZE,
             INVALID_PATTERN);

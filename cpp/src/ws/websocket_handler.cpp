@@ -251,10 +251,14 @@ std::string constructErrorResponse(ParseResult result, const std::string &detail
 
 int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
                   size_t len) {
-  (void)user;
+  psd_debug *psd = static_cast<psd_debug *>(user);  // <-- persistent!
   switch (reason) {
+    case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
+      new (&psd->difficulty) std::string();  // placement-new
+      break;
     case LWS_CALLBACK_ESTABLISHED:
       std::cout << "WebSocket `/ws/debug` connected!" << std::endl;
+      psd->difficulty.clear();  // starts empty for this client
       initZobrist();
       // testZobristHashingLogic();
       transTable.clear();
@@ -294,9 +298,26 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
           return -1;
         }
 
+        if (psd->difficulty != difficulty) {
+          if (psd->difficulty.size() == 0)
+            std::cout << "initial difficulty: " << difficulty << std::endl;
+          else {
+            std::cout << "difficulty changed from" << psd->difficulty << " to " << difficulty
+                      << std::endl;
+
+            transTable.clear();
+          }
+          psd->difficulty = difficulty;
+        }
+
         std::clock_t start = std::clock();  // Start time
         if (difficulty == "hard")
           predict = Minimax::getBestMovePVS(pBoard, MAX_DEPTH, &Evaluation::evaluatePositionHard);
+        else if (difficulty == "medium")
+          predict =
+              Minimax::iterativeDeepening(pBoard, MAX_DEPTH, 0.4, &Evaluation::evaluatePosition);
+        else if (difficulty == "easy")
+          predict = Minimax::getBestMove(pBoard, 5, &Evaluation::evaluatePosition);
 
         else {
           std::string error_response = constructErrorResponse(ERROR_GAME_DIFFICULTY, "");
@@ -392,6 +413,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         delete pBoard;
         return 0;
       } else if (type == "reset") {
+        psd->difficulty = "";
         initZobrist();
         transTable.clear();
       } else {
@@ -403,6 +425,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
     }
 
     case LWS_CALLBACK_CLOSED:
+      psd->difficulty.~basic_string();  // manual dtor
       std::cout << "WebSocket connection closed." << std::endl;
       break;
 
