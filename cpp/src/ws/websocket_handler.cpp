@@ -224,9 +224,6 @@ std::string constructErrorResponse(ParseResult result, const std::string &detail
   oss << "{\"type\":\"error\",\"error\":\"";
 
   switch (result) {
-    case ERROR_NO_LAST_PLAY:
-      oss << "No lastPlay found";
-      break;
     case ERROR_INVALID_BOARD:
       oss << "Invalid board field";
       break;
@@ -311,7 +308,11 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         }
 
         std::clock_t start = std::clock();  // Start time
-        if (difficulty == "hard")
+        if (last_x == -1 && last_y == -1) {
+          std::cout << pBoard->getLastPlayer() << " " << pBoard->getNextPlayer() << std::endl;
+          std::cout << "no lastplay" << std::endl;
+          predict = std::make_pair(BOARD_SIZE / 2, BOARD_SIZE / 2);
+        } else if (difficulty == "hard")
           predict = Minimax::getBestMovePVS(pBoard, MAX_DEPTH, &Evaluation::evaluatePositionHard);
         else if (difficulty == "medium")
           predict =
@@ -327,6 +328,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         }
 
         std::clock_t end = std::clock();  // End time
+
         pBoard->setValueBit(predict.first, predict.second, pBoard->getNextPlayer());
 
         if (Rules::detectCaptureStones(*pBoard, predict.first, predict.second,

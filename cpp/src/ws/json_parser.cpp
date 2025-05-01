@@ -13,17 +13,25 @@ void sendJsonResponse(struct lws *wsi, const std::string &response) {
 bool extractMoveFields(const rapidjson::Document &doc, int &x, int &y, std::string &last_player,
                        std::string &next_player, int &goal, std::string &difficulty,
                        bool &enable_capture, bool &enable_double_three_restriction) {
-  x = doc["lastPlay"]["coordinate"]["x"].GetInt();
-  y = doc["lastPlay"]["coordinate"]["y"].GetInt();
-  last_player = doc["lastPlay"]["stone"].GetString();
-  next_player = doc["nextPlayer"].GetString();
+  if (doc.HasMember("lastPlay")) {
+    x = doc["lastPlay"]["coordinate"]["x"].GetInt();
+    y = doc["lastPlay"]["coordinate"]["y"].GetInt();
+    last_player = doc["lastPlay"]["stone"].GetString();
+    next_player = doc["nextPlayer"].GetString();
+  } else {
+    x = -1;
+    y = -1;
+    next_player = doc["nextPlayer"].GetString();
+    last_player = OPPONENT(next_player[0]);
+  }
   goal = doc["goal"].GetInt();
   difficulty = doc["difficulty"].GetString();
   enable_capture = doc["enableCapture"].GetBool();
   enable_double_three_restriction = doc["enableDoubleThreeRestriction"].GetBool();
 
   std::cout << "Move received:" << std::endl;
-  std::cout << "  Last Play: (" << x << ", " << y << ") by " << last_player << std::endl;
+  if (doc.HasMember("lastPlay"))
+    std::cout << "  Last Play: (" << x << ", " << y << ") by " << last_player << std::endl;
   std::cout << "  Next Player: " << next_player << std::endl;
   std::cout << "  Goal: " << goal << std::endl;
   std::cout << "  Difficulty: " << difficulty << std::endl;
@@ -117,16 +125,12 @@ ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std
   pBoard = NULL;
   error.clear();
 
-  if (!doc.HasMember("lastPlay")) {
-    error = "AI first (no lastPlay found)";
-    return ERROR_NO_LAST_PLAY;
-  }
-
   if (!extractMoveFields(doc, x, y, last_player, next_player, goal, difficulty, enable_capture,
                          enable_double_three_restriction)) {
     error = "Missing required fields.";
     return ERROR_UNKNOWN;
   }
+
   *last_x = x;
   *last_y = y;
 
