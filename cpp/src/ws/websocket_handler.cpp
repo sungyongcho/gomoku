@@ -233,6 +233,9 @@ std::string constructErrorResponse(ParseResult result, const std::string &detail
     case ERROR_INVALID_SCORES:
       oss << "Invalid scores field";
       break;
+    case ERROR_GAME_DIFFICULTY:
+      oss << "Game Difficulty Error";
+      break;
     default:
       oss << "Unknown error";
       break;
@@ -280,6 +283,8 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         int last_x;
         int last_y;
         std::string difficulty;
+        std::pair<int, int> predict;
+
         ParseResult result = parseMoveRequest(doc, pBoard, error, &last_x, &last_y, difficulty);
 
         if (result != PARSE_OK) {
@@ -290,11 +295,21 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         }
 
         std::clock_t start = std::clock();  // Start time
+        if (difficulty == "hard")
+          predict = Minimax::getBestMovePVS(pBoard, MAX_DEPTH);
 
-        std::pair<int, int> a = Minimax::getBestMovePVS(pBoard, 10);
+        else {
+          std::string error_response = constructErrorResponse(ERROR_GAME_DIFFICULTY, "");
+          std::cout << error_response << std::endl;
+          sendJsonResponse(wsi, error_response);
+          return -1;
+        }
+
         std::clock_t end = std::clock();  // End time
-        pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
-        if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
+        pBoard->setValueBit(predict.first, predict.second, pBoard->getNextPlayer());
+
+        if (Rules::detectCaptureStones(*pBoard, predict.first, predict.second,
+                                       pBoard->getNextPlayer())) {
           pBoard->applyCapture(false);
         }
 
@@ -307,7 +322,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
         std::cout << "Execution time: " << executionTime << " s, " << elapsed_ms << " ms, "
                   << elapsed_ns << " ns" << std::endl;
 
-        responseSuccessMove(wsi, *pBoard, a.first, a.second, executionTime);
+        responseSuccessMove(wsi, *pBoard, predict.first, predict.second, executionTime);
         delete pBoard;
         return 0;
       } else if (type == "evaluate") {
