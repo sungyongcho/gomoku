@@ -82,34 +82,6 @@ std::vector<std::pair<int, int> > generateCaptureMoves(Board *&board) {
   return moves;
 }
 
-// Generate candidate moves using row-based neighbor mask.
-std::vector<std::pair<int, int> > generateCriticalMoves(Board *&board, int player) {
-  std::vector<std::pair<int, int> > moves;
-  uint64_t occupancy[BOARD_SIZE];
-  uint64_t neighbor[BOARD_SIZE];
-
-  board->getOccupancy(occupancy);
-  computeNeighborMask(occupancy, neighbor);
-
-  for (int row = 0; row < BOARD_SIZE; row++) {
-    uint64_t candidates = neighbor[row] & (~occupancy[row]) & rowMask;
-    for (int col = 0; col < BOARD_SIZE; col++) {
-      if (candidates & (1ULL << col)) {
-        bool enableDoubleThreeRestriction = board->getEnableDoubleThreeRestriction();
-        bool isDoubleThree =
-            enableDoubleThreeRestriction
-                ? Rules::detectDoublethreeBit(*board, col, row, board->getNextPlayer())
-                : false;
-        if ((!isDoubleThree ||
-             Rules::detectCaptureStonesNotStore(*board, col, row, board->getNextPlayer())) &&
-            Rules::isWinningMove(board, player, col, row))
-          moves.push_back(std::make_pair(col, row));
-      }
-    }
-  }
-  return moves;
-}
-
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates) {
   // Create a 2D display grid.
   std::vector<std::vector<char> > display(BOARD_SIZE, std::vector<char>(BOARD_SIZE, '.'));
@@ -367,10 +339,10 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   }
 
   if (depth == 0) {
-    int quiescenceSearchScore =
-        quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth, evalFn);
+    if (board->getEnableCapture())
+      evalScore = quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth, evalFn);
     board->flushCaptures();
-    return quiescenceSearchScore;
+    return evalScore;
   }
 
   int bestEval = isMaximizing ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
