@@ -170,14 +170,14 @@ struct CompareScoredMovesMin {
   }
 };
 
-int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x, int y,
-                     int depth) {
+int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x, int y, int depth,
+                     EvalFn evalFn) {
   if (depth > 2) std::cout << "depth already exceed 10, depth: " << depth << std::endl;
   // 1. Evaluate Stand-Pat Score
   //    Perspective is crucial. Evaluate from the point of view of the player whose turn it is.
   int playerWhoseTurnItIs = board->getNextPlayer();
   // Use -1,-1 or appropriate dummy coords if last move isn't relevant here
-  int stand_pat_score = Evaluation::evaluatePositionHard(board, playerWhoseTurnItIs, x, y);
+  int stand_pat_score = (*evalFn)(board, playerWhoseTurnItIs, x, y);
   // 2. Initial Pruning based on Stand-Pat
   if (isMaximizing) {
     if (stand_pat_score >= beta) {
@@ -208,7 +208,7 @@ int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x
     UndoInfo info = board->makeMove(captureMoves[i].first, captureMoves[i].second);
     // Recursively call quiescence search for the opponent
     int eval = quiescenceSearch(board, alpha, beta, !isMaximizing, captureMoves[i].first,
-                                captureMoves[i].second, depth + 1);
+                                captureMoves[i].second, depth + 1, evalFn);
     board->undoMove(info);
 
     if (isMaximizing) {
@@ -267,11 +267,11 @@ inline void storeTT(uint64_t hash, int depth, const std::pair<int, int> &mv, int
 }
 
 inline void scoreAndSortMoves(Board *board, const std::vector<std::pair<int, int> > &in, int player,
-                              int depth, bool maxSide, std::vector<ScoredMove> &out) {
+                              int depth, bool maxSide, std::vector<ScoredMove> &out, EvalFn eval) {
   out.reserve(in.size());
   for (size_t i = 0; i < in.size(); ++i) {
     const std::pair<int, int> &m = in[i];
-    int s = Evaluation::evaluatePositionHard(board, player, m.first, m.second);
+    int s = (*eval)(board, player, m.first, m.second);
     bool k = (killerMoves[depth][0] == m) || (killerMoves[depth][1] == m);
     out.push_back(ScoredMove(s, m, k));
   }
@@ -283,7 +283,7 @@ inline void scoreAndSortMoves(Board *board, const std::vector<std::pair<int, int
 
 inline bool processHashMove(Board *board, const std::pair<int, int> &mv, int depth, int &alpha,
                             int &beta, bool isMaximizing, std::pair<int, int> &bestMoveOut,
-                            int &bestEvalOut) {
+                            int &bestEvalOut, EvalFn evalFn) {
   if (mv.first < 0) return false;  // no move to try
 
   // make
@@ -291,7 +291,7 @@ inline bool processHashMove(Board *board, const std::pair<int, int> &mv, int dep
 
   // recurse
   int score = minimax(board, depth - 1, alpha, beta, board->getNextPlayer(), mv.first, mv.second,
-                      !isMaximizing);
+                      !isMaximizing, evalFn);
 
   // undo
   board->undoMove(ui);
@@ -309,13 +309,14 @@ inline bool processHashMove(Board *board, const std::pair<int, int> &mv, int dep
 
 inline bool tryMoveAndCutoff(Board *board, const std::pair<int, int> &mv, int depth, int &alpha,
                              int &beta, bool isMaximizing, int initialAlpha, uint64_t currentHash,
-                             std::pair<int, int> &bestMoveForNode, int &bestEval) {
+                             std::pair<int, int> &bestMoveForNode, int &bestEval, EvalFn evalFn) {
   // 1) make
   UndoInfo ui = board->makeMove(mv.first, mv.second);
 
   // 2) recurse
   int nextPlayer = board->getNextPlayer();
-  int eval = minimax(board, depth - 1, alpha, beta, nextPlayer, mv.first, mv.second, !isMaximizing);
+  int eval = minimax(board, depth - 1, alpha, beta, nextPlayer, mv.first, mv.second, !isMaximizing,
+                     evalFn);
 
   // 3) undo
   board->undoMove(ui);
@@ -351,7 +352,7 @@ inline bool tryMoveAndCutoff(Board *board, const std::pair<int, int> &mv, int de
 }
 
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
-            bool isMaximizing) {
+            bool isMaximizing, EvalFn evalFn) {
   // --- Alpha-Beta Preamble ---
   int initial_alpha = alpha;            // Store original alpha for TT storing logic later
   uint64_t preHash = board->getHash();  // *** Requires Board::getHash() ***
@@ -360,7 +361,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   if (probeTT(board, depth, alpha, beta, bestMoveFromTT, ttScore)) return ttScore;
 
   int playerWhoJustMoved = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
-  int evalScore = Evaluation::evaluatePositionHard(board, playerWhoJustMoved, lastX, lastY);
+  int evalScore = (*evalFn)(board, playerWhoJustMoved, lastX, lastY);
   if (lastX != -1 && evalScore >= MINIMAX_TERMINATION) {
     board->flushCaptures();
     return evalScore;
@@ -368,7 +369,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 
   if (depth == 0) {
     int quiescenceSearchScore =
-        quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth);
+        quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth, evalFn);
     board->flushCaptures();
     return quiescenceSearchScore;
   }
@@ -377,7 +378,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   std::pair<int, int> bestFromNode(-1, -1);
 
   if (processHashMove(board, bestMoveFromTT, depth, alpha, beta, isMaximizing, bestFromNode,
-                      bestEval)) {
+                      bestEval, evalFn)) {
     storeTT(preHash, depth, bestFromNode, bestEval, initial_alpha, beta);
     return bestEval;
   }
@@ -387,7 +388,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   // Generate candidate moves.
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) {
-    int final_eval = Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
+    int final_eval = (*evalFn)(board, currentPlayer, lastX, lastY);
     // Store this terminal evaluation in TT
     transTable[currentHash] = TTEntry(final_eval, depth, std::make_pair(-1, -1), EXACT);
     return final_eval;
@@ -396,12 +397,12 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   std::pair<int, int> bestMoveForNode = std::make_pair(-1, -1);
 
   std::vector<ScoredMove> scored_moves;
-  scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored_moves);
+  scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored_moves, evalFn);
 
   for (std::vector<ScoredMove>::const_iterator it = scored_moves.begin(); it != scored_moves.end();
        ++it) {
     if (tryMoveAndCutoff(board, it->move, depth, alpha, beta, isMaximizing, initial_alpha,
-                         currentHash, bestMoveForNode, bestEval)) {
+                         currentHash, bestMoveForNode, bestEval, evalFn)) {
       return bestEval;
     }
   }
@@ -412,7 +413,7 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
 
 bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizing,
                 std::pair<int, int> &bestMoveOut, int &bestScoreOut, clock_t startTime,
-                clock_t timeLimitClocks, bool &timedOut) {
+                clock_t timeLimitClocks, bool &timedOut, EvalFn evalFn) {
   // 0) pre‐timer check
   if ((clock() - startTime) >= timeLimitClocks) {
     timedOut = true;
@@ -431,7 +432,8 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
   }
 
   // 2) try TT‐move
-  if (processHashMove(board, ttMv, depth, alpha, beta, isMaximizing, bestMoveOut, bestScoreOut)) {
+  if (processHashMove(board, ttMv, depth, alpha, beta, isMaximizing, bestMoveOut, bestScoreOut,
+                      evalFn)) {
     storeTT(h0, depth, bestMoveOut, bestScoreOut, alpha0, beta);
     return true;
   }
@@ -450,7 +452,7 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
   }
 
   std::vector<ScoredMove> scored;
-  scoreAndSortMoves(board, moves, board->getNextPlayer(), depth, isMaximizing, scored);
+  scoreAndSortMoves(board, moves, board->getNextPlayer(), depth, isMaximizing, scored, evalFn);
 
   // 5) immediate heuristic win?
   if (!scored.empty() && scored[0].score >= MINIMAX_TERMINATION) {
@@ -475,7 +477,8 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
     const std::pair<int, int> &mv = scored[i].move;
     UndoInfo ui = board->makeMove(mv.first, mv.second);
     int next = board->getNextPlayer();
-    int val = minimax(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing);
+    int val =
+        minimax(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing, evalFn);
     board->undoMove(ui);
 
     std::cout << "  Depth " << depth << " Move (" << mv.first << "," << mv.second
@@ -505,7 +508,7 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
   return false;
 }
 
-std::pair<int, int> getBestMove(Board *board, int depth) {
+std::pair<int, int> getBestMove(Board *board, int depth, EvalFn evalFn) {
   int bestScore = std::numeric_limits<int>::min();
   std::pair<int, int> bestMove = std::make_pair(-1, -1);
 
@@ -514,13 +517,14 @@ std::pair<int, int> getBestMove(Board *board, int depth) {
 
   rootSearch(board, depth, alpha, beta,
              true,  // maximizing at root
-             bestMove, bestScore);
+             bestMove, bestScore, evalFn);
 
   return bestMove;
 }
 
 // The main iterative deepening function
-std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLimitSeconds) {
+std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLimitSeconds,
+                                       EvalFn evalFn) {
   // Timekeeping (C++98 style using clock())
   clock_t start = clock();
   clock_t limit = (clock_t)(timeLimitSeconds * CLOCKS_PER_SEC);
@@ -540,7 +544,7 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
     // 1) First search with the *current* window
     bool cutoff = rootSearch(board, d, root_alpha, root_beta,
                              true,  // maximizing
-                             bestMove, bestScore, start, limit, timedOut);
+                             bestMove, bestScore, start, limit, timedOut, evalFn);
 
     if (timedOut) break;  // ran out of time
 
@@ -550,7 +554,7 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
       root_beta = std::numeric_limits<int>::max();
 
       cutoff = rootSearch(board, d, root_alpha, root_beta, true, bestMove, bestScore, start, limit,
-                          timedOut);
+                          timedOut, evalFn);
       if (timedOut) break;  // time’s up in the full‐window search
     }
 
@@ -567,7 +571,7 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
 }
 
 int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
-        bool isMaximizing) {
+        bool isMaximizing, EvalFn evalFn) {
   int alphaOrig = alpha;  // for TT flag
   uint64_t hash = board->getHash();
   std::pair<int, int> ttMove(-1, -1);
@@ -578,33 +582,22 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
 
   // ---- 2.  Terminal / quiescence --------------------------
   int playerJustMoved = (currentPlayer == PLAYER_1) ? PLAYER_2 : PLAYER_1;
-  int eval = Evaluation::evaluatePositionHard(board, playerJustMoved, lastX, lastY);
-  if (lastX != -1 && eval >= MINIMAX_TERMINATION) {
-    board->flushCaptures();
-    return eval;
-  }
-  if (depth == 0) {
-    // std::cout << "i'mworking" << std::endl;
-    // int q = quiescenceSearch(board, alpha, beta, isMaximizing, lastX, lastY, depth);
+  int eval = (*evalFn)(board, playerJustMoved, lastX, lastY);
+  if ((lastX != -1 && eval >= MINIMAX_TERMINATION) || depth == 0) {
     board->flushCaptures();
     return eval;
   }
   board->flushCaptures();
+
   // ---- 3.  Generate & order moves -------------------------
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) {  // stalemate – evaluate statically
     board->flushCaptures();
-    return Evaluation::evaluatePositionHard(board, currentPlayer, lastX, lastY);
+    return (*evalFn)(board, currentPlayer, lastX, lastY);
   }
   std::vector<ScoredMove> scored;
-  scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored);
-  // if (!scored.empty() && scored[0].score >= MINIMAX_TERMINATION) {
-  //   // std::cout << "Immediate heuristic win found at root: (" << scored[0].move.first << ","
-  //   //           << scored[0].move.second << ") during depth " << depth << std::endl;
-  //   return scored[0].score;
-  // }
+  scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored, evalFn);
 
-  // ---- 4.  Search loop (PVS) ------------------------------
   bool firstChild = true;
   std::pair<int, int> bestMove(-1, -1);
   int bestEval = isMaximizing ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
@@ -619,14 +612,16 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
     int score;
     if (firstChild) {
       // full window
-      score = pvs(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing);
+      score = pvs(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing, evalFn);
       firstChild = false;
     } else {
       // null window
-      score = pvs(board, depth - 1, alpha + 1, alpha + 1, next, mv.first, mv.second, !isMaximizing);
+      score = pvs(board, depth - 1, alpha + 1, alpha + 1, next, mv.first, mv.second, !isMaximizing,
+                  evalFn);
       // if it produced something interesting, re-search
       if (score > alpha && score < beta) {
-        score = pvs(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing);
+        score =
+            pvs(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing, evalFn);
       }
     }
 
@@ -664,13 +659,14 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
 // ------------------------------------------------------------
 // One-shot “find best move” helper (no iterative deepening).
 // ------------------------------------------------------------
-std::pair<int, int> getBestMovePVS(Board *board, int searchDepth) {
+std::pair<int, int> getBestMovePVS(Board *board, int depth,
+                                   EvalFn evalFn = &Evaluation::evaluatePositionHard) {
   initKillerMoves();
   std::vector<std::pair<int, int> > moves = generateCandidateMoves(board);
   if (moves.empty()) return std::make_pair(-1, -1);
 
   std::vector<ScoredMove> ordered;
-  scoreAndSortMoves(board, moves, board->getNextPlayer(), searchDepth, /*maxSide=*/true, ordered);
+  scoreAndSortMoves(board, moves, board->getNextPlayer(), depth, /*maxSide=*/true, ordered, evalFn);
   if (ordered[0].score >= MINIMAX_TERMINATION) {
     return ordered[0].move;
   }
@@ -684,8 +680,8 @@ std::pair<int, int> getBestMovePVS(Board *board, int searchDepth) {
     const std::pair<int, int> &mv = ordered[i].move;
     UndoInfo ui = board->makeMove(mv.first, mv.second);
     int next = board->getNextPlayer();
-    int score =
-        pvs(board, searchDepth - 1, alpha, beta, next, mv.first, mv.second, /*isMaximizing=*/false);
+    int score = pvs(board, depth - 1, alpha, beta, next, mv.first, mv.second,
+                    /*isMaximizing=*/false, evalFn);
 
     board->undoMove(ui);
     if (score >= MINIMAX_TERMINATION) {

@@ -48,6 +48,8 @@ struct SearchResult {
   SearchResult() : bestMove(-1, -1), score(std::numeric_limits<int>::min()), depthSearched(0) {}
 };
 
+typedef int (*EvalFn)(Board*, int, int, int);
+
 static boost::unordered_map<uint64_t, TTEntry> transTable;
 
 namespace Minimax {
@@ -57,11 +59,13 @@ std::vector<std::pair<int, int> > generateCandidateMoves(Board*& board);
 
 void printBoardWithCandidates(Board*& board, const std::vector<std::pair<int, int> >& candidates);
 
+std::pair<int, int> getBestMove(Board* board, int depth, EvalFn evalFn);
+std::pair<int, int> getBestMovePVS(Board* board, int depth, EvalFn evalFn);
+std::pair<int, int> iterativeDeepening(Board* board, int maxDepth, double timeLimitSeconds,
+                                       EvalFn evalFn);
+
 int minimax(Board* board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
-            bool isMaximizing);
-std::pair<int, int> getBestMove(Board* board, int depth);
-std::pair<int, int> getBestMovePVS(Board* board, int depth);
-std::pair<int, int> iterativeDeepening(Board* board, int maxDepth, double timeLimitSeconds);
+            bool isMaximizing, EvalFn evalFn);
 
 bool probeTT(Board* board, int depth, int& alpha, int& beta, std::pair<int, int>& bestMove,
              int& scoreOut);
@@ -69,23 +73,24 @@ void storeTT(uint64_t hash, int depth, const std::pair<int, int>& bestMove, int 
              int beta);
 
 void scoreAndSortMoves(Board* board, const std::vector<std::pair<int, int> >& in, int player,
-                       int depth, bool maxSide, std::vector<ScoredMove>& out);
+                       int depth, bool maxSide, std::vector<ScoredMove>& out, EvalFn evalFn);
 
 bool processHashMove(Board* board, const std::pair<int, int>& mv, int depth, int& alpha, int& beta,
-                     bool isMaximizing, std::pair<int, int>& bestMoveOut, int& bestEvalOut);
+                     bool isMaximizing, std::pair<int, int>& bestMoveOut, int& bestEvalOut,
+                     EvalFn evalFn);
 
 // Timer-aware root search (used by iterativeDeepening).
 bool rootSearch(Board* board, int depth, int& alpha, int& beta, bool isMaximizing,
                 std::pair<int, int>& bestMoveOut, int& bestScoreOut, clock_t startTime,
-                clock_t timeLimitClocks, bool& timedOut);
+                clock_t timeLimitClocks, bool& timedOut, EvalFn evalFn);
 
 // Timer-free overload (used by getBestMove).
 inline bool rootSearch(Board* board, int depth, int& alpha, int& beta, bool isMaximizing,
-                       std::pair<int, int>& bestMoveOut, int& bestScoreOut) {
+                       std::pair<int, int>& bestMoveOut, int& bestScoreOut, EvalFn evalFn) {
   bool dummyTimedOut = false;
   return rootSearch(board, depth, alpha, beta, isMaximizing, bestMoveOut, bestScoreOut,
                     /*startTime=*/0,
-                    /*timeLimitClocks=*/std::numeric_limits<clock_t>::max(), dummyTimedOut);
+                    /*timeLimitClocks=*/std::numeric_limits<clock_t>::max(), dummyTimedOut, evalFn);
 }
 
 }  // namespace Minimax

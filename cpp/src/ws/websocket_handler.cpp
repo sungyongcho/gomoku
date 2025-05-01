@@ -296,7 +296,7 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::clock_t start = std::clock();  // Start time
         if (difficulty == "hard")
-          predict = Minimax::getBestMovePVS(pBoard, MAX_DEPTH);
+          predict = Minimax::getBestMovePVS(pBoard, MAX_DEPTH, &Evaluation::evaluatePositionHard);
 
         else {
           std::string error_response = constructErrorResponse(ERROR_GAME_DIFFICULTY, "");
@@ -371,7 +371,8 @@ int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user,
 
         std::clock_t start = std::clock();  // Start time
 
-        std::pair<int, int> a = Minimax::getBestMovePVS(pBoard, 10);
+        std::pair<int, int> a =
+            Minimax::getBestMovePVS(pBoard, MAX_DEPTH, &Evaluation::evaluatePositionHard);
         std::clock_t end = std::clock();  // End time
         pBoard->setValueBit(a.first, a.second, pBoard->getNextPlayer());
         if (Rules::detectCaptureStones(*pBoard, a.first, a.second, pBoard->getNextPlayer())) {
