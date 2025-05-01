@@ -143,7 +143,7 @@ const triggeredTestLabel = ref("");
 const onTest = (label: string) => {
   const initState = testCases.value[label]["init"];
   triggeredTestLabel.value = label;
-  onSendData("move", initState);
+  onSendData("test", initState);
 };
 const onTestAll = async () => {
   isAllTesting.value = true;
