@@ -19,6 +19,8 @@ class Server {
   Server(int port);
   void run(volatile std::sig_atomic_t &stopFlag);
 
+  // ─── per-session data ───────────────────────────────────────────────
+
  private:
   struct lws_context *context;
   struct lws_context_creation_info info;

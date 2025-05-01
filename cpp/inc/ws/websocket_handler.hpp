@@ -10,6 +10,9 @@
 #include "Board.hpp"
 #include "Evaluation.hpp"
 #include "json_parser.hpp"
+struct psd_debug {
+  std::string difficulty;  // keep the last difficulty here
+};
 
 int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
                   size_t len);

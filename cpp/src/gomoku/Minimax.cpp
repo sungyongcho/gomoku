@@ -172,7 +172,6 @@ struct CompareScoredMovesMin {
 
 int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x, int y, int depth,
                      EvalFn evalFn) {
-  if (depth > 2) std::cout << "depth already exceed 10, depth: " << depth << std::endl;
   // 1. Evaluate Stand-Pat Score
   //    Perspective is crucial. Evaluate from the point of view of the player whose turn it is.
   int playerWhoseTurnItIs = board->getNextPlayer();
