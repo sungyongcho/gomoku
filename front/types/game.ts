@@ -36,7 +36,7 @@ export type GameResult = {
   result?: GAME_END_SCENARIO;
   winner?: Stone;
 };
-export type RequestType = "move" | "evaluate";
+export type RequestType = "move" | "evaluate" | "test";
 export type ResponseType = "move" | "evaluate" | "error";
 export type SocketMoveRequest = {
   type: RequestType;
