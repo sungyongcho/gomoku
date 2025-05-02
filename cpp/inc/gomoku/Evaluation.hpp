@@ -24,6 +24,7 @@
 #define CONTINUOUS_OPEN_3 4500
 #define CONTINUOUS_CLOSED_3 4000  // It blocks a capture
 #define CONTINUOUS_OPEN_2 -3000
+#define PERFECT_LINE 10000
 
 #define BLOCK_CLOSE_3 3500
 #define BLOCK_OPEN_2 1800
@@ -72,7 +73,6 @@ struct PatternCounts {
   int openThreeCount;
   int closedThreeCount;
   int openTwoCount;
-  int threatCount;
   int captureCount;
 
   // block
@@ -95,6 +95,7 @@ struct PatternCounts {
   int captureWin;
   int fixBreakableGomoku;
   int perfectCritical;
+  int perfect;
 
   PatternCounts()
       : gomokuCount(0),
@@ -103,7 +104,6 @@ struct PatternCounts {
         openThreeCount(0),
         closedThreeCount(0),
         openTwoCount(0),
-        threatCount(0),
         captureCount(0),
         fourBlockCount(0),
         gomokuBlockCount(0),
@@ -119,7 +119,8 @@ struct PatternCounts {
         captureBlockCriticalCount(0),
         captureWin(0),
         fixBreakableGomoku(0),
-        perfectCritical(0) {}
+        perfectCritical(0),
+        perfect(0) {}
 };
 
 struct EvaluationEntry {
@@ -138,7 +139,6 @@ struct EvaluationEntry {
     counts.closedThreeCount += other.counts.closedThreeCount;
     counts.openTwoCount += other.counts.openTwoCount;
     counts.emptyThenOpenTwoBlockCount += other.counts.emptyThenOpenTwoBlockCount;
-    counts.threatCount += other.counts.threatCount;
     counts.captureCount += other.counts.captureCount;
     counts.fourBlockCount += other.counts.fourBlockCount;
     counts.gomokuBlockCount += other.counts.gomokuBlockCount;
@@ -155,6 +155,7 @@ struct EvaluationEntry {
     counts.gomokuCount += other.counts.gomokuCount;
     counts.fixBreakableGomoku += other.counts.fixBreakableGomoku;
     counts.perfectCritical += other.counts.perfectCritical;
+    counts.perfect += other.counts.perfect;
     return *this;
   }
 };

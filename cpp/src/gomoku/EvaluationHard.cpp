@@ -15,7 +15,6 @@ void printEvalEntry(EvaluationEntry eval) {
     std::cout << "closedThreeCount: " << eval.counts.closedThreeCount << std::endl;
   if (eval.counts.openTwoCount)
     std::cout << "openTwoCount: " << eval.counts.openTwoCount << std::endl;
-  if (eval.counts.threatCount) std::cout << "threatCount: " << eval.counts.threatCount << std::endl;
   if (eval.counts.captureCount)
     std::cout << "captureCount: " << eval.counts.captureCount << std::endl;
   if (eval.counts.fourBlockCount)
@@ -50,6 +49,7 @@ void printEvalEntry(EvaluationEntry eval) {
     std::cout << "fixBreakableGomoku: " << eval.counts.fixBreakableGomoku << std::endl;
   if (eval.counts.perfectCritical)
     std::cout << "perfectCritical: " << eval.counts.perfectCritical << std::endl;
+  if (eval.counts.perfect) std::cout << "perfect: " << eval.counts.perfect << std::endl;
   std::cout << "=================" << std::endl;
 }
 
@@ -107,17 +107,14 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   }
 
   if (totalContinuous == 4) {
-    returnValue.counts.threatCount += 1;
     returnValue.counts.gomokuCount += 1;
   }
 
   if (totalContinuous == 3) {
     if (!forwardClosedEnd && !backwardClosedEnd) {
       returnValue.counts.openFourCount += 1;
-      returnValue.counts.threatCount += 1;
     } else if ((!forwardClosedEnd && backwardClosedEnd) ||
                (forwardClosedEnd && !backwardClosedEnd)) {
-      returnValue.counts.threatCount += 1;
       returnValue.counts.closedFourCount += 1;
     }
   }
@@ -131,21 +128,18 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   // [.]_OO_
   if (((forwardEmptyThenContinuous == 2) || (backwardEmptyThenContinuous == 2)) &&
       (!forwardClosedEnd && !backwardClosedEnd)) {
-    returnValue.counts.threatCount += 1;
     returnValue.counts.openThreeCount += 1;
   }
   // 0[.]_0, 0_[.]0
   if (((forwardContinuous == 1 && backwardEmptyThenContinuous == 1) ||
        (forwardEmptyThenContinuous == 1 && backwardContinuous == 1)) &&
       (!forwardClosedEnd && !backwardClosedEnd)) {
-    returnValue.counts.threatCount += 1;
     returnValue.counts.openThreeCount += 1;
   }
 
   if (totalContinuous == 2) {
     if (!forwardClosedEnd && !backwardClosedEnd) {
       // open three
-      returnValue.counts.threatCount += 1;
       returnValue.counts.openThreeCount += 1;
     } else if (!forwardClosedEnd || !backwardClosedEnd) {
       // closed three
@@ -606,6 +600,7 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   std::vector<int> opponentCaptureDirections;
   std::vector<int> gomokuDirections;
   std::vector<int> openFourDirections;
+  std::vector<int> closedFourDirections;
   std::vector<int> captureBlockDirections;
   for (int i = 0; i < 4; ++i) {
     EvaluationEntry playerAxisScore =
@@ -617,6 +612,7 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
     if (opponentAxisScore.counts.captureCount > 0) opponentCaptureDirections.push_back(i);
     if (playerAxisScore.counts.gomokuCount > 0) gomokuDirections.push_back(i);
     if (playerAxisScore.counts.openFourCount > 0) openFourDirections.push_back(i);
+    if (playerAxisScore.counts.closedFourCount > 0) closedFourDirections.push_back(i);
     if (playerAxisScore.counts.captureBlockCount > 0) captureBlockDirections.push_back(i);
     total += playerAxisScore;
   }
@@ -672,6 +668,20 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
       }
     }
     openFourDirections.clear();
+  }
+
+  if (board->getEnableCapture() && total.counts.closedFourCount > 0) {
+    for (std::vector<int>::iterator it = closedFourDirections.begin();
+         it != closedFourDirections.end(); ++it) {
+      int dx = DIRECTIONS[*it][0];
+      int dy = DIRECTIONS[*it][1];
+      bool isPerfect = isNonVulnerableLine(board, x, y, dx, dy, player);
+
+      if (isPerfect) {
+        total.counts.perfect += 1;
+      }
+    }
+    closedFourDirections.clear();
   }
 
   // 3. DEFENSE CASE
@@ -742,10 +752,13 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   } else {
     total.score += total.counts.gomokuCount * GOMOKU;
   }
-  total.score += total.counts.perfectCritical * PERFECT_CRITICAL_LINE;
+
+  if (board->getEnableCapture()) {
+    total.score += total.counts.perfectCritical * PERFECT_CRITICAL_LINE;
+    total.score += total.counts.perfect * PERFECT_LINE;
+  }
   // Attack Case
   // - 2) If player can threat, he must threat
-  total.score += total.counts.threatCount * THREAT;
   total.score += total.counts.openFourCount * CONTINUOUS_OPEN_4;
   total.score += total.counts.closedFourCount * CONTINUOUS_CLOSED_4;
   total.score += total.counts.openThreeCount * CONTINUOUS_OPEN_3;
