@@ -721,7 +721,7 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   }
 
   // - 2) If player can block capture on opponent's critical line, he must block
-  if (total.counts.captureBlockCount > 0) {
+  if (board->getEnableCapture() && total.counts.captureBlockCount > 0) {
     for (std::vector<int>::iterator it = captureBlockDirections.begin();
          it != captureBlockDirections.end(); ++it) {
       int dx = DIRECTIONS[*it][0];
@@ -734,7 +734,7 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
 
   // Score calculation
   // - 1) Critical Case
-  if (total.counts.gomokuCount && !total.counts.perfectCritical) {
+  if (total.counts.gomokuCount && board->getEnableCapture() && !total.counts.perfectCritical) {
     // if gomoku is not perfect, block opponent opponent first...
     total.score += total.counts.gomokuCount * CONTINUOUS_OPEN_4;
   } else {
