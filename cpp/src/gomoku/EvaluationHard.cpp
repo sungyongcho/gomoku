@@ -177,7 +177,6 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   }
   if (totalBlockContinuous == 4) {
     if (!(forwardBlockClosedEnd && backwardBlockClosedEnd)) {
-      returnValue.counts.fourBlockCount += 1;
       returnValue.counts.gomokuBlockCount += 1;
     }
   }
@@ -696,6 +695,14 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
       int dir = *it;
       int dx = DIRECTIONS[dir][0];
       int dy = DIRECTIONS[dir][1];
+      // check if capturable spot is on parallel (X[.]XXO)
+      unsigned int combined = extractLineAsBitsFromBoard(board, x, y, dx, dy);
+      EvaluationEntry opponentEval =
+          player == PLAYER_1 ? patternPlayerTwo[combined] : patternPlayerOne[combined];
+      if (opponentEval.counts.closedFourCount > 0) {
+        total.counts.captureCriticalCount += 1;
+      }
+
       // check if capturable spot is on opponent's critical line
       int hasCapturable = hasCapturableOnOpponentCriticalLine(board, x, y, dx, dy, player);
       if (hasCapturable) {

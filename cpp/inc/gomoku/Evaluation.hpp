@@ -18,7 +18,6 @@
 #define BLOCK_CRITICAL_LINE 1800000     // block open 3
 #define CAPTURE_BLOCK_CRITICAL 1700000  // block opponent by capturing opponent's critical line
 #define CAPTURE_CRITICAL 1600000
-// #define PERFECT_CRITICAL_LINE 1500000  // make perfect (non-breakable) line
 
 #define CONTINUOUS_OPEN_4 9000
 #define CONTINUOUS_CLOSED_4 5000
