@@ -125,13 +125,15 @@ export const useGameStore = defineStore("game", () => {
   );
 
   const getPlayerTotalCaptured = (histories: History[], stone: Stone) => {
+    const advantage = stone === 'X' ? settings.value.advantage1 : settings.value.advantage2;
+
     return (
       histories
         .filter((h: History) => h.stone === stone)
         .reduce((acc: number, h: History) => {
           if (!h.capturedStones?.length) return acc;
           return h.capturedStones?.length / 2 + acc;
-        }, 0) + settings.value.advantage1
+        }, 0) + advantage
     );
   };
 
