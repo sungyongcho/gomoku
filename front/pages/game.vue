@@ -50,6 +50,9 @@ const { data, send, close, status, open } = useWebSocket(
           actionLabel: "Reconnect",
           action: () => {
             open();
+            if (settings.value.isPlayer2AI && settings.value.firstMove === "Player2") {
+              onSendStone();
+            }
             closeAlert();
           },
         });
