@@ -354,6 +354,9 @@ int evaluateCombinedAxis(Board *board, int player, int x, int y, int dx, int dy)
                                                                 : board->getLastPlayerScore();
   // double goalRatio = board->getGoal();
 
+  // If capture is disabled in the game, just return score
+  if (!board->getEnableCapture()) return score;
+
   if (checkCapture(forward, player) > 0) activeCaptureScore++;
   if (checkCapture(backward, player) > 0) activeCaptureScore++;
 
