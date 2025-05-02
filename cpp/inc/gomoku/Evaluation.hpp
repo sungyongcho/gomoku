@@ -82,6 +82,7 @@ struct PatternCounts {
   int openThreeBlockCount;
   int openTwoBlockCount;
   int openOneBlockCount;
+  int emptyThenOpenTwoBlockCount;
 
   // capture
   int captureVulnerable;
@@ -110,6 +111,7 @@ struct PatternCounts {
         openThreeBlockCount(0),
         openTwoBlockCount(0),
         openOneBlockCount(0),
+        emptyThenOpenTwoBlockCount(0),
         captureVulnerable(0),
         captureBlockCount(0),
         captureThreatCount(0),
@@ -135,6 +137,7 @@ struct EvaluationEntry {
     counts.openThreeCount += other.counts.openThreeCount;
     counts.closedThreeCount += other.counts.closedThreeCount;
     counts.openTwoCount += other.counts.openTwoCount;
+    counts.emptyThenOpenTwoBlockCount += other.counts.emptyThenOpenTwoBlockCount;
     counts.threatCount += other.counts.threatCount;
     counts.captureCount += other.counts.captureCount;
     counts.fourBlockCount += other.counts.fourBlockCount;
@@ -177,8 +180,7 @@ bool isCaptureWarning(int side, int player, bool reverse);
 bool isCaptureVulnerable(int forward, int backward, int player);
 
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
-                           int &continuousEmpty, int &emptyThenContinuous,
-                           int &emptyEmptyThenContinuous);
+                           int &continuousEmpty, int &emptyThenContinuous);
 
 void initCombinedPatternScoreTables();
 void initCombinedPatternScoreTablesHard();

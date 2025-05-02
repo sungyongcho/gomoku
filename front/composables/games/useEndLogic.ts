@@ -69,7 +69,6 @@ export const useEndLogic = () => {
     if (winLines.length === 0) return {};
 
     if (!settings.value.enableCapture) {
-      console.log("HERE!!");
       return {
         result: GAME_END_SCENARIO.FIVE_OR_MORE_STONES,
         winner: turn,
