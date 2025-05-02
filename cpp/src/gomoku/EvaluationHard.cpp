@@ -26,6 +26,9 @@ void printEvalEntry(EvaluationEntry eval) {
     std::cout << "openThreeBlockCount: " << eval.counts.openThreeBlockCount << std::endl;
   if (eval.counts.openTwoBlockCount)
     std::cout << "openTwoBlockCount: " << eval.counts.openTwoBlockCount << std::endl;
+  if (eval.counts.emptyThenOpenTwoBlockCount)
+    std::cout << "emptyThenOpenTwoBlockCount: " << eval.counts.emptyThenOpenTwoBlockCount
+              << std::endl;
   if (eval.counts.closedThreeBlockCount)
     std::cout << "closedThreeBlockCount: " << eval.counts.closedThreeBlockCount << std::endl;
   if (eval.counts.openOneBlockCount)
@@ -69,20 +72,16 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   bool forwardClosedEnd = false;
   int forwardContinuousEmpty = 0;
   int forwardEmptyThenContinuous = 0;
-  int forwardEmptyEmptyThenContinuous = 0;
 
   int backwardContinuous = 0;
   bool backwardClosedEnd = false;
   int backwardContinuousEmpty = 0;
   int backwardEmptyThenContinuous = 0;
-  int backwardEmptyEmptyThenContinuous = 0;
 
   slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
-                        forwardContinuousEmpty, forwardEmptyThenContinuous,
-                        forwardEmptyEmptyThenContinuous);
+                        forwardContinuousEmpty, forwardEmptyThenContinuous);
   slideWindowContinuous(backward, player, true, backwardContinuous, backwardClosedEnd,
-                        backwardContinuousEmpty, backwardEmptyThenContinuous,
-                        backwardEmptyEmptyThenContinuous);
+                        backwardContinuousEmpty, backwardEmptyThenContinuous);
 
   int totalContinuous = forwardContinuous + backwardContinuous;
 
@@ -165,20 +164,16 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   int forwardBlockContinuousEmpty = 0;
   bool forwardBlockClosedEnd = false;
   int forwardBlockEmptyThenContinuous = 0;
-  int forwardBlockEmptyEmptyThenContinuous = 0;
 
   int backwardBlockContinuous = 0;
   int backwardBlockContinuousEmpty = 0;
   bool backwardBlockClosedEnd = false;
   int backwardBlockEmptyThenContinuous = 0;
-  int backwardBlockEmptyEmptyThenContinuous = 0;
 
   slideWindowContinuous(forward, opponent, false, forwardBlockContinuous, forwardBlockClosedEnd,
-                        forwardBlockContinuousEmpty, forwardBlockEmptyThenContinuous,
-                        forwardBlockEmptyEmptyThenContinuous);
+                        forwardBlockContinuousEmpty, forwardBlockEmptyThenContinuous);
   slideWindowContinuous(backward, opponent, true, backwardBlockContinuous, backwardBlockClosedEnd,
-                        backwardBlockContinuousEmpty, backwardBlockEmptyThenContinuous,
-                        backwardBlockEmptyEmptyThenContinuous);
+                        backwardBlockContinuousEmpty, backwardBlockEmptyThenContinuous);
 
   int totalBlockContinuous = forwardBlockContinuous + backwardBlockContinuous;
 
@@ -204,6 +199,13 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   if (totalBlockContinuous == 2) {
     if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
       returnValue.counts.openTwoBlockCount += 1;
+    }
+  }
+
+  if ((forwardBlockEmptyThenContinuous == 2 && !backwardBlockContinuous) ||
+      (backwardBlockEmptyThenContinuous == 2 && !forwardBlockContinuous)) {
+    if (!forwardBlockClosedEnd && !backwardBlockClosedEnd) {
+      returnValue.counts.emptyThenOpenTwoBlockCount += 1;
     }
   }
 
@@ -763,6 +765,11 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
   total.score += total.counts.fourBlockCount * BLOCK_CRITICAL_LINE;
   total.score += total.counts.openThreeBlockCount * BLOCK_CRITICAL_LINE;
   total.score += total.counts.gomokuBlockCount * BLOCK_GOMOKU;
+  // Block 4-3 critical line
+  if (total.counts.openThreeBlockCount && total.counts.emptyThenOpenTwoBlockCount) {
+    total.score += BLOCK_CRITICAL_LINE;
+  }
+
   // - 6) Simple block
   total.score += total.counts.openTwoBlockCount * BLOCK_OPEN_2;
   total.score += total.counts.openOneBlockCount * BLOCK_OPEN_1;

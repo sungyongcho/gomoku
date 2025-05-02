@@ -124,8 +124,7 @@ void printPattern(unsigned int pattern, int numCells) {
 }
 
 void slideWindowContinuous(int side, int player, bool reverse, int &continuous, bool &isClosedEnd,
-                           int &continuousEmpty, int &emptyThenContinuous,
-                           int &emptyEmptyThenContinuous) {
+                           int &continuousEmpty, int &emptyThenContinuous) {
   int opponent = player == 1 ? 2 : 1;
   int emptyPassed = 0;
   side = reverse ? reversePattern(side, SIDE_WINDOW_SIZE) : side;
@@ -134,8 +133,6 @@ void slideWindowContinuous(int side, int player, bool reverse, int &continuous, 
     if (target_bit == player) {
       if (continuous == i && !isClosedEnd) continuous++;
       if (emptyPassed == 1 && emptyThenContinuous == (i - 1) && !isClosedEnd) emptyThenContinuous++;
-      if (emptyPassed == 2 && emptyEmptyThenContinuous == (i - 2) && !isClosedEnd)
-        emptyEmptyThenContinuous++;
     } else if (!emptyPassed && (target_bit == opponent || target_bit == OUT_OF_BOUNDS)) {
       isClosedEnd = true;
     } else if (target_bit == EMPTY_SPACE && !emptyPassed) {
@@ -205,19 +202,15 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
   bool forwardClosedEnd = false;
   int forwardContinuousEmpty = 0;
   int forwardEmptyThenContinuous = 0;
-  int forwardEmptyEmptyThenContinuous = 0;
 
   int backwardContinuous = 0;
   bool backwardClosedEnd = false;
   int backwardContinuousEmpty = 0;
   int backwardEmptyThenContinuous = 0;
-  int backwardEmptyEmptyThenContinuous = 0;
   slideWindowContinuous(forward, player, false, forwardContinuous, forwardClosedEnd,
-                        forwardContinuousEmpty, forwardEmptyThenContinuous,
-                        forwardEmptyEmptyThenContinuous);
+                        forwardContinuousEmpty, forwardEmptyThenContinuous);
   slideWindowContinuous(backward, player, true, backwardContinuous, backwardClosedEnd,
-                        backwardContinuousEmpty, backwardEmptyThenContinuous,
-                        backwardEmptyEmptyThenContinuous);
+                        backwardContinuousEmpty, backwardEmptyThenContinuous);
 
   int totalContinuous = forwardContinuous + backwardContinuous;
 
@@ -248,20 +241,16 @@ int evaluateContinuousPattern(unsigned int backward, unsigned int forward, unsig
   int forwardBlockContinuousEmpty = 0;
   bool forwardBlockClosedEnd = false;
   int forwardBlockEmptyThenContinuous = 0;
-  int forwardBlockEmptyEmptyThenContinuous = 0;
 
   int backwardBlockContinuous = 0;
   int backwardBlockContinuousEmpty = 0;
   bool backwardBlockClosedEnd = false;
   int backwardBlockEmptyThenContinuous = 0;
-  int backwardBlockEmptyEmptyThenContinuous = 0;
 
   slideWindowContinuous(forward, opponent, false, forwardBlockContinuous, forwardBlockClosedEnd,
-                        forwardBlockContinuousEmpty, forwardBlockEmptyThenContinuous,
-                        forwardBlockEmptyEmptyThenContinuous);
+                        forwardBlockContinuousEmpty, forwardBlockEmptyThenContinuous);
   slideWindowContinuous(backward, opponent, true, backwardBlockContinuous, backwardBlockClosedEnd,
-                        backwardBlockContinuousEmpty, backwardBlockEmptyThenContinuous,
-                        backwardBlockEmptyEmptyThenContinuous);
+                        backwardBlockContinuousEmpty, backwardBlockEmptyThenContinuous);
 
   int totalBlockCont = forwardBlockContinuous + backwardBlockContinuous;
 
