@@ -178,6 +178,7 @@ EvaluationEntry evaluateContinuousPatternHard(unsigned int backward, unsigned in
   if (totalBlockContinuous == 4) {
     if (!(forwardBlockClosedEnd && backwardBlockClosedEnd)) {
       returnValue.counts.fourBlockCount += 1;
+      returnValue.counts.gomokuBlockCount += 1;
     }
   }
 
@@ -678,13 +679,15 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
       bool isPerfect = isNonVulnerableLine(board, x, y, dx, dy, player);
 
       if (isPerfect) {
-        total.counts.perfect += 1;
+        total.counts.perfectCritical += 1;
+        // total.counts.perfect += 1;
       }
     }
     closedFourDirections.clear();
   }
 
   // 3. DEFENSE CASE
+  // - 0) If opponent is going to have perfect gomoku
 
   // - 1) If player can break opponent's open 3+ or 4 stone, he must break.
   if (board->getEnableCapture() && total.counts.captureCount > 0) {
