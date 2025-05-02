@@ -49,8 +49,8 @@ watch(
         <BButtonGroupSwitch
           v-model="settings.firstMove"
           :options="[
-            { value: 'X', label: 'black' },
-            { value: 'O', label: 'white' },
+            { value: 'Player1', label: 'Player1' },
+            { value: 'Player2', label: 'Player2' },
           ]"
           label="First move"
         />

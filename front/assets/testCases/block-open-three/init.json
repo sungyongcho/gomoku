@@ -409,7 +409,7 @@
     "enableCapture": true,
     "enableDoubleThreeRestriction": true,
     "totalPairCaptured": 5,
-    "firstMove": true,
+    "firstMove": "Player1",
     "advantage1": 0,
     "advantage2": 0,
     "isPlayer2AI": false,

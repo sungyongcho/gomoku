@@ -57,6 +57,13 @@ const { data, send, close, status, open } = useWebSocket(
         isAiThinking.value = false;
       },
     },
+    onConnected() {
+      if (settings.value.isPlayer2AI) {      
+        if ((turn.value === "X" && settings.value.firstMove === "Player2") || (settings.value.firstMove === 'Player1' && turn.value === "O")) {
+          onSendStone();
+        }
+      }
+    }
   },
 );
 
@@ -134,6 +141,9 @@ const onEvaluateStone = (coordinate: undefined | { x: number; y: number }) => {
 const onRestart = () => {
   initGame();
   send(JSON.stringify({ type: "reset" }));
+  if (settings.value.isPlayer2AI && settings.value.firstMove === "Player2") {
+    onSendStone();
+  }
 };
 
 const purgeState = () => {
