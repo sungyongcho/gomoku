@@ -150,9 +150,18 @@ const onTestAll = async () => {
 
   const labels = Object.keys(testCases.value);
 
-  for await (const label of labels) {
-    await delay(500);
+  while(labels.length) {
+    if (triggeredTestLabel.value) {
+      // Previous test is still in progress
+      await delay(500);
+      continue;
+    }
+
+    const label = labels.shift();
+    if (!label) return;
+
     await onTest(label);
+    await delay(500);
   }
 
   isAllTesting.value = false;
