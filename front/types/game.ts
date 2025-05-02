@@ -88,7 +88,7 @@ export type Settings = {
   enableCapture: boolean;
   enableDoubleThreeRestriction: boolean;
   totalPairCaptured: number;
-  firstMove: "X" | "O";
+  firstMove: "Player1" | "Player2";
   advantage1: number;
   advantage2: number;
   isPlayer2AI: boolean;

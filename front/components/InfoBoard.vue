@@ -64,10 +64,10 @@ watch(
       >
         <InfoAvatar
           :image="player1Image"
-          :loading="isAiThinking && turn === 'X'"
+          :loading="isAiThinking && ((settings.firstMove === 'Player1' && turn === 'X') || (settings.firstMove === 'Player2' && turn === 'O'))"
           size="xlarge"
-          color="black"
-          :active="turn === 'X'"
+          :color="settings.firstMove === 'Player1' ? 'black': 'white'"
+          :active="(settings.firstMove === 'Player1' && turn === 'X') || (settings.firstMove === 'Player2' && turn === 'O')"
         />
         <span>Player1</span>
       </button>
@@ -89,10 +89,10 @@ watch(
       >
         <InfoAvatar
           :image="settings.isPlayer2AI ? aiImage : player2Image"
-          :loading="isAiThinking && turn === 'O'"
+          :loading="isAiThinking && ((settings.firstMove === 'Player1' && turn === 'O') || (settings.firstMove === 'Player2' && turn === 'X'))"
           size="xlarge"
-          color="white"
-          :active="turn === 'O'"
+          :color="settings.firstMove === 'Player2' ? 'black': 'white'"
+          :active="(settings.firstMove === 'Player1' && turn === 'O') || (settings.firstMove === 'Player2' && turn === 'X')"
         />
         <span> {{ settings.isPlayer2AI ? "AI" : "Player2" }}</span>
       </button>

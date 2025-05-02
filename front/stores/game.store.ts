@@ -40,7 +40,7 @@ export const useGameStore = defineStore("game", () => {
     enableCapture: true,
     enableDoubleThreeRestriction: true,
     totalPairCaptured: 5,
-    firstMove: "X",
+    firstMove: "Player1",
     advantage1: 0,
     advantage2: 0,
     isPlayer2AI: true,
@@ -154,15 +154,17 @@ export const useGameStore = defineStore("game", () => {
   );
 
   const player1TotalCaptured = computed(() => {
-    return getPlayerTotalCaptured(_histories.value, "X");
+    const stone = settings.value.firstMove === "Player1" ? "X" : "O";
+    return getPlayerTotalCaptured(_histories.value, stone);
   });
 
   const player2TotalCaptured = computed(() => {
-    return getPlayerTotalCaptured(_histories.value, "O");
+    const stone = settings.value.firstMove === "Player2" ? "X" : "O";
+    return getPlayerTotalCaptured(_histories.value, stone);
   });
 
   const initGame = () => {
-    turn.value = settings.value.firstMove;
+    turn.value = 'X';
     gameOver.value = false;
     histories.value = [];
     boardData.value = initialBoard();

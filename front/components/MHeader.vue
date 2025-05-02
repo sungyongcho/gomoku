@@ -78,9 +78,9 @@ const onGameDebug = () => {
             >
               <InfoAvatar
                 :image="player1Image"
-                :loading="isAiThinking && turn === 'X'"
-                color="black"
-                :active="turn === 'X'"
+                :loading="isAiThinking && ((settings.firstMove === 'Player1' && turn === 'X') || (settings.firstMove === 'Player2' && turn === 'O'))"
+                :color="settings.firstMove === 'Player1' ? 'black': 'white'"
+                :active="(settings.firstMove === 'Player1' && turn === 'X') || (settings.firstMove === 'Player2' && turn === 'O')"
               />
             </button>
 
@@ -120,9 +120,9 @@ const onGameDebug = () => {
             >
               <InfoAvatar
                 :image="settings.isPlayer2AI ? aiImage : player2Image"
-                :loading="isAiThinking && turn === 'O'"
-                color="white"
-                :active="turn === 'O'"
+                :loading="isAiThinking && ((settings.firstMove === 'Player1' && turn === 'O') || (settings.firstMove === 'Player2' && turn === 'X'))"
+                :color="settings.firstMove === 'Player2' ? 'black': 'white'"
+                :active="(settings.firstMove === 'Player1' && turn === 'O') || (settings.firstMove === 'Player2' && turn === 'X')"
               />
             </button>
           </div>
