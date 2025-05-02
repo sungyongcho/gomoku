@@ -13,11 +13,12 @@
 // Critical points
 #define CAPTURE_WIN 22000000
 #define GOMOKU 21000000
-#define BLOCK_CRITICAL_LINE 1800000     // block open 3, 4
+#define BLOCK_GOMOKU 2000000
+#define PERFECT_CRITICAL_LINE 1900000   // perfect closed four attack
+#define BLOCK_CRITICAL_LINE 1800000     // block open 3
 #define CAPTURE_BLOCK_CRITICAL 1700000  // block opponent by capturing opponent's critical line
 #define CAPTURE_CRITICAL 1600000
-#define PERFECT_CRITICAL_LINE 1500000  // make perfect (non-breakable) line
-#define BLOCK_GOMOKU 1400000
+// #define PERFECT_CRITICAL_LINE 1500000  // make perfect (non-breakable) line
 
 #define CONTINUOUS_OPEN_4 9000
 #define CONTINUOUS_CLOSED_4 5000
