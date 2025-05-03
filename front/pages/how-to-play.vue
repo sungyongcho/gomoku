@@ -53,26 +53,30 @@ const onClickBack = () => {
           </li>
           <li>Captures can only be made in pairs (two stones at a time).</li>
         </ul>
-      </section>
 
-      <section
-        class="mt-6 rounded-lg border-2 bg-white p-4 text-black [&_b]:font-bold"
-      >
-        <h2 class="text-2xl font-bold">Winning Conditions</h2>
+        <div class="mt-2 flex gap-1">
+          <figure class="max-h-[200px] flex-1">
+            <img
+              src="@/assets/howto/capture-1.png"
+              alt="before capture"
+              class="h-full w-full object-cover"
+            />
+            <figcaption class="text-center text-gray-800">
+              - before capture -
+            </figcaption>
+          </figure>
+          <figure class="max-h-[200px] flex-1">
+            <img
+              src="@/assets/howto/capture-2.png"
+              alt="after capture"
+              class="h-full w-full object-cover"
+            />
 
-        <h3 class="mt-4 text-xl font-bold">1. Capture Victory:</h3>
-
-        <p class="mt-2 pl-4">
-          Achieve the target score by capturing a specified number of pairs
-          (e.g., 5 pairs = 10 stones).
-        </p>
-
-        <h3 class="mt-4 text-xl font-bold">2. Line Victory:</h3>
-        <p class="mt-2 pl-4">
-          Arrange five or more stones in an unbroken straight line (horizontal,
-          vertical, or diagonal) that cannot be interrupted or captured by the
-          opponent.
-        </p>
+            <figcaption class="text-center text-gray-800">
+              - after capture -
+            </figcaption>
+          </figure>
+        </div>
       </section>
 
       <section
@@ -128,6 +132,26 @@ const onClickBack = () => {
         <p class="mt-2 pl-4">
           If the placement of a stone creates a line of five or more stones, the
           33 restriction does not apply.
+        </p>
+      </section>
+
+      <section
+        class="mt-6 rounded-lg border-2 bg-white p-4 text-black [&_b]:font-bold"
+      >
+        <h2 class="text-2xl font-bold">Winning Conditions</h2>
+
+        <h3 class="mt-4 text-xl font-bold">1. Capture Victory:</h3>
+
+        <p class="mt-2 pl-4">
+          Achieve the target score by capturing a specified number of pairs
+          (e.g., 5 pairs = 10 stones).
+        </p>
+
+        <h3 class="mt-4 text-xl font-bold">2. Line Victory:</h3>
+        <p class="mt-2 pl-4">
+          Arrange five or more stones in an unbroken straight line (horizontal,
+          vertical, or diagonal) that cannot be interrupted or captured by the
+          opponent.
         </p>
       </section>
 
