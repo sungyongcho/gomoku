@@ -402,10 +402,18 @@ int evaluatePosition(Board *board, int player, int x, int y) {
 }
 
 int getEvaluationPercentage(int score) {
-  // Map score from [1, GOMOKU] to [0, 100]
-  int percentage = (score - 1) * 100 / (GOMOKU - 1);
+  if (score <= 0) return 0;
 
-  return percentage;
+  const double minScore = 9000;
+  const double maxScore = MINIMAX_TERMINATION;
+  double adjustedScore = std::log(score);
+  double minLog = std::log(minScore);
+  double maxLog = std::log(maxScore);
+
+  double normalized = (adjustedScore - minLog) / (maxLog - minLog);
+  int percentage = static_cast<int>(normalized * 100);
+
+  return std::max(0, std::min(100, percentage));
 }
 
 }  // namespace Evaluation
