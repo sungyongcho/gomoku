@@ -125,8 +125,14 @@ export const useGameStore = defineStore("game", () => {
   );
 
   const getPlayerTotalCaptured = (histories: History[], stone: Stone) => {
-    const advantage = stone === 'X' ? settings.value.advantage1 : settings.value.advantage2;
-
+    let advantage = 0;
+    if (settings.value.firstMove === "Player1") {
+      advantage =
+        stone === "X" ? settings.value.advantage1 : settings.value.advantage2;
+    } else {
+      advantage =
+        stone === "O" ? settings.value.advantage1 : settings.value.advantage2;
+    }
     return (
       histories
         .filter((h: History) => h.stone === stone)
@@ -164,7 +170,7 @@ export const useGameStore = defineStore("game", () => {
   });
 
   const initGame = () => {
-    turn.value = 'X';
+    turn.value = "X";
     gameOver.value = false;
     histories.value = [];
     boardData.value = initialBoard();
