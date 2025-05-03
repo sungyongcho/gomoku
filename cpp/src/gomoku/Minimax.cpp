@@ -452,8 +452,8 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
         minimax(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing, evalFn);
     board->undoMove(ui);
 
-    std::cout << "  Depth " << depth << " Move (" << mv.first << "," << mv.second
-              << ") score: " << val << std::endl;
+    // std::cout << "  Depth " << depth << " Move (" << mv.first << "," << mv.second
+    //           << ") score: " << val << std::endl;
 
     if (isMaximizing) {
       if (val > bestScoreOut) {
