@@ -60,14 +60,21 @@ watch(
       <button
         class="flex flex-col items-center justify-center"
         :disabled="!isDebug"
-        @click="turn = 'X'"
+        @click="settings.firstMove === 'Player1' ? (turn = 'X') : (turn = 'O')"
       >
         <InfoAvatar
           :image="player1Image"
-          :loading="isAiThinking && ((settings.firstMove === 'Player1' && turn === 'X') || (settings.firstMove === 'Player2' && turn === 'O'))"
+          :loading="
+            isAiThinking &&
+            ((settings.firstMove === 'Player1' && turn === 'X') ||
+              (settings.firstMove === 'Player2' && turn === 'O'))
+          "
           size="xlarge"
-          :color="settings.firstMove === 'Player1' ? 'black': 'white'"
-          :active="(settings.firstMove === 'Player1' && turn === 'X') || (settings.firstMove === 'Player2' && turn === 'O')"
+          :color="settings.firstMove === 'Player1' ? 'black' : 'white'"
+          :active="
+            (settings.firstMove === 'Player1' && turn === 'X') ||
+            (settings.firstMove === 'Player2' && turn === 'O')
+          "
         />
         <span>Player1</span>
       </button>
@@ -82,17 +89,25 @@ watch(
       <button
         class="flex flex-col items-center justify-center p-2"
         :class="{
-          ['border-yellow-500']: turn === 'O',
+          ['border-yellow-500']:
+            settings.firstMove === 'Player2' ? turn === 'X' : turn === 'O',
         }"
         :disabled="!isDebug"
-        @click="turn = 'O'"
+        @click="settings.firstMove === 'Player2' ? (turn = 'X') : (turn = 'O')"
       >
         <InfoAvatar
           :image="settings.isPlayer2AI ? aiImage : player2Image"
-          :loading="isAiThinking && ((settings.firstMove === 'Player1' && turn === 'O') || (settings.firstMove === 'Player2' && turn === 'X'))"
+          :loading="
+            isAiThinking &&
+            ((settings.firstMove === 'Player1' && turn === 'O') ||
+              (settings.firstMove === 'Player2' && turn === 'X'))
+          "
           size="xlarge"
-          :color="settings.firstMove === 'Player2' ? 'black': 'white'"
-          :active="(settings.firstMove === 'Player1' && turn === 'O') || (settings.firstMove === 'Player2' && turn === 'X')"
+          :color="settings.firstMove === 'Player2' ? 'black' : 'white'"
+          :active="
+            (settings.firstMove === 'Player1' && turn === 'O') ||
+            (settings.firstMove === 'Player2' && turn === 'X')
+          "
         />
         <span> {{ settings.isPlayer2AI ? "AI" : "Player2" }}</span>
       </button>

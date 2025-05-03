@@ -663,10 +663,11 @@ int evaluatePositionHard(Board* board, int player, int x, int y) {
       int dy = DIRECTIONS[*it][1];
       bool isPerfect = isNonVulnerableLine(board, x, y, dx, dy, player);
 
-      if (isPerfect) {
+      if (isPerfect || (total.counts.captureVulnerable + opponentCaptureScore < board->getGoal())) {
         total.counts.perfectCritical += 1;
       }
     }
+
     openFourDirections.clear();
   }
 
