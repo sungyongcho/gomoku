@@ -26,6 +26,8 @@ services:
       - ./cpp:/app
     ports:
       - "8005:8005"
+    env_file:
+    - .env
 
   cpp_server_valgrind:
     build:
@@ -35,6 +37,9 @@ services:
       - ./cpp:/app
     ports:
       - "8005:8005"  # Use a different host port
+    env_file:
+    - .env
+
   cpp_server_debug:
     build:
       context: ./cpp
@@ -46,6 +51,8 @@ services:
       - "8006:8006"   # gdbserver
     command: >
       sh -c "make debug && gdbserver :8006 ./server_debug"
+    env_file:
+    - .env
 
 volumes:
   node_modules:
