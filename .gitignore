@@ -6,3 +6,4 @@ Miniconda3-latest-MacOSX-arm64.sh
 *.o
 url.txt
 a.out
+.env
