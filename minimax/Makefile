@@ -15,8 +15,8 @@ OBJS       := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 DEBUG_OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(DEBUG_DIR)/%.o,$(SRCS))
 
 # Targets
-TARGET         := server
-DEBUG_TARGET   := server_debug
+TARGET         := minimax
+DEBUG_TARGET   := minimax_debug
 
 
 
