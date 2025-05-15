@@ -26,4 +26,4 @@ RUN make re
 
 # On file changes, rebuild only what’s needed, then run
 CMD find src inc -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "Makefile" \) \
-    | entr -n -r sh -c "make && ./server"
+    | entr -n -r sh -c "make && ./minimax"

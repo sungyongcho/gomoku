@@ -25,4 +25,4 @@ EXPOSE 8005
 RUN make re_debug
 
 CMD find src inc -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" -o -name "Makefile" \) | \
-    entr -n -r sh -c "make debug && valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./server_debug"
+    entr -n -r sh -c "make debug && valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./minimax_debug"

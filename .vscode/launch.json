@@ -5,10 +5,10 @@
       "name": "Debug Docker C++ server",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/cpp/server_debug", // <--- update this
+      "program": "${workspaceFolder}/minimax/server_debug", // <--- update this
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/cpp",
+      "cwd": "${workspaceFolder}/minimax",
       "environment": [],
       "externalConsole": false,
       "MIMode": "gdb",

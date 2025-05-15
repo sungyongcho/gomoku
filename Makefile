@@ -11,16 +11,16 @@ endif
 all: $(NAME)
 
 $(NAME):
-	$(COMPOSE) up $(BUILD_FLAG) front back cpp_server
+	$(COMPOSE) up $(BUILD_FLAG) front back minimax
 
 valgrind:
-	$(COMPOSE) up $(BUILD_FLAG) front back cpp_server_valgrind
+	$(COMPOSE) up $(BUILD_FLAG) front back minimax_valgrind
 
 clean:
 	$(COMPOSE) down
 
 fclean: clean
-	$(COMPOSE) rm -f front back cpp_server cpp_server_valgrind
+	$(COMPOSE) rm -f front back minimax minimax_valgrind
 
 re: fclean all
 
