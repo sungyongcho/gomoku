@@ -18,39 +18,39 @@ services:
       - ./front:/usr/src/app
       - node_modules:/usr/src/app/node_modules
 
-  cpp_server:
+  minimax:
     build:
-      context: ./cpp
+      context: ./minimax
       dockerfile: Dockerfile  # Normal build
     volumes:
-      - ./cpp:/app
+      - ./minimax:/app
     ports:
-      - "8005:8005"
+      - "${LOCAL_MINIMAX}:${LOCAL_MINIMAX}"
     env_file:
     - .env
 
-  cpp_server_valgrind:
+  minimax_valgrind:
     build:
-      context: ./cpp
+      context: ./minimax
       dockerfile: Dockerfile.valgrind  # Valgrind build
     volumes:
-      - ./cpp:/app
+      - ./minimax:/app
     ports:
       - "8005:8005"  # Use a different host port
     env_file:
     - .env
 
-  cpp_server_debug:
+  minimax_debug:
     build:
-      context: ./cpp
+      context: ./minimax
       dockerfile: Dockerfile
     volumes:
-      - ./cpp:/app
+      - ./minimax:/app
     ports:
-      - "8005:8005"   # If you want to test server manually
-      - "8006:8006"   # gdbserver
+      - "${LOCAL_MINIMAX}:${LOCAL_MINIMAX}"
+      - "${LOCAL_MINIMAX_GDB}:${LOCAL_MINIMAX_GDB}"
     command: >
-      sh -c "make debug && gdbserver :8006 ./server_debug"
+      sh -c "make debug && gdbserver :${LOCAL_MINIMAX_GDB} ./minimax_debug"
     env_file:
     - .env
 

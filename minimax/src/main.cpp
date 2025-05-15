@@ -18,7 +18,7 @@ int main() {
   std::signal(SIGTERM, handleSignal);
 
   try {
-    Server server(dotenv::envToInt("MINIMAX_PORT"));
+    Server server(dotenv::envToInt("MINIMAX_PORT", dotenv::envToInt("LOCAL_MINIMAX")));
     server.run(stopFlag);
   } catch (const std::exception& ex) {
     std::cerr << "Server initialization failed: " << ex.what() << std::endl;
