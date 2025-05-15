@@ -1,8 +1,8 @@
 Miniconda3-latest-Linux-x86_64.sh
 Miniconda3-latest-MacOSX-arm64.sh
 **/__pycache__/
-/minimax/server
-/minimax/server_debug
+/minimax/minimax
+/minimax/minimax_debug
 /minimax/build
 /minimax/build_debug
 *.o
