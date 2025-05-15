@@ -88,4 +88,9 @@ export default defineNuxtConfig({
   pinia: {
     storesDirs: ["./stores/**"],
   },
+  runtimeConfig: {
+    public: {
+      WHERE: process.env.WHERE,
+    },
+  },
 });
