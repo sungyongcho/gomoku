@@ -48,6 +48,23 @@ Server::Server(int port) {
   info.protocols = protocols;
   info.options = LWS_SERVER_OPTION_HTTP_HEADERS_SECURITY_BEST_PRACTICES_ENFORCE;
 
+  /* ── TLS only if both env-vars exist ─────────────────── */
+  const char *cert = std::getenv("CERT_FULLCHAIN");
+  const char *key = std::getenv("CERT_PRIVKEY");
+  if (cert && *cert && key && *key) {
+    info.options |= LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+    info.ssl_cert_filepath = cert;
+    info.ssl_private_key_filepath = key;
+    info.ssl_cipher_list =
+        "ECDHE-ECDSA-AES256-GCM-SHA384:"
+        "ECDHE-RSA-AES256-GCM-SHA384:"
+        "ECDHE-ECDSA-AES128-GCM-SHA256:"
+        "ECDHE-RSA-AES128-GCM-SHA256";
+    std::cout << "[TLS] enabled on port " << port << std::endl;
+  } else {
+    std::cout << "[TLS] disabled (CERT_* env vars missing)" << std::endl;
+  }
+
   context = lws_create_context(&info);
   if (!context) {
     throw std::runtime_error("Libwebsockets context creation failed!");

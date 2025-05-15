@@ -33,29 +33,27 @@ const {
 
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert, closeAlert } = useAlertStore();
+const { getSocketUrl } = useEnv();
 
-const { data, send, close, open, status } = useWebSocket(
-  `ws://${window.location.hostname}:8005/ws/debug`,
-  {
-    autoReconnect: {
-      retries: 0,
-      onFailed() {
-        doAlert({
-          header: "Error",
-          message: "WebSocket connection failed. Click button to reconnect",
-          type: "Warn",
-          actionIcon: "pi pi-undo",
-          actionLabel: "Reconnect",
-          action: () => {
-            open();
-            closeAlert();
-          },
-        });
-        isAiThinking.value = false;
-      },
+const { data, send, close, open, status } = useWebSocket(getSocketUrl(), {
+  autoReconnect: {
+    retries: 0,
+    onFailed() {
+      doAlert({
+        header: "Error",
+        message: "WebSocket connection failed. Click button to reconnect",
+        type: "Warn",
+        actionIcon: "pi pi-undo",
+        actionLabel: "Reconnect",
+        action: () => {
+          open();
+          closeAlert();
+        },
+      });
+      isAiThinking.value = false;
     },
   },
-);
+});
 
 const onPutStone = ({ x, y }: { x: number; y: number }) => {
   debugAddStoneToBoardData({ x, y }, turn.value, false);

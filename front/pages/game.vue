@@ -34,41 +34,45 @@ const {
 
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert, closeAlert } = useAlertStore();
+const { getSocketUrl } = useEnv();
 
-const { data, send, close, status, open } = useWebSocket(
-  `ws://${window.location.hostname}:8005/ws/debug`,
-  {
-    autoReconnect: {
-      retries: 0,
-      delay: 500,
-      onFailed() {
-        doAlert({
-          header: "Error",
-          message: "WebSocket connection failed. Click button to reconnect",
-          type: "Warn",
-          actionIcon: "pi pi-undo",
-          actionLabel: "Reconnect",
-          action: () => {
-            open();
-            if (settings.value.isPlayer2AI && settings.value.firstMove === "Player2") {
-              onSendStone();
-            }
-            closeAlert();
-          },
-        });
+const { data, send, close, status, open } = useWebSocket(getSocketUrl(), {
+  autoReconnect: {
+    retries: 0,
+    delay: 500,
+    onFailed() {
+      doAlert({
+        header: "Error",
+        message: "WebSocket connection failed. Click button to reconnect",
+        type: "Warn",
+        actionIcon: "pi pi-undo",
+        actionLabel: "Reconnect",
+        action: () => {
+          open();
+          if (
+            settings.value.isPlayer2AI &&
+            settings.value.firstMove === "Player2"
+          ) {
+            onSendStone();
+          }
+          closeAlert();
+        },
+      });
 
-        isAiThinking.value = false;
-      },
+      isAiThinking.value = false;
     },
     onConnected() {
-      if (settings.value.isPlayer2AI) {      
-        if ((turn.value === "X" && settings.value.firstMove === "Player2") || (settings.value.firstMove === 'Player1' && turn.value === "O")) {
+      if (settings.value.isPlayer2AI) {
+        if (
+          (turn.value === "X" && settings.value.firstMove === "Player2") ||
+          (settings.value.firstMove === "Player1" && turn.value === "O")
+        ) {
           onSendStone();
         }
       }
-    }
+    },
   },
-);
+});
 
 const onPutStone = async ({ x, y }: { x: number; y: number }) => {
   const isSuccessToPutStone = await addStoneToBoardData({ x, y }, turn.value);
