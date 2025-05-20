@@ -52,8 +52,8 @@ const onGameDebug = () => {
             icon="pi pi-cog"
             variant="text"
             rounded
-            class="text-white"
             @click="showSettings = true"
+            class="!text-white hover:!text-black"
           />
           <MobileInfoBoard v-if="!nonGamePage" class="lg:hidden" />
 
@@ -61,7 +61,7 @@ const onGameDebug = () => {
             icon="pi pi-wrench"
             rounded
             variant="text"
-            class="text-white"
+            class="!text-white hover:!text-black"
             @click="onGameDebug"
             v-if="$route.path === '/'"
           />
