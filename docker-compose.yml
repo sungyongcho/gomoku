@@ -17,28 +17,30 @@ services:
     volumes:
       - ./front:/usr/src/app
       - node_modules:/usr/src/app/node_modules
+    env_file:
+      - .env
 
   minimax:
     build:
       context: ./minimax
-      dockerfile: Dockerfile  # Normal build
+      dockerfile: Dockerfile # Normal build
     volumes:
       - ./minimax:/app
     ports:
       - "${LOCAL_MINIMAX}:${LOCAL_MINIMAX}"
     env_file:
-    - .env
+      - .env
 
   minimax_valgrind:
     build:
       context: ./minimax
-      dockerfile: Dockerfile.valgrind  # Valgrind build
+      dockerfile: Dockerfile.valgrind # Valgrind build
     volumes:
       - ./minimax:/app
     ports:
-      - "8005:8005"  # Use a different host port
+      - "8005:8005" # Use a different host port
     env_file:
-    - .env
+      - .env
 
   minimax_debug:
     build:
@@ -52,7 +54,7 @@ services:
     command: >
       sh -c "make debug && gdbserver :${LOCAL_MINIMAX_GDB} ./minimax_debug"
     env_file:
-    - .env
+      - .env
 
 volumes:
   node_modules:
