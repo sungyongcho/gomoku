@@ -1,8 +1,8 @@
 export const useEnv = () => {
-  const { WHERE } = useRuntimeConfig().public;
+  const { FRONT_WHERE } = useRuntimeConfig().public;
 
   const getSocketUrl = () => {
-    if (WHERE === "local") {
+    if (FRONT_WHERE === "local") {
       return `ws://${window.location.hostname}:8005/ws/debug`;
     }
     return `wss://minimax.sungyongcho.com/ws/debug`;

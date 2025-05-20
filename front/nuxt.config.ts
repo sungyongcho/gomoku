@@ -90,7 +90,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      WHERE: process.env.FRONT_WHERE || "local",
+      FRONT_WHERE: process.env.FRONT_WHERE || "local",
     },
   },
 });
