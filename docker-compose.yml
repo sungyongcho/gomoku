@@ -1,19 +1,12 @@
 services:
-  back:
-    build:
-      context: ./back
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./back:/app
-
   front:
     build:
       context: ./front
     ports:
-      - "3000:3000"
+      - "${LOCAL_FRONT}:${LOCAL_FRONT}"
     depends_on:
-      - back
+      - minimax
+      - alphazero
     volumes:
       - ./front:/usr/src/app
       - node_modules:/usr/src/app/node_modules
@@ -30,7 +23,18 @@ services:
       - "${LOCAL_MINIMAX}:${LOCAL_MINIMAX}"
     env_file:
       - .env
+  alphazero:
+    build:
+      context: ./alphazero
+      dockerfile: Dockerfile # Normal build
+    volumes:
+      - ./alphazero:/app
+    ports:
+      - "${LOCAL_ALPHAZERO}:${LOCAL_ALPHAZERO}"
+    env_file:
+      - .env
 
+  # For debugging setup
   minimax_valgrind:
     build:
       context: ./minimax
@@ -38,7 +42,7 @@ services:
     volumes:
       - ./minimax:/app
     ports:
-      - "8005:8005" # Use a different host port
+      - "${LOCAL_MINIMAX}:${LOCAL_MINIMAX}" # Use a different host port
     env_file:
       - .env
 

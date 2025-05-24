@@ -1,11 +1,21 @@
-Miniconda3-latest-Linux-x86_64.sh
-Miniconda3-latest-MacOSX-arm64.sh
-**/__pycache__/
+# === C++ Binaries and Build Artifacts ===
 /minimax/minimax
 /minimax/minimax_debug
-/minimax/build
-/minimax/build_debug
+/minimax/build/
+/minimax/build_debug/
 *.o
-url.txt
 a.out
+
+# === Environment Files ===
 .env
+url.txt
+
+# === Python ===
+# Virtual environments
+.venv/
+venv/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
