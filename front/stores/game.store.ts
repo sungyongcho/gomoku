@@ -304,6 +304,7 @@ export const useGameStore = defineStore("game", () => {
       : [];
 
     if (
+      settings.value.enableDoubleThreeRestriction &&
       checkDoubleThreeBeforeAddStone(
         { x, y },
         stone,

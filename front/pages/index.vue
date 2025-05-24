@@ -26,7 +26,7 @@ const onHowToPlay = () => {
     <section
       class="flex h-[50vw] min-h-[500px] w-[50vw] min-w-[500px] flex-col items-center justify-center gap-20 rounded-[50%] bg-white px-4 py-20 shadow-[0_0_10px_5px_gray]"
     >
-      <h1 class="uppercase typo-giga-title">Omok</h1>
+      <h1 class="uppercase typo-giga-title">gomoku</h1>
 
       <div class="flex flex-col gap-4">
         <Button class="w-[220px]" size="large" @click="onGameWithAI">

@@ -44,7 +44,7 @@ const onGameDebug = () => {
           to="/"
           class="flex items-center px-4 py-2 text-2xl font-extrabold uppercase text-white"
         >
-          omok
+          gomoku
         </nuxt-link>
 
         <div class="my-2 mr-2 flex items-center gap-1">
