@@ -48,13 +48,14 @@ gomoku 게임 규칙
 doublethree → 캡처 → 오목 → 무승부 순으로 규칙 검사
 
 33 확인법
+
 - 착수하는 돌이 끝에 위치
-	- .$OO. : 8가지 (단, X.$OO.X, $OO.O 인 경우는 제외해야함)
-	- .$O.O.: 8가지 (단, O.$O.O 인 경우 제외)
-	- .$.OO.: 8가지
+  - .$OO. : 8가지 (단, X.$OO.X, $OO.O 인 경우는 제외해야함)
+  - .$O.O.: 8가지 (단, O.$O.O 인 경우 제외)
+  - .$.OO.: 8가지
 - 착수하는 돌이 중간에 위치
-	- .O$O.: 4가지 (단, X.O$O.X, O$O.O 인 경우는 제외해야함)
-	- .O$.O.: 8가지
+  - .O$O.: 4가지 (단, X.O$O.X, O$O.O 인 경우는 제외해야함)
+  - .O$.O.: 8가지
 
 ## 12/01/2025
 
@@ -133,25 +134,40 @@ response_error.json (backend 착수 에러)
    - A턴이고, 착수를 한 후에 불완전한 (breakable) 5목이상이면 게임 계속 진행.
 
 ## 3/7/2025
+
 - (front) revert to not placing for doublethree neeeds to be implemented.
 
 ## 3/20/25
+
 - (front) needs to check how the check rendering is actually getting handled b/c the capture information on the board is all applied already.
 
 ## 3/27/05
+
 - TODO(front)
 - doublethree로 착수가 불가능한 경우 마지막 착수가 된 지점의 보드의 돌이 그대로 남아 있는 경우가 있음
 - capture를 진행 할 경우, 현재 백엔드에서 보드판과 점수를 모두 업데이트 하는데 프론트에서 가지고 있을 필요가 있는지...?
--  디버그 모드에서 플레이어 자동 변경 토글 버튼이 가능한지?
+- 디버그 모드에서 플레이어 자동 변경 토글 버튼이 가능한지?
 
 ## 3/27/25 -2
+
 - 33
 
 ## 4/4/25
+
 - PV move ordering is implemented but processing time is bigger when depth = 10, but when depth = 8 performance is good and it's under 500ms
 - Killer move also implemented, but processing time goes same as pm move ordering, so giving overheads
 
-
 ## 5/24/25
+
 - update endpoint address of minimax
 - check connection front <-> minimax
+
+## 5/24/25 - 2
+
+- debug 모드에서 33, capture 안되도록 변경
+- nuxt content (/about-project/)
+- /debug 페이지에서는 /ws/debug/
+- AI setting 추가 후 api 경로 debug 삭제 (local 은 포트 변경, prod 는 minimax / alphazero)
+- footer (`<a href="">sungyong cho</a> (<a>sungyongcho@email.com</a>`)
+- production 에서는 debug 페이지 보이지 않게
+- ws 접속이 안되면 ai 관련 버튼 disabled 알림팝업 띄우기
