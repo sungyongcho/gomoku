@@ -3,13 +3,15 @@ services:
     build:
       context: ./front
     ports:
-      - "3000:3000"
+      - "${LOCAL_FRONT}:${LOCAL_FRONT}"
     depends_on:
       - minimax
       - alphazero
     volumes:
       - ./front:/usr/src/app
       - node_modules:/usr/src/app/node_modules
+    env_file:
+    - .env
 
   minimax:
     build:
@@ -40,7 +42,7 @@ services:
     volumes:
       - ./minimax:/app
     ports:
-      - "8005:8005"  # Use a different host port
+      - "${LOCAL_MINIMAX}:${LOCAL_MINIMAX}"  # Use a different host port
     env_file:
     - .env
 
