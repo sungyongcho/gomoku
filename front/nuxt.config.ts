@@ -2,6 +2,7 @@
 import { definePreset } from "@primevue/themes";
 import Aura from "@primevue/themes/aura";
 
+const port = process.env.LOCAL_FRONT ? parseInt(process.env.LOCAL_FRONT) : 3000;
 const Noir = definePreset(Aura, {
   semantic: {
     primary: {
@@ -87,6 +88,10 @@ export default defineNuxtConfig({
   },
   pinia: {
     storesDirs: ["./stores/**"],
+  },
+  devServer: {
+    port,
+    host: "0.0.0.0",
   },
   runtimeConfig: {
     public: {
