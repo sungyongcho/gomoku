@@ -14,8 +14,8 @@ COPY . /app
 # Add PYTHONPATH to ensure imports work
 ENV PYTHONPATH=/app
 
-# Expose FastAPI port
+# Expose any port; actual port is controlled by env var
 EXPOSE 8000
 
-# Run FastAPI application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Use a shell command to use the env var
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${LOCAL_ALPHAZERO:-8000} --reload"]
