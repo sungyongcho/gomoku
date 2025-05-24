@@ -150,3 +150,8 @@ response_error.json (backend 착수 에러)
 ## 4/4/25
 - PV move ordering is implemented but processing time is bigger when depth = 10, but when depth = 8 performance is good and it's under 500ms
 - Killer move also implemented, but processing time goes same as pm move ordering, so giving overheads
+
+
+## 5/24/25
+- update endpoint address of minimax
+- check connection front <-> minimax
