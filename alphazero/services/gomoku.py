@@ -1,7 +1,6 @@
 import time
 from typing import List
 
-from ai.minmax import minmax
 from constants import EMPTY_SPACE
 from rules.capture import capture_opponent
 from rules.doublethree import check_doublethree
