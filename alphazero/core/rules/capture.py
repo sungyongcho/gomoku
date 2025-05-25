@@ -1,5 +1,5 @@
-from constants import DIRECTIONS, NUM_LINES, PLAYER_1, PLAYER_2
-from services.board import Board
+from core.board import Board
+from core.constants import DIRECTIONS, NUM_LINES, PLAYER_1, PLAYER_2
 
 PLAYER_1 = 1
 PLAYER_2 = 2

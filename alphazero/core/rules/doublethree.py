@@ -1,12 +1,12 @@
 from typing import Tuple
 
 import numpy as np
-from constants import (
+from core.board import Board
+from core.constants import (
     DIRECTIONS,
     NUM_LINES,
     UNIQUE_DIRECTIONS,
 )
-from services.board import Board
 
 PLAYER_1 = 1
 PLAYER_2 = 2
