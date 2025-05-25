@@ -251,13 +251,14 @@ int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason, void *u
   psd_debug *psd = static_cast<psd_debug *>(user);  // <-- persistent!
   switch (reason) {
     case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION: {
+      // only taking uri of /ws and /ws/debug
       char uri[128];
 
       if (lws_hdr_copy(wsi, uri, sizeof(uri), WSI_TOKEN_GET_URI) <= 0) {
         std::cerr << "Failed to get URI\n";
         return 1;
       }
-      if (std::strcmp(uri, "/ws") != 0) {
+      if (std::strcmp(uri, "/ws") != 0 && std::strcmp(uri, "/ws/debug") != 0) {
         std::cerr << "Rejected: invalid URI: " << uri << std::endl;
         return 1;  // Reject connection
       }
