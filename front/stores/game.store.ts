@@ -36,7 +36,7 @@ export const useGameStore = defineStore("game", () => {
     isPerfectFiveEnded,
   } = useGameLogic();
   const showSettings = ref(false);
-  const settings = useStorage<Settings>("settings", {
+  const settings = useStorage<Settings>("settings-2", {
     enableCapture: true,
     enableDoubleThreeRestriction: true,
     totalPairCaptured: 5,
@@ -46,6 +46,7 @@ export const useGameStore = defineStore("game", () => {
     isPlayer2AI: true,
     isDebugTurnLocked: true,
     difficulty: "hard", // easy, medium, hard
+    ai: "minimax",
   });
 
   const initialBoard = () => {
@@ -265,7 +266,7 @@ export const useGameStore = defineStore("game", () => {
     const drawEnded = isDrawEnded(situation);
     if (drawEnded.result === GAME_END_SCENARIO.DRAW) {
       gameOver.value = true;
-      return doAlert("Game Over", "Draw", "Info");
+      return doAlert({ header: "Game Over", message: "Draw", type: "Info" });
     }
   };
 

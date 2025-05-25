@@ -94,4 +94,5 @@ export type Settings = {
   isPlayer2AI: boolean;
   isDebugTurnLocked: boolean;
   difficulty: "easy" | "medium" | "hard"; // easy, medium, hard
+  ai: "minimax" | "alphazero";
 };
