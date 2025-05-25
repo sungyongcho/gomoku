@@ -28,6 +28,7 @@ const { initGame } = useGameStore();
 const { isAiThinking } = storeToRefs(useGameStore());
 const $router = useRouter();
 const $route = useRoute();
+const { isProd } = useEnv();
 
 const onGameDebug = () => {
   settings.value.isPlayer2AI = false;
@@ -63,7 +64,7 @@ const onGameDebug = () => {
             variant="text"
             class="!text-white hover:!text-black"
             @click="onGameDebug"
-            v-if="$route.path === '/'"
+            v-if="$route.path === '/' && !isProd"
           />
         </div>
       </div>

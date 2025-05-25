@@ -167,7 +167,7 @@ response_error.json (backend 착수 에러)
 - debug 모드에서 33, capture 안되도록 변경
 - /debug 페이지에서는 /ws/debug/
 - AI setting 추가 후 api 경로 debug 삭제 (local 은 포트 변경, prod 는 minimax / alphazero)
-- nuxt content (/about-project/)
 - footer (`<a href="">sungyong cho</a> (<a>sungyongcho@email.com</a>`)
 - production 에서는 debug 페이지 보이지 않게
+- nuxt content (/about-project/)
 - ws 접속이 안되면 ai 관련 버튼 disabled 알림팝업 띄우기
