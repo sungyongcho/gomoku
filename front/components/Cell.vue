@@ -56,19 +56,19 @@ const lastHistory = computed(() => _histories.value.at(-1));
     />
     <small
       v-if="x == 0"
-      class="absolute -left-1/2 w-1/2 text-center text-[13px] font-bold -sm:text-[10px]"
+      class="absolute -left-[10px] w-1/2 text-center text-[calc(min(100vw,calc(100vh-64px-105px-42px-20px-80px))/19*0.35)] font-bold -sm:text-[10px]"
     >
       {{ y + 1 }}
     </small>
     <small
       v-if="y == 0"
-      class="absolute -top-1/2 h-1/2 text-center text-[13px] font-bold -sm:text-[10px]"
+      class="absolute -top-[10px] h-1/2 text-center text-[calc(min(100vw,calc(100vh-64px-105px-42px-20px-80px))/19*0.35)] font-bold -sm:text-[10px]"
     >
       {{ String.fromCharCode("A".charCodeAt(0) + x) }}
     </small>
     <span
       v-if="stone !== '.'"
-      class="absolute z-10 box-content aspect-square h-[calc(min(100vw,calc(100vh-64px-105px-42px-20px-80px))/19*0.85)] rounded-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] shadow-[0_2px_6px_1px_#78716c] -sm:h-[calc(min(80vw,80vh)/19*0.85)]"
+      class="absolute z-10 box-content aspect-square h-[calc(min(100vw,calc(100vh-64px-105px-42px-20px-80px))/19*0.85)] rounded-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] shadow-[0_2px_6px_1px_#78716c] -sm:h-[calc(min(calc(100vw-25px),calc(100vh-118px-105px-42px-20px-30px))/19*0.85)]"
       :class="{
         'from-white via-white to-gray-300': stone == 'O',
         'from-gray-600 via-gray-900 to-black': stone == 'X',

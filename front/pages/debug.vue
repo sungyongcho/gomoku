@@ -181,14 +181,14 @@ onUnmounted(() => {
 </script>
 <template>
   <main
-    class="relative h-[calc(100vh-80px)] w-full items-start justify-center -lg:h-[calc(100vh-68px)] lg:items-center"
+    class="relative h-screen w-full items-start justify-center lg:items-center"
   >
     <!-- Eval Stone -->
     <EvalTooltip />
 
     <!-- Board & History -->
     <div
-      class="mx-auto flex h-[calc(100vh-48px)] max-w-[1280px] items-center justify-center gap-10 -lg:h-auto -lg:flex-col-reverse"
+      class="mx-auto flex h-screen max-w-[1280px] items-center justify-center gap-10 -lg:flex-col-reverse"
     >
       <div>
         <GoBoard
@@ -205,13 +205,19 @@ onUnmounted(() => {
               :disabled="histories.length < 1"
               @click="deleteLastHistory"
             />
-            <Button label="Restart" icon="pi pi-play" @click="onRestart" />
+            <Button
+              label="Restart"
+              size="small"
+              icon="pi pi-play"
+              @click="onRestart"
+            />
             <Button
               label="Send"
               icon="pi pi-send"
               @click="onSendStone"
               :disabled="isAiThinking"
               :loading="isAiThinking"
+              size="small"
             />
             <ToggleButton
               onIcon="pi pi-lock"
@@ -219,6 +225,7 @@ onUnmounted(() => {
               v-model="settings.isDebugTurnLocked"
               onLabel="Turn Locked"
               offLabel="Turn Unlocked"
+              size="small"
             />
           </template>
           <template v-else>
@@ -227,6 +234,7 @@ onUnmounted(() => {
               icon="pi pi-arrow-left"
               :disabled="_histories.length === 0"
               @click="onPrevHistory"
+              size="small"
             />
             <Button
               label="Next"
@@ -234,6 +242,7 @@ onUnmounted(() => {
               icon="pi pi-arrow-right"
               @click="onNextHistory"
               :disabled="_histories.length === histories.length"
+              size="small"
             />
           </template>
         </div>
