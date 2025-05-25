@@ -35,7 +35,7 @@ const lastHistory = computed(() => _histories.value.at(-1));
 
 <template>
   <button
-    class="relative flex h-[calc(min(78vw,78vh)/19)] w-[calc(min(78vw,78vh)/19)] items-center justify-center -lg:h-[calc(min(90vw-130px,90vh-130px)/19)] -lg:w-[calc(min(90vw-84px,90vh-84px)/19)] -sm:h-[calc(min(94vw,94vh)/19)] -sm:w-[calc(min(94vw,94vh)/19)] [&_.previewStone]:hover:block"
+    class="relative flex aspect-square h-[calc(min(calc(100vw),calc(100vh-64px-105px-42px-20px-80px))/19)] items-center justify-center -sm:h-[calc(min(calc(100vw-25px),calc(100vh-118px-105px-42px-20px-30px))/19)] [&_.previewStone]:hover:block"
     :class="{
       ['cursor-wait']: isAiThinking,
     }"
@@ -68,7 +68,7 @@ const lastHistory = computed(() => _histories.value.at(-1));
     </small>
     <span
       v-if="stone !== '.'"
-      class="absolute z-10 box-content h-[calc(min(70vw,70vh)/19)] w-[calc(min(70vw,70vh)/19)] rounded-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] shadow-[0_2px_6px_1px_#78716c] -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
+      class="absolute z-10 box-content aspect-square h-[calc(min(100vw,calc(100vh-64px-105px-42px-20px-80px))/19*0.85)] rounded-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] shadow-[0_2px_6px_1px_#78716c] -sm:h-[calc(min(80vw,80vh)/19*0.85)]"
       :class="{
         'from-white via-white to-gray-300': stone == 'O',
         'from-gray-600 via-gray-900 to-black': stone == 'X',
@@ -79,7 +79,7 @@ const lastHistory = computed(() => _histories.value.at(-1));
     <!-- preview stone -->
     <span
       v-else-if="!gameOver && !isAiThinking"
-      class="previewStone absolute z-10 hidden h-[calc(min(70vw,70vh)/19)] w-[calc(min(70vw,70vh)/19)] rounded-[50%] opacity-50 -lg:h-[calc(min(70vw,70vh)/19)] -lg:w-[calc(min(70vw,70vh)/19)] -sm:h-[calc(min(80vw,80vh)/19)] -sm:w-[calc(min(80vw,80vh)/19)]"
+      class="previewStone absolute z-10 hidden aspect-square h-[calc(min(100vw,calc(100vh-64px-105px-42px-20px-80px))/19*0.85)] rounded-[50%] opacity-50 -sm:h-[calc(min(calc(100vw-25px),calc(100vh-118px-105px-42px-20px-30px))/19*0.85)]"
       :class="{ 'bg-white': turn == 'O', 'bg-black': turn == 'X' }"
     ></span>
   </button>

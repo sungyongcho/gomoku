@@ -95,7 +95,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      FRONT_WHERE: process.env.FRONT_WHERE || "local",
+      FRONT_WHERE: process.env.FRONT_WHERE || "prod",
       LOCAL_MINIMAX: process.env.LOCAL_MINIMAX,
       LOCAL_ALPHAZERO: process.env.LOCAL_ALPHAZERO,
     },

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useBreakpoints } from "@vueuse/core";
+import screens from "~/config/tailwind/screens";
+
 const { settings } = storeToRefs(useGameStore());
 const { initGame } = useGameStore();
 const $router = useRouter();
@@ -17,37 +20,67 @@ const onGameWithHuman = () => {
 const onHowToPlay = () => {
   $router.push("/how-to-play");
 };
+
+const breakpoints = useBreakpoints({
+  mobile: 0,
+  tablet: screens.sm.min,
+  laptop: screens.md.min,
+  desktop: screens.lg.min,
+});
+const smallerThanSm = breakpoints.smaller("tablet");
 </script>
 
 <template>
   <main
-    class="flex h-[calc(100vh-72px)] items-center justify-center overflow-hidden bg-black"
+    class="flex h-screen items-center justify-center overflow-hidden bg-black"
   >
     <section
-      class="flex h-[50vw] min-h-[500px] w-[50vw] min-w-[500px] flex-col items-center justify-center gap-20 rounded-[50%] bg-white px-4 py-20 shadow-[0_0_10px_5px_gray]"
+      class="flex h-[50vw] max-h-[550px] min-h-[500px] w-[50vw] min-w-[500px] max-w-[550px] flex-col items-center justify-center gap-20 rounded-[50%] bg-white px-4 py-20 shadow-[0_0_10px_5px_gray] -md:gap-4 -sm:min-h-[340px] -sm:min-w-[340px]"
     >
-      <h1 class="uppercase typo-giga-title">gomoku</h1>
+      <h1
+        class="uppercase typo-giga-title -md:typo-mega-title -sm:typo-large-title"
+      >
+        gomoku
+      </h1>
 
-      <div class="flex flex-col gap-4">
-        <Button class="w-[220px]" size="large" @click="onGameWithAI">
+      <div class="flex w-full max-w-[220px] flex-col gap-2 -sm:max-w-[180px]">
+        <Button
+          class="mx-auto w-full"
+          :size="smallerThanSm ? 'small' : 'large'"
+          @click="onGameWithAI"
+        >
           <div class="flex w-full items-center justify-between">
             <i class="pi pi-user text-[20px]"></i> Player vs AI
             <i class="pi pi-android text-[20px]"></i>
           </div>
         </Button>
-        <Button class="w-[220px]" size="large" @click="onGameWithHuman">
+        <Button
+          class="mx-auto w-full"
+          :size="smallerThanSm ? 'small' : 'large'"
+          @click="onGameWithHuman"
+        >
           <div class="flex w-full items-center justify-between">
             <i class="pi pi-user text-[20px]"></i> Player vs Player
             <i class="pi pi-user text-[20px]"></i>
           </div>
         </Button>
 
-        <Button @click="onHowToPlay" class="w-[220px]" size="large">
-          <i class="pi pi-question-circle text-[20px]"></i> How to play
+        <Button
+          @click="onHowToPlay"
+          class="mx-auto w-full"
+          :size="smallerThanSm ? 'small' : 'large'"
+        >
+          <i class="pi pi-question-circle text-[20px]"></i>
+          <span>How to play</span>
         </Button>
 
-        <Button @click="$router.push('/test')" class="w-[220px]" size="large">
-          <i class="pi pi-clipboard text-[20px]"></i> Evaluation Test
+        <Button
+          @click="$router.push('/test')"
+          class="mx-auto w-full"
+          :size="smallerThanSm ? 'small' : 'large'"
+        >
+          <i class="pi pi-clipboard text-[20px]"></i>
+          <span> Evaluation Test</span>
         </Button>
       </div>
     </section>

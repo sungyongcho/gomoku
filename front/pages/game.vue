@@ -205,14 +205,14 @@ onUnmounted(() => {
 </script>
 <template>
   <main
-    class="relative h-[calc(100vh-80px)] w-full items-start justify-center -lg:h-[calc(100vh-68px)] lg:items-center"
+    class="relative h-screen w-full items-start justify-center lg:items-center"
   >
     <!-- Eval Stone -->
     <EvalTooltip />
 
     <!-- Board & History -->
     <div
-      class="mx-auto flex h-[calc(100vh-48px)] max-w-[1280px] items-center justify-center gap-10 -lg:h-auto -lg:flex-col-reverse"
+      class="mx-auto flex h-screen max-w-[1280px] items-center justify-center gap-10 -lg:flex-col-reverse"
     >
       <div>
         <GoBoard
@@ -225,15 +225,22 @@ onUnmounted(() => {
           <template v-if="!historyMode">
             <Button
               label="Undo a move"
+              size="small"
               icon="pi pi-undo"
               :disabled="histories.length < 1"
               @click="deleteLastHistory"
             />
-            <Button label="Restart" icon="pi pi-play" @click="onRestart" />
+            <Button
+              size="small"
+              label="Restart"
+              icon="pi pi-play"
+              @click="onRestart"
+            />
           </template>
           <template v-else>
             <Button
               label="Prev"
+              size="small"
               icon="pi pi-arrow-left"
               :disabled="_histories.length === 0"
               @click="onPrevHistory"
@@ -241,6 +248,7 @@ onUnmounted(() => {
             <Button
               label="Next"
               icon-pos="right"
+              size="small"
               icon="pi pi-arrow-right"
               @click="onNextHistory"
               :disabled="_histories.length === histories.length"
