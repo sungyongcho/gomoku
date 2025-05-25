@@ -1,6 +1,6 @@
 import numpy as np
 from core.board import Board
-from core.constants import NUM_LINES
+from core.game_config import NUM_LINES
 from core.rules.doublethree import check_doublethree
 
 EMPTY_SPACE = 0
