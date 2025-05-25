@@ -9,13 +9,15 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the application code
-COPY . /app
+COPY . .
 
 # Add PYTHONPATH to ensure imports work
 ENV PYTHONPATH=/app
 
 # Expose any port; actual port is controlled by env var
-EXPOSE 8000
+# default FastAPI port (can be overridden)
+ENV LOCAL_ALPHAZERO=8000
+EXPOSE ${LOCAL_ALPHAZERO}
 
 # Use a shell command to use the env var
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${LOCAL_ALPHAZERO:-8000} --reload"]
+CMD ["sh", "-c", "uvicorn adapters.api_fastapi:create_app --factory --host 0.0.0.0 --port ${LOCAL_ALPHAZERO} --reload"]

@@ -1,7 +1,7 @@
 import numpy as np
-from constants import NUM_LINES
-from rules.doublethree import check_doublethree
-from services.board import Board
+from core.board import Board
+from core.constants import NUM_LINES
+from core.rules.doublethree import check_doublethree
 
 EMPTY_SPACE = 0
 
