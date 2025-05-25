@@ -1,7 +1,7 @@
 export const useEnv = () => {
-  const { FRONT_WHERE } = useRuntimeConfig().public;
   const { settings } = storeToRefs(useGameStore());
-  const { LOCAL_MINIMAX, LOCAL_ALPHAZERO } = useRuntimeConfig().public;
+  const { FRONT_WHERE, LOCAL_MINIMAX, LOCAL_ALPHAZERO } =
+    useRuntimeConfig().public;
 
   const getSocketUrl = () => {
     if (FRONT_WHERE === "local") {
@@ -26,8 +26,13 @@ export const useEnv = () => {
       : `wss://alphazero.sungyongcho.com/ws/debug`;
   };
 
+  const isLocal = FRONT_WHERE === "local";
+  const isProd = !isLocal;
+
   return {
     getSocketUrl,
     getDebugSocketUrl,
+    isLocal,
+    isProd,
   };
 };
