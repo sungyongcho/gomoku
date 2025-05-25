@@ -1,10 +1,10 @@
 import time
 from typing import List
 
-from constants import EMPTY_SPACE
-from rules.capture import capture_opponent
-from rules.doublethree import check_doublethree
-from services.board import Board
+from core.board import Board
+from core.constants import EMPTY_SPACE
+from core.rules.capture import capture_opponent
+from core.rules.doublethree import check_doublethree
 
 
 class Gomoku:

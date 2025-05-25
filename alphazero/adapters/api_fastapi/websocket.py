@@ -1,5 +1,5 @@
+from core.gomoku import Gomoku
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from services.gomoku import Gomoku
 
 router = APIRouter()
 
@@ -40,7 +40,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     data["board"],
                 )
                 print(x, y, last_player, next_player, board, flush=True)
-                game.set_game(board, last_player, next_player)
+                # game.set_game(board, last_player, next_player)
                 # success = game.update_board(x, y, player)
             #     if success:
             #         # play_next()
