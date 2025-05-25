@@ -43,12 +43,12 @@ const onGameDebug = () => {
       <div class="flex w-full shrink-0 justify-between">
         <nuxt-link
           to="/"
-          class="flex items-center px-4 py-2 text-2xl font-extrabold uppercase text-white"
+          class="flex items-center px-4 py-2 text-xl font-extrabold uppercase text-white"
         >
           gomoku
         </nuxt-link>
 
-        <div class="my-2 mr-2 flex items-center gap-1">
+        <div class="mr-2 flex items-center gap-1 -sm:my-0">
           <Button
             icon="pi pi-cog"
             variant="text"

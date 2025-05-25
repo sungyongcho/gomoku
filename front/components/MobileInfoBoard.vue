@@ -21,7 +21,7 @@ watch(
       icon="pi pi-bars"
       variant="text"
       rounded
-      class="text-white lg:hidden"
+      class="!text-white hover:!text-black lg:hidden"
       @click="isOpen = true"
     />
 
