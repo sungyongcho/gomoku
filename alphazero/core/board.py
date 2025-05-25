@@ -1,7 +1,7 @@
 from typing import List
 
 import numpy as np
-from core.constants import NUM_LINES
+from core.game_config import NUM_LINES
 
 PLAYER_1 = 1
 PLAYER_2 = 2
