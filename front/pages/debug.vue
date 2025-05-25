@@ -33,9 +33,9 @@ const {
 
 const lastHistory = computed(() => histories.value.at(-1));
 const { doAlert, closeAlert } = useAlertStore();
-const { getSocketUrl } = useEnv();
+const { getDebugSocketUrl } = useEnv();
 
-const { data, send, close, open, status } = useWebSocket(getSocketUrl(), {
+const { data, send, close, open, status } = useWebSocket(getDebugSocketUrl(), {
   autoReconnect: {
     retries: 0,
     onFailed() {

@@ -47,6 +47,15 @@ watch(
         />
 
         <BButtonGroupSwitch
+          v-model="settings.ai"
+          :options="[
+            { value: 'minimax', label: 'minimax' },
+            { value: 'alphazero', label: 'alphazero' },
+          ]"
+          label="AI model"
+        />
+
+        <BButtonGroupSwitch
           v-model="settings.firstMove"
           :options="[
             { value: 'Player1', label: 'Player1' },
@@ -56,17 +65,18 @@ watch(
         />
 
         <BToggleSwitch
-          v-model="settings.enableCapture"
-          label="Enable Capture"
-        />
-        <BToggleSwitch
           v-model="settings.enableDoubleThreeRestriction"
           label="Enable Double-Three Prohibition"
         />
+
+        <BToggleSwitch
+          v-model="settings.enableCapture"
+          label="Enable Capture"
+        />
+
         <BButtonGroupSwitch
           v-if="settings.enableCapture"
           v-model="settings.totalPairCaptured"
-          class="col-span-2"
           :options="[
             { value: 3, label: '3' },
             { value: 4, label: '4' },
