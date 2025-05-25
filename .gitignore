@@ -4,13 +4,19 @@
 /minimax/build/
 /minimax/build_debug/
 *.o
+*.obj
+*.so
+*.exe
+*.dll
 a.out
 
 # === Environment Files ===
 .env
+.env.*
 url.txt
 
 # === Python ===
+
 # Virtual environments
 .venv/
 venv/
@@ -19,3 +25,36 @@ venv/
 __pycache__/
 *.py[cod]
 *.pyo
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+*.whl
+dist/
+build/
+
+# Jupyter notebooks
+*.ipynb_checkpoints
+
+# pytest
+.cache/
+.pytest_cache/
+
+# MyPy / coverage / profiling
+.mypy_cache/
+.coverage
+htmlcov/
+.prof
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# OS/system files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+log/
+logs/

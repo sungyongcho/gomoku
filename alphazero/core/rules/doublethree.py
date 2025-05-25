@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 from core.board import Board
-from core.constants import (
+from core.game_config import (
     DIRECTIONS,
     NUM_LINES,
     UNIQUE_DIRECTIONS,
