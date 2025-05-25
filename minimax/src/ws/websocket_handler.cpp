@@ -246,15 +246,28 @@ std::string constructErrorResponse(ParseResult result, const std::string &detail
   return oss.str();
 }
 
-int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
-                  size_t len) {
+int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
+                      size_t len) {
   psd_debug *psd = static_cast<psd_debug *>(user);  // <-- persistent!
   switch (reason) {
-    case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
+    case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION: {
+      char uri[128];
+
+      if (lws_hdr_copy(wsi, uri, sizeof(uri), WSI_TOKEN_GET_URI) <= 0) {
+        std::cerr << "Failed to get URI\n";
+        return 1;
+      }
+      if (std::strcmp(uri, "/ws") != 0) {
+        std::cerr << "Rejected: invalid URI: " << uri << std::endl;
+        return 1;  // Reject connection
+      }
+
       new (&psd->difficulty) std::string();  // placement-new
       break;
+    }
+
     case LWS_CALLBACK_ESTABLISHED:
-      std::cout << "WebSocket `/ws/debug` connected!" << std::endl;
+      std::cout << "WebSocket `/ws` connected!" << std::endl;
       psd->difficulty.clear();  // starts empty for this client
       initZobrist();
       // testZobristHashingLogic();

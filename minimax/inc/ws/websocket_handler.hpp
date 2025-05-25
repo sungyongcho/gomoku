@@ -14,8 +14,8 @@ struct psd_debug {
   std::string difficulty;  // keep the last difficulty here
 };
 
-int callbackDebug(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
-                  size_t len);
+int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in,
+                      size_t len);
 
 void responseSuccessMove(struct lws *wsi, Board &board);
 

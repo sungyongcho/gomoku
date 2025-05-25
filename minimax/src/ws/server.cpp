@@ -29,7 +29,7 @@ static bool isPortAvailable(int port) {
 
 // ─── protocol table ────────────────────────────────────────────────
 static struct lws_protocols protocols[] = {
-    {"debug-protocol", callbackDebug,
+    {"debug-protocol", callbackWebsocket,
      sizeof(psd_debug),  // ← allocate this many bytes per connection
      0,                  // rx buffer size (unused)
      0, NULL, 0},
@@ -74,7 +74,7 @@ Server::Server(int port) {
   Evaluation::initCombinedPatternScoreTables();
   Evaluation::initCombinedPatternScoreTablesHard();
 
-  std::cout << "WebSocket Server running on ws://localhost:" << port << "/ws/debug" << std::endl;
+  std::cout << "WebSocket Server running on ws://localhost:" << port << "/ws" << std::endl;
 }
 
 void Server::run(volatile std::sig_atomic_t &stopFlag) {
