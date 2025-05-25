@@ -28,7 +28,7 @@ watch(
     <Transition name="slide-left">
       <div
         v-if="isOpen"
-        class="fixed left-0 top-0 z-[998] h-screen w-full bg-black bg-opacity-50"
+        class="fixed inset-0 z-[998] h-screen w-full bg-black bg-opacity-50"
       >
         <div
           ref="infoEl"

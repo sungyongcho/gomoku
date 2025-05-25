@@ -38,7 +38,7 @@ const onGameDebug = () => {
 </script>
 
 <template>
-  <header class="w-full bg-black px-4 py-2 -sm:px-0">
+  <header class="z-[11] w-full bg-black px-4 py-2 -sm:px-0">
     <div class="mx-auto flex max-w-[1140px] items-center -lg:flex-col">
       <div class="flex w-full shrink-0 justify-between">
         <nuxt-link
