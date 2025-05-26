@@ -29,8 +29,8 @@ definePageMeta({
       <div v-else>Home not found</div>
 
       <DocNavButtons
-        :prev="surroundData?.[0]?.path"
-        :next="surroundData?.[1]?.path"
+        :prev="surroundData?.[0]"
+        :next="surroundData?.[1]"
       />
     </div>
   </main>

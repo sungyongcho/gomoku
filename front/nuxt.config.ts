@@ -3,6 +3,8 @@ import { definePreset } from "@primevue/themes";
 import Aura from "@primevue/themes/aura";
 
 const port = process.env.LOCAL_FRONT ? parseInt(process.env.LOCAL_FRONT) : 3000;
+const LOCAL_FRONT_NUXT_CONTENT_WS = process.env.LOCAL_FRONT_NUXT_CONTENT_WS || 4000;
+
 const Noir = definePreset(Aura, {
   semantic: {
     primary: {
@@ -101,7 +103,7 @@ export default defineNuxtConfig({
   content: {
     watch: {
       enabled: true,
-      port: 4000,
+      port: LOCAL_FRONT_NUXT_CONTENT_WS,
       showURL: true,
     },
     build: {
@@ -131,6 +133,7 @@ export default defineNuxtConfig({
       FRONT_WHERE: process.env.FRONT_WHERE || "local",
       LOCAL_MINIMAX: process.env.LOCAL_MINIMAX,
       LOCAL_ALPHAZERO: process.env.LOCAL_ALPHAZERO,
+      LOCAL_FRONT_NUXT_CONTENT_WS: LOCAL_FRONT_NUXT_CONTENT_WS,
     },
   },
 });
