@@ -1,6 +1,7 @@
 from core.board import Board
 from core.gomoku import Gomoku
 from core.rules.capture import detect_captured_stones
+from core.rules.doublethree import detect_doublethree
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter()
@@ -78,13 +79,20 @@ async def websocket_endpoint(websocket: WebSocket):
                     game.board.last_player,
                 )
 
+                if detect_doublethree(
+                    game.board,
+                    game.board.last_x,
+                    game.board.last_y,
+                    game.board.last_player,
+                ):
+                    print("yatta")
                 if captured_test:
                     print("capture occured:", captured_test)
                     await websocket.send_json(
                         {"type": "error", "error": "capture test"}
                     )
                 else:
-                    await websocket.send_json({"type": "error", "error": "doublethree"})
+                    await websocket.send_json({"type": "error", "error": "none"})
 
                 # game.set_game(board, last_player, next_player)
                 # success = game.update_board(x, y, player)

@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 from core.board import Board
 from core.game_config import DIRECTIONS, NUM_LINES, PLAYER_1, PLAYER_2
 
@@ -20,7 +22,9 @@ def dfs_capture(
     return dfs_capture(board, nx, ny, player, direction, count + 1)
 
 
-def detect_captured_stones(board: Board, x: int, y: int, player: int):
+def detect_captured_stones(
+    board: Board, x: int, y: int, player: int
+) -> List[Dict[str, int]]:
     captured_stones = []
 
     for dir in DIRECTIONS:
