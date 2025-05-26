@@ -163,8 +163,8 @@ async def debug_endpoint(websocket: WebSocket):
                     print(lastPlay)
                     print(
                         game.get_scores(),
-                        game.board.last_player_score,
-                        game.board.next_player_score,
+                        game.board.last_player_point,
+                        game.board.next_player_point,
                         game.get_captured_stones(),
                     )
                     await websocket.send_json(

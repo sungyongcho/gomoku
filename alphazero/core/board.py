@@ -23,10 +23,10 @@ class Board:
         self.next_player: int = (
             PLAYER_1 if board_data["nextPlayer"] == PLAYER_X else PLAYER_2
         )
-        self.last_player_score: int = next(
+        self.last_player_point: int = next(
             s["score"] for s in board_data["scores"] if s["player"] == PLAYER_X
         )
-        self.next_player_score = next(
+        self.next_player_point = next(
             s["score"] for s in board_data["scores"] if s["player"] == PLAYER_X
         )
 
@@ -49,8 +49,8 @@ class Board:
         last_y = board_data["lastPlay"]["coordinate"].get("y")
 
         if last_x is not None and last_y is not None:
-            self.last_x = last_x
-            self.last_y = last_y
+            self.last_x: int | None = last_x
+            self.last_y: int | None = last_y
 
     def __getitem__(self, indices: tuple[int, int]) -> int:
         """Get the value at a specific column and row."""
@@ -67,16 +67,31 @@ class Board:
     def reset_board(self) -> None:
         """Resets the board to an empty state."""
         self.position.fill(EMPTY_SPACE)
-        self.last_player_score = 0
-        self.next_player_score = 0
+        self.last_player_point = 0
+        self.next_player_point = 0
+        self.last_x = None
+        self.last_y = None
 
     def get_value(self, col: int, row: int) -> int:
         """Get the value at a specific column and row."""
         return self.position[row, col]
 
+    def switch_turn(self):
+        self.last_player, self.next_player = self.next_player, self.last_player
+        self.last_player_point, self.next_player_point = (
+            self.next_player_point,
+            self.last_player_point,
+        )
+
     def set_value(self, col: int, row: int, value: int) -> None:
         """Set the value at a specific column and row."""
         self.position[row, col] = value
+        # if value != EMPTY_SPACE:
+        #     self.update_last_move(col, row)
+
+    def update_last_move(self, x: int, y: int) -> None:
+        self.last_x = x
+        self.last_y = y
 
     def get_row(self, row: int) -> np.ndarray:
         """Return a specific row."""
@@ -109,3 +124,15 @@ class Board:
             raise ValueError("Row index must be between 0 and 18.")
         col_char = chr(ord("A") + col)
         return f"{col_char}{row + 1}"
+
+    @property
+    def current_player(self) -> int:
+        return self.next_player
+
+    @property
+    def next_player_point(self) -> int:
+        return self.next_player_point
+
+    @property
+    def last_player_point(self) -> int:
+        return self.last_player_point

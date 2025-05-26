@@ -1,7 +1,7 @@
 from typing import List
 
 from core.board import Board
-from core.game_config import EMPTY_SPACE
+from core.game_config import EMPTY_SPACE, NUM_LINES
 from core.rules.capture import detect_captured_stones
 from core.rules.doublethree import detect_doublethree
 
@@ -57,6 +57,22 @@ class Gomoku:
     def is_doublethree(self, x: int, y: int, player: str) -> bool:
         return detect_doublethree(self.board, x, y, player)
 
+    def get_legal_moves(self) -> list[tuple[int, int]]:
+        legal_moves = []
+        for y in range(NUM_LINES):
+            for x in range(NUM_LINES):
+                if self.board.get_value(x, y) != EMPTY_SPACE:
+                    continue
+                if self.board.enable_doublethree and detect_doublethree(
+                    self.board, x, y, self.board.next_player
+                ):
+                    continue
+                legal_moves.append((x, y))
+        return legal_moves
+
+    def place_stone(self, x: int, y: int, player: int) -> None:
+        self.board.set_value(x, y, player)
+
     # def place_stone(self, x: int, y: int, player: str) -> bool:
     #     if (
     #         0 <= x < self.board_size
@@ -107,9 +123,3 @@ class Gomoku:
     #     print(self.next_player)
     #     self.place_stone(1, 1, self.next_player)
     #     return {"coordinate": {"x": 1, "y": 1}, "stone": self.next_player}
-
-    # # def record_history(self, x: int, y: int, player: str, type: str) -> None:
-    # #     self.history.append({"x": x, "y": y, "player": player, "type": type})
-
-    # # def print_history(self) -> None:
-    # #     print(self.history)
