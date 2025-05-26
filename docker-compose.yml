@@ -4,6 +4,7 @@ services:
       context: ./front
     ports:
       - "${LOCAL_FRONT}:${LOCAL_FRONT}"
+      - "${LOCAL_FRONT_NUXT_CONTENT_WS}:${LOCAL_FRONT_NUXT_CONTENT_WS}"
     depends_on:
       - minimax
       - alphazero
