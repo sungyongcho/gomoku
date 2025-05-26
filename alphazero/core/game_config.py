@@ -1,9 +1,10 @@
 # board
 NUM_LINES = 19
-EMPTY_SPACE = "."
+EMPTY_DOT = "."
 
 PLAYER_X = "X"  # Black stone
 PLAYER_O = "O"  # White stone
+EMPTY_SPACE = 0
 PLAYER_1 = 1  # Black stone
 PLAYER_2 = 2  # White stone
 OUT_OF_BOUNDS = 3

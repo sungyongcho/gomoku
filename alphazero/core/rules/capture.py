@@ -1,9 +1,7 @@
 from core.board import Board
 from core.game_config import DIRECTIONS, NUM_LINES, PLAYER_1, PLAYER_2
 
-PLAYER_1 = 1
-PLAYER_2 = 2
-EMPTY_SPACE = 0
+CAPTURE_WINDOW: int = 3
 
 
 def dfs_capture(
@@ -12,7 +10,7 @@ def dfs_capture(
     nx = x + direction[0]
     ny = y + direction[1]
 
-    if count == 3:
+    if count == CAPTURE_WINDOW:
         return board.get_value(nx, ny) == player
 
     opponent = PLAYER_2 if player == PLAYER_1 else PLAYER_1
@@ -22,11 +20,11 @@ def dfs_capture(
     return dfs_capture(board, nx, ny, player, direction, count + 1)
 
 
-def capture_opponent(board: Board, x: int, y: int, player: int):
+def detect_captured_stones(board: Board, x: int, y: int, player: int):
     captured_stones = []
 
     for dir in DIRECTIONS:
-        nx, ny = x + dir[0] * 3, y + dir[1] * 3
+        nx, ny = x + dir[0] * CAPTURE_WINDOW, y + dir[1] * CAPTURE_WINDOW
         if not (0 <= nx < NUM_LINES and 0 <= ny < NUM_LINES):
             continue
 

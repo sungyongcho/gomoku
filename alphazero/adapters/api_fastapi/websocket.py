@@ -1,4 +1,6 @@
+from core.board import Board
 from core.gomoku import Gomoku
+from core.rules.capture import detect_captured_stones
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter()
@@ -24,7 +26,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-@router.websocket("/ws")
+@router.websocket("/ws/debug")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
@@ -32,14 +34,58 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_json()
             if data["type"] == "move":
-                x, y, last_player, next_player, board = (
+                # print(data)
+                (
+                    last_x,
+                    last_y,
+                    last_player,
+                    next_player,
+                    board,
+                    goal,
+                    enable_capture,
+                    enable_doublethree,
+                ) = (
                     data["lastPlay"]["coordinate"]["x"],
                     data["lastPlay"]["coordinate"]["y"],
                     data["lastPlay"]["stone"],
                     data["nextPlayer"],
                     data["board"],
+                    data["goal"],
+                    data["enableCapture"],
+                    data["enableDoubleThreeRestriction"],
                 )
-                print(x, y, last_player, next_player, board, flush=True)
+                # print(
+                #     last_x,
+                #     last_y,
+                #     last_player,
+                #     next_player,
+                #     board,
+                #     goal,
+                #     enable_capture,
+                #     enable_doublethree,
+                # )
+                game.set_game(data)
+                game.print_board()
+                print(
+                    Board.convert_index_to_coordinates(
+                        game.board.last_x, game.board.last_y
+                    )
+                )
+                captured_test = detect_captured_stones(
+                    game.board,
+                    game.board.last_x,
+                    game.board.last_y,
+                    game.board.last_player,
+                )
+
+                if captured_test:
+                    print("capture occured:", captured_test)
+                    await websocket.send_json(
+                        {"type": "error", "error": "capture test"}
+                    )
+                else:
+                    await websocket.send_json({"type": "error", "error": "doublethree"})
+
                 # game.set_game(board, last_player, next_player)
                 # success = game.update_board(x, y, player)
             #     if success:
@@ -67,18 +113,18 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
-@router.websocket("/ws/debug")
+@router.websocket("/ws/debugbb")
 async def debug_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         game = Gomoku()
         while True:
             data = await websocket.receive_json()
-            print(data, flush=True)
+            print(data)
             if data["type"] == "move":
                 # ai first
                 if "lastPlay" not in data:
-                    print("ai first", flush=True)
+                    print("ai first")
                     await websocket.send_json(
                         {
                             "type": "error",
@@ -99,20 +145,19 @@ async def debug_endpoint(websocket: WebSocket):
 
                 # print(x, y, last_player, next_player, goal, board, scores, flush=True)
                 game.set_game(data)
-                print("before\n", game.print_board(), flush=True)
+                print("before\n", game.print_board())
                 success = game.update_board(x, y, last_player)
-                print("after\n", game.print_board(), flush=True)
+                print("after\n", game.print_board())
                 if success:
                     # TODO: when play_next() executes, the "next player" changes
                     lastPlay = game.play_next_minmax()
 
-                    print(lastPlay, flush=True)
+                    print(lastPlay)
                     print(
                         game.get_scores(),
                         game.board.last_player_score,
                         game.board.next_player_score,
                         game.get_captured_stones(),
-                        flush=True,
                     )
                     await websocket.send_json(
                         {

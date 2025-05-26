@@ -1,6 +1,9 @@
 # Use the official Python image
 FROM python:3.13-slim
 
+# Prevent stdout/stderr buffering
+ENV PYTHONUNBUFFERED=1
+
 # Set working directory
 WORKDIR /app
 
