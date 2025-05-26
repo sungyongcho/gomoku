@@ -1,11 +1,11 @@
 <script setup lang="ts">
 const props = defineProps({
   prev: {
-    type: String,
+    type: Object as PropType<{ path: string; title: string }>,
     default: null,
   },
   next: {
-    type: String,
+    type: Object as PropType<{ path: string; title: string }>,
     default: null,
   },
 });
