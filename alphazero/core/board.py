@@ -67,6 +67,8 @@ class Board:
     def reset_board(self) -> None:
         """Resets the board to an empty state."""
         self.position.fill(EMPTY_SPACE)
+        self.last_player_score = 0
+        self.next_player_score = 0
 
     def get_value(self, col: int, row: int) -> int:
         """Get the value at a specific column and row."""

@@ -10,7 +10,7 @@ PLAYER_2 = 2  # White stone
 OUT_OF_BOUNDS = 3
 
 
-def opponent(player):
+def opponent_player(player):
     return PLAYER_2 if player == PLAYER_1 else PLAYER_1
 
 

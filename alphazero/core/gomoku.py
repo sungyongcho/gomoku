@@ -3,7 +3,7 @@ from typing import List
 from core.board import Board
 from core.game_config import EMPTY_SPACE
 from core.rules.capture import detect_captured_stones
-from core.rules.doublethree import check_doublethree
+from core.rules.doublethree import detect_doublethree
 
 
 class Gomoku:
@@ -26,14 +26,8 @@ class Gomoku:
             {"player": self.next_player, "score": int(self.next_player_score / 2)},
         ]
 
-    def get_captured_stones(self):
-        return self.captured_stones
-
     def reset_board(self) -> None:
         self.board.reset_board()
-        # self.history = []
-        self.last_player_score = 0
-        self.next_player_score = 0
 
     def update_board(self, x: int, y: int, player: str) -> bool:
         self.captured_stones = detect_captured_stones(self.board, x, y, player)
@@ -43,8 +37,8 @@ class Gomoku:
             return False
         return True
 
-    def remove_captured_stone(self, captured_stones: list) -> None:
-        for captured in captured_stones:
+    def remove_captured_stone(self) -> None:
+        for captured in self.captured_stones:
             self.board.set_value(captured["x"], captured["y"], EMPTY_SPACE)
             # if captured["stone"] == self.next_player:
             #     self.last_player_score += 1
@@ -60,8 +54,8 @@ class Gomoku:
             f"Capture score - {self.last_player}: {self.last_player_score}, {self.next_player}: {self.next_player_score}"
         )
 
-    def is_doublethree(self, board: Board, x: int, y: int, player: str) -> bool:
-        return check_doublethree(board, x, y, player)
+    def is_doublethree(self, x: int, y: int, player: str) -> bool:
+        return detect_doublethree(self.board, x, y, player)
 
     # def place_stone(self, x: int, y: int, player: str) -> bool:
     #     if (
