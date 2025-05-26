@@ -1,11 +1,13 @@
 from typing import List
 
 import numpy as np
-from core.game_config import NUM_LINES
-
-PLAYER_1 = 1
-PLAYER_2 = 2
-EMPTY_SPACE = 0
+from core.game_config import (
+    EMPTY_DOT,
+    EMPTY_SPACE,
+    PLAYER_1,
+    PLAYER_2,
+    PLAYER_X,
+)
 
 
 class Board:
@@ -14,31 +16,41 @@ class Board:
         board_data: dict,
     ) -> None:
         """Initialize the board from a provided game state dictionary."""
-        self.goal = board_data["goal"]
-        self.last_player = (
-            PLAYER_1 if board_data["lastPlay"]["stone"] == "X" else PLAYER_2
+        self.goal: int = board_data["goal"]
+        self.last_player: int = (
+            PLAYER_1 if board_data["lastPlay"]["stone"] == PLAYER_X else PLAYER_2
         )
-        self.next_player = PLAYER_1 if board_data["nextPlayer"] == "X" else PLAYER_2
-        self.last_player_score = next(
-            s["score"] for s in board_data["scores"] if s["player"] == "X"
+        self.next_player: int = (
+            PLAYER_1 if board_data["nextPlayer"] == PLAYER_X else PLAYER_2
+        )
+        self.last_player_score: int = next(
+            s["score"] for s in board_data["scores"] if s["player"] == PLAYER_X
         )
         self.next_player_score = next(
-            s["score"] for s in board_data["scores"] if s["player"] == "O"
+            s["score"] for s in board_data["scores"] if s["player"] == PLAYER_X
         )
 
         # Convert board from list of strings to NumPy array
-        self.position = np.array(
+        self.position: np.array = np.array(
             [
                 [
                     EMPTY_SPACE
-                    if cell == "."
-                    else (PLAYER_1 if cell == "X" else PLAYER_2)
+                    if cell == EMPTY_DOT
+                    else (PLAYER_1 if cell == PLAYER_X else PLAYER_2)
                     for cell in row
                 ]
                 for row in board_data["board"]
             ],
             dtype=np.uint8,
         )
+        self.enable_capture: bool = board_data["enableCapture"]
+        self.enable_doublethree: bool = board_data["enableDoubleThreeRestriction"]
+        last_x = board_data["lastPlay"]["coordinate"].get("x")
+        last_y = board_data["lastPlay"]["coordinate"].get("y")
+
+        if last_x is not None and last_y is not None:
+            self.last_x = last_x
+            self.last_y = last_y
 
     def __getitem__(self, indices: tuple[int, int]) -> int:
         """Get the value at a specific column and row."""
@@ -72,20 +84,26 @@ class Board:
         """Return a specific column."""
         return self.position[:, col]
 
-    def get_all_downward_diagonals(self) -> List[np.ndarray]:
-        """Return all downward (\) diagonals as NumPy arrays."""
-        return [self.position.diagonal(i) for i in range(-NUM_LINES + 1, NUM_LINES)]
-
-    def get_all_upward_diagonals(self) -> List[np.ndarray]:
-        """Return all upward (/) diagonals as NumPy arrays."""
-        flipped_board = np.fliplr(self.position)
-        return [flipped_board.diagonal(i) for i in range(-NUM_LINES + 1, NUM_LINES)]
-
     def update_captured_stone(self, captured_stones: List[dict]) -> None:
         """Removes captured stones from the board."""
         for captured in captured_stones:
             self.position[captured["y"], captured["x"]] = EMPTY_SPACE
 
-    def convert_board_for_print(self) -> str:
-        """Converts the board to a human-readable string."""
-        return "\n".join(" ".join(map(str, row)) for row in self.position)
+    def print_board(self) -> None:
+        """Prints the board with column letters (A-T) and row numbers (1-19)."""
+        size = len(self.position)
+        column_labels = " ".join(chr(ord("A") + i) for i in range(size))
+        print("   " + column_labels)
+        for i, row in enumerate(self.position):
+            row_label = f"{i + 1:>2}"  # Right-align single-digit numbers
+            row_str = " ".join(map(str, row))
+            print(f"{row_label} {row_str}")
+
+    @staticmethod
+    def convert_index_to_coordinates(col: int, row: int) -> str:
+        if not (0 <= col < 19):
+            raise ValueError("Column index must be between 0 and 18.")
+        if not (0 <= row < 19):
+            raise ValueError("Row index must be between 0 and 18.")
+        col_char = chr(ord("A") + col)
+        return f"{col_char}{row + 1}"
