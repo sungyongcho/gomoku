@@ -1,6 +1,6 @@
 import { map, pipe, range, toArray } from "@fxts/core";
 import { useStorage } from "@vueuse/core";
-import { cloneDeep } from "lodash";
+import { cloneDeep } from "lodash-es";
 
 import {
   GAME_END_SCENARIO,

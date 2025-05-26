@@ -16,6 +16,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  docPage: {
+    type: Boolean,
+    default: false,
+  },
 });
 const {
   player1TotalCaptured,
@@ -43,7 +47,7 @@ const onGameDebug = () => {
       <div class="flex w-full shrink-0 justify-between">
         <nuxt-link
           to="/"
-          class="flex items-center px-4 py-2 text-xl font-extrabold uppercase text-white"
+          class="flex items-center px-4 py-2 text-xl font-extrabold uppercase text-white -sm:px-4"
         >
           gomoku
         </nuxt-link>
@@ -55,8 +59,10 @@ const onGameDebug = () => {
             rounded
             @click="showSettings = true"
             class="!text-white hover:!text-black"
+            v-if="!docPage"
           />
-          <MobileInfoBoard v-if="!nonGamePage" class="lg:hidden" />
+          <MobileInfoBoard v-if="!nonGamePage && !docPage" class="lg:hidden" />
+          <MobileDocs v-if="docPage" class="sm:hidden" />
 
           <Button
             icon="pi pi-wrench"
@@ -69,7 +75,10 @@ const onGameDebug = () => {
         </div>
       </div>
 
-      <div class="shrink-0 py-2 text-white" v-if="!testPage && !nonGamePage">
+      <div
+        class="shrink-0 py-2 text-white"
+        v-if="!testPage && !nonGamePage && !docPage"
+      >
         <section class="flex items-center gap-2 -sm:gap-2 lg:hidden">
           <div class="flex items-center justify-center">
             <button
