@@ -37,6 +37,19 @@ watch(
     <section class="flex flex-col items-center justify-center">
       <form class="mb-[60px] grid w-full grid-cols-2 gap-8">
         <BButtonGroupSwitch
+          v-model="settings.ai"
+          :options="[
+            { value: 'minimax', label: 'minimax' },
+            { value: 'alphazero', label: 'alphazero' },
+          ]"
+          label="AI model"
+          :class="{
+            ['col-span-2']: settings.ai === 'alphazero',
+          }"
+        />
+
+        <BButtonGroupSwitch
+          v-if="settings.ai === 'minimax'"
           v-model="settings.difficulty"
           :options="[
             { value: 'easy', label: 'easy' },
@@ -44,15 +57,6 @@ watch(
             { value: 'hard', label: 'hard' },
           ]"
           label="Difficulty"
-        />
-
-        <BButtonGroupSwitch
-          v-model="settings.ai"
-          :options="[
-            { value: 'minimax', label: 'minimax' },
-            { value: 'alphazero', label: 'alphazero' },
-          ]"
-          label="AI model"
         />
 
         <BButtonGroupSwitch
