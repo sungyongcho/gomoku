@@ -24,7 +24,7 @@ definePageMeta({
   <main class="mx-auto flex max-w-[1140px] gap-8">
     <DesktopSideDocs class="w-fit-content -sm:hidden" />
 
-    <div class="max-w-[800px] flex-1 pb-[105px] pt-[60px]">
+    <div class="max-w-[800px] min-h-[calc(100vh-60px-104px)] flex-1">
       <ContentRenderer v-if="pageData" :value="pageData" class="p-6" />
       <div v-else>Home not found</div>
 

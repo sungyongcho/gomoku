@@ -1,5 +1,5 @@
 <template>
-  <NuxtLink :href="props.href" :target="props.target">
+  <NuxtLink :href="props.href" :target="props.target" class="underline text-gray-500 hover:text-black">
     <slot />
   </NuxtLink>
 </template>
