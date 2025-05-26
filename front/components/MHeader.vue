@@ -61,8 +61,10 @@ const onGameDebug = () => {
             class="!text-white hover:!text-black"
             v-if="!docPage"
           />
-          <MobileInfoBoard v-if="!nonGamePage && !docPage" class="lg:hidden" />
-          <MobileDocs v-if="docPage" class="sm:hidden" />
+          <ClientOnly>
+            <MobileInfoBoard v-if="!nonGamePage && !docPage" class="lg:hidden" />
+            <MobileDocs v-if="docPage" class="sm:hidden" />
+          </ClientOnly>
 
           <Button
             icon="pi pi-wrench"

@@ -7,7 +7,7 @@ export const useEnv = () => {
     if (FRONT_WHERE === "local") {
       const port =
         settings.value.ai === "minimax" ? LOCAL_MINIMAX : LOCAL_ALPHAZERO;
-      return `ws://${window.location.hostname}:${port}/ws`;
+      return `ws://localhost:${port}/ws`;
     }
     return settings.value.ai === "minimax"
       ? `wss://minimax.sungyongcho.com/ws`
@@ -18,7 +18,7 @@ export const useEnv = () => {
     if (FRONT_WHERE === "local") {
       const port =
         settings.value.ai === "minimax" ? LOCAL_MINIMAX : LOCAL_ALPHAZERO;
-      return `ws://${window.location.hostname}:${port}/ws/debug`;
+      return `ws://localhost:${port}/ws/debug`;
     }
 
     return settings.value.ai === "minimax"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtLink } from "#components";
 import { useBreakpoints } from "@vueuse/core";
 import screens from "~/config/tailwind/screens";
 
@@ -64,9 +65,11 @@ const smallerThanSm = breakpoints.smaller("tablet");
         <Button
           class="mx-auto w-full"
           :size="smallerThanSm ? 'small' : 'large'"
+          :as="NuxtLink"
+          to="/docs/intro"
         >
           <i class="pi pi-question-circle text-[20px]"></i>
-          <NuxtLink to="/docs/intro/">Help</NuxtLink>
+          Help
         </Button>
 
         <Button
