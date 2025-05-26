@@ -60,6 +60,7 @@ export default defineNuxtConfig({
     "@primevue/nuxt-module",
     "@pinia/nuxt",
     "@vueuse/nuxt",
+    "@nuxt/content",
   ],
   primevue: {
     options: {
@@ -88,6 +89,38 @@ export default defineNuxtConfig({
   },
   pinia: {
     storesDirs: ["./stores/**"],
+  },
+  routeRules: {
+    "/": { prerender: true },
+    "/game": { prerender: true },
+    "/debug": { prerender: true },
+    "/test": { prerender: true },
+    "/docs/intro": { prerender: true },
+    "/docs/about-project": { prerender: true },
+  },
+  content: {
+    watch: {
+      enabled: true,
+      port: 4000,
+      showURL: true,
+    },
+    build: {
+      markdown: {
+        highlight: {
+          theme: "github-dark",
+          preload: [
+            "js",
+            "vue",
+            "html",
+            "css",
+            "json",
+            "ts",
+            "python",
+            "solidity",
+          ],
+        },
+      },
+    },
   },
   devServer: {
     port,

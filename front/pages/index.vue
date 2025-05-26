@@ -8,17 +8,13 @@ const $router = useRouter();
 const onGameWithAI = () => {
   settings.value.isPlayer2AI = true;
   initGame();
-  $router.push("/game");
+  $router.push("/game/");
 };
 
 const onGameWithHuman = () => {
   settings.value.isPlayer2AI = false;
   initGame();
-  $router.push("/game");
-};
-
-const onHowToPlay = () => {
-  $router.push("/how-to-play");
+  $router.push("/game/");
 };
 
 const breakpoints = useBreakpoints({
@@ -66,12 +62,11 @@ const smallerThanSm = breakpoints.smaller("tablet");
         </Button>
 
         <Button
-          @click="onHowToPlay"
           class="mx-auto w-full"
           :size="smallerThanSm ? 'small' : 'large'"
         >
           <i class="pi pi-question-circle text-[20px]"></i>
-          <span>How to play</span>
+          <NuxtLink to="/docs/intro/">Help</NuxtLink>
         </Button>
 
         <Button
