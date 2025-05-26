@@ -3,7 +3,7 @@ import { definePreset } from "@primevue/themes";
 import Aura from "@primevue/themes/aura";
 
 const port = process.env.LOCAL_FRONT ? parseInt(process.env.LOCAL_FRONT) : 3000;
-const LOCAL_FRONT_NUXT_CONTENT_WS = process.env.LOCAL_FRONT_NUXT_CONTENT_WS || 4000;
+const LOCAL_FRONT_NUXT_CONTENT_WS = parseInt(process.env.LOCAL_FRONT_NUXT_CONTENT_WS || '4000');
 
 const Noir = definePreset(Aura, {
   semantic: {
@@ -55,7 +55,7 @@ const Noir = definePreset(Aura, {
 
 export default defineNuxtConfig({
   compatibilityDate: "2025-01-09",
-  ssr: false,
+  ssr: true,
   devtools: { enabled: false },
   modules: [
     "@nuxtjs/tailwindcss",
@@ -92,21 +92,6 @@ export default defineNuxtConfig({
   pinia: {
     storesDirs: ["./stores/**"],
   },
-  routeRules: {
-    "/": { prerender: true },
-    "/game": { prerender: true },
-    "/debug": { prerender: true },
-    "/test": { prerender: true },
-    "/docs/intro": { prerender: true },
-    "/docs/basic-rules": { prerender: true },
-    "/docs/optional-rules": { prerender: true },
-    "/docs/game-settings": { prerender: true },
-    "/docs/features": { prerender: true },
-    "/docs/local-development-setup": { prerender: true },
-    "/docs/minimax": { prerender: true },
-    "/docs/minimax-evaluation-test": { prerender: true },
-    "/docs/alphazero": { prerender: true },
-  },
   content: {
     watch: {
       enabled: true,
@@ -133,7 +118,6 @@ export default defineNuxtConfig({
   },
   devServer: {
     port,
-    host: "0.0.0.0",
   },
   runtimeConfig: {
     public: {
