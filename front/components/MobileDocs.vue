@@ -45,7 +45,22 @@ watch(
               @click="isOpen = false"
             />
           </div>
-          <Menu :model="docLinks" class="!border-none" />
+          <Menu :model="docLinks" class="!border-none" >
+            <template #submenulabel="{ item }">
+              <span class="font-bold text-black">{{ item.label }}</span>
+            </template>
+            <template #item="{ item, props }">
+              <NuxtLink
+                v-ripple
+                class="flex items-center !text-gray-600"
+                v-bind="props.action"
+                :to="item.url"
+              >
+                <span :class="item.icon" />
+                <span>{{ item.label }}</span>
+              </NuxtLink>
+            </template>
+        </Menu>
         </div>
       </div>
     </Transition>

@@ -1,11 +1,16 @@
 <template>
-  <component
-    :is="ImageComponent"
-    :src="refinedSrc"
-    :alt="props.alt"
-    :width="props.width"
-    :height="props.height"
-  />
+  <figure class="mx-auto my-3 flex flex-col justify-center">
+    <component
+      :is="ImageComponent"
+      :src="refinedSrc"
+      :alt="props.alt"
+      :width="props.width"
+      :height="props.height"
+      class="object-cover"
+      v-bind="$attrs"
+    />
+    <figcaption class="text-center text-sm text-gray-800">- {{ props.alt }} -</figcaption>
+  </figure>
 </template>
 
 <script setup lang="ts">
@@ -13,6 +18,10 @@ import { withTrailingSlash, withLeadingSlash, joinURL } from "ufo";
 import { useRuntimeConfig, computed } from "#imports";
 
 import ImageComponent from "#build/mdc-image-component.mjs";
+
+defineOptions({
+  inheritAttrs: false,
+})
 
 const props = defineProps({
   src: {

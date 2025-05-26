@@ -98,7 +98,14 @@ export default defineNuxtConfig({
     "/debug": { prerender: true },
     "/test": { prerender: true },
     "/docs/intro": { prerender: true },
-    "/docs/about-project": { prerender: true },
+    "/docs/basic-rules": { prerender: true },
+    "/docs/optional-rules": { prerender: true },
+    "/docs/game-settings": { prerender: true },
+    "/docs/features": { prerender: true },
+    "/docs/local-development-setup": { prerender: true },
+    "/docs/minimax": { prerender: true },
+    "/docs/minimax-evaluation-test": { prerender: true },
+    "/docs/alphazero": { prerender: true },
   },
   content: {
     watch: {
