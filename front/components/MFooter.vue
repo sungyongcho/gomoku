@@ -7,7 +7,7 @@ const props = defineProps({
 });
 </script>
 <template>
-  <footer class="bg-black px-8 text-white -sm:text-sm">
+  <footer class="bg-black px-8 text-sm text-white">
     <ul
       class="mx-auto grid max-w-[800px] grid-cols-2 gap-x-2 gap-y-0 p-4"
       :class="{
@@ -25,12 +25,12 @@ const props = defineProps({
         </a>
       </li>
       <li class="flex w-full items-center justify-end">
-        <i class="pi pi-envelope text-sm"></i>
+        <i class="pi pi-envelope"></i>
       </li>
       <li>
         <a
           href="mailto:here@sungyongcho.com"
-          class="inline-block -translate-y-[2px] text-sm text-gray-400 underline transition-colors duration-200 hover:text-white"
+          class="inline-block -translate-y-[2px] text-gray-400 underline transition-colors duration-200 hover:text-white"
           target="_blank"
           >here@sungyongcho.com</a
         >
