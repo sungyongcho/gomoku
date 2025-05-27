@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { NuxtLink } from "#components";
-import { useBreakpoints } from "@vueuse/core";
 import screens from "~/config/tailwind/screens";
 
 const { settings } = storeToRefs(useGameStore());
@@ -17,14 +16,6 @@ const onGameWithHuman = () => {
   initGame();
   $router.push("/game/");
 };
-
-const breakpoints = useBreakpoints({
-  mobile: 0,
-  tablet: screens.sm.min,
-  laptop: screens.md.min,
-  desktop: screens.lg.min,
-});
-const smallerThanSm = breakpoints.smaller("tablet");
 </script>
 
 <template>
@@ -42,42 +33,38 @@ const smallerThanSm = breakpoints.smaller("tablet");
 
       <div class="flex w-full max-w-[220px] flex-col gap-2 -sm:max-w-[180px]">
         <Button
-          class="mx-auto w-full"
-          :size="smallerThanSm ? 'small' : 'large'"
+          class="mx-auto w-full text-[15px] -sm:px-3 -sm:py-2 -sm:text-[12px]"
           @click="onGameWithAI"
         >
           <div class="flex w-full items-center justify-between">
-            <i class="pi pi-user text-[20px]"></i> Player vs AI
-            <i class="pi pi-android text-[20px]"></i>
+            <i class="pi pi-user"></i> Player vs AI
+            <i class="pi pi-android"></i>
           </div>
         </Button>
         <Button
-          class="mx-auto w-full"
-          :size="smallerThanSm ? 'small' : 'large'"
+          class="mx-auto w-full text-[15px] -sm:px-3 -sm:py-2 -sm:text-[12px]"
           @click="onGameWithHuman"
         >
           <div class="flex w-full items-center justify-between">
-            <i class="pi pi-user text-[20px]"></i> Player vs Player
-            <i class="pi pi-user text-[20px]"></i>
+            <i class="pi pi-user"></i> Player vs Player
+            <i class="pi pi-user"></i>
           </div>
         </Button>
 
         <Button
-          class="mx-auto w-full"
-          :size="smallerThanSm ? 'small' : 'large'"
+          class="mx-auto w-full text-[15px] -sm:px-3 -sm:py-2 -sm:text-[12px]"
           :as="NuxtLink"
           to="/docs/intro"
         >
-          <i class="pi pi-question-circle text-[20px]"></i>
+          <i class="pi pi-question-circle"></i>
           Help
         </Button>
 
         <Button
           @click="$router.push('/test')"
-          class="mx-auto w-full"
-          :size="smallerThanSm ? 'small' : 'large'"
+          class="mx-auto w-full text-[15px] -sm:px-3 -sm:py-2 -sm:text-[12px]"
         >
-          <i class="pi pi-clipboard text-[20px]"></i>
+          <i class="pi pi-clipboard"></i>
           <span> Evaluation Test</span>
         </Button>
       </div>
