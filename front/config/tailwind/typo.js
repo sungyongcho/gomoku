@@ -1,87 +1,87 @@
 export default {
   ".typo-giga-title": {
     fontWeight: "500",
-    fontSize: "16rem",
+    fontSize: "4rem", // 64px
     fontStyle: "normal",
-    lineHeight: "20rem",
+    lineHeight: "5rem", // 80px
   },
   ".typo-mega-title": {
     fontWeight: "500",
-    fontSize: "12rem",
+    fontSize: "3rem", // 48px
     fontStyle: "normal",
-    lineHeight: "16rem",
+    lineHeight: "4rem", // 64px
   },
   ".typo-extra-large-title": {
     fontWeight: "500",
-    fontSize: "10rem",
+    fontSize: "2.5rem", // 40px
     fontStyle: "normal",
-    lineHeight: "14rem",
+    lineHeight: "3.5rem", // 56px
   },
   ".typo-large-title": {
     fontWeight: "500",
-    fontSize: "8rem",
+    fontSize: "2rem", // 32px
     fontStyle: "normal",
-    lineHeight: "12rem",
+    lineHeight: "3rem", // 48px
   },
   ".typo-title": {
     fontWeight: "500",
-    fontSize: "7rem",
+    fontSize: "1.75rem", // 28px
     fontStyle: "normal",
-    lineHeight: "10rem",
+    lineHeight: "2.5rem", // 40px
   },
   ".typo-headline-bold": {
     fontWeight: "500",
-    fontSize: "5rem",
+    fontSize: "1.25rem", // 20px
     fontStyle: "normal",
-    lineHeight: "8rem",
+    lineHeight: "2rem", // 32px
   },
   ".typo-headline": {
     fontWeight: "400",
-    fontSize: "5rem",
+    fontSize: "1.25rem", // 20px
     fontStyle: "normal",
-    lineHeight: "8rem",
+    lineHeight: "2rem", // 32px
   },
   ".typo-callout": {
     fontWeight: "400",
-    fontSize: "4rem",
+    fontSize: "1rem", // 16px
     fontStyle: "normal",
-    lineHeight: "6rem",
+    lineHeight: "1.5rem", // 24px
     textTransform: "uppercase",
   },
   ".typo-body-bold": {
     fontWeight: "500",
-    fontSize: "4rem",
+    fontSize: "1rem", // 16px
     fontStyle: "normal",
-    lineHeight: "6rem",
+    lineHeight: "1.5rem", // 24px
   },
   ".typo-body": {
     fontWeight: "400",
-    fontSize: "4rem",
+    fontSize: "1rem", // 16px
     fontStyle: "normal",
-    lineHeight: "6rem",
+    lineHeight: "1.5rem", // 24px
   },
   ".typo-sub-text-bold": {
     fontWeight: "500",
-    fontSize: "3rem",
+    fontSize: "0.875rem", // 14px
     fontStyle: "normal",
-    lineHeight: "5rem",
+    lineHeight: "1.25rem", // 20px
   },
   ".typo-sub-text": {
     fontWeight: "400",
-    fontSize: "3rem",
+    fontSize: "0.875rem", // 14px
     fontStyle: "normal",
-    lineHeight: "5rem",
+    lineHeight: "1.25rem", // 20px
   },
   ".typo-caption-bold": {
     fontWeight: "500",
-    fontSize: "12px",
+    fontSize: "0.75rem", // 12px
     fontStyle: "normal",
-    lineHeight: "4rem",
+    lineHeight: "1rem", // 16px
   },
   ".typo-caption": {
     fontWeight: "400",
-    fontSize: "12px",
+    fontSize: "0.75rem", // 12px
     fontStyle: "normal",
-    lineHeight: "4rem",
+    lineHeight: "1rem", // 16px
   },
 };

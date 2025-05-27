@@ -25,7 +25,7 @@ const onGameWithHuman = () => {
       class="flex h-[50vw] max-h-[550px] min-h-[500px] w-[50vw] min-w-[500px] max-w-[550px] flex-col items-center justify-center gap-16 rounded-[50%] bg-white px-4 py-20 shadow-[0_0_10px_5px_gray] -md:gap-4 -sm:min-h-[340px] -sm:min-w-[340px]"
     >
       <h1
-        class="uppercase typo-giga-title -md:typo-mega-title -sm:typo-large-title"
+        class="!font-bold uppercase typo-giga-title -md:typo-mega-title -sm:typo-large-title"
       >
         gomoku
       </h1>
