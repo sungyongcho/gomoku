@@ -29,7 +29,7 @@ watch(
     <Transition name="slide-left">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-[998] h-screen w-full bg-black bg-opacity-50"
+        class="fixed inset-0 z-[998] h-screen w-full overflow-y-auto bg-black bg-opacity-50"
       >
         <div
           ref="infoEl"
@@ -55,6 +55,7 @@ watch(
                 class="flex items-center !text-gray-600"
                 v-bind="props.action"
                 :to="item.url"
+                @click="isOpen = false"
               >
                 <span :class="`pi ${item.icon}`" />
                 <span>{{ item.label }}</span>

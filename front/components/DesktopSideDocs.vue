@@ -2,7 +2,7 @@
 const { docLinks } = storeToRefs(useDocsStore());
 </script>
 <template>
-  <aside class="border-r-[1px] border-gray-200 shadow-sm">
+  <aside class="overflow-y-auto border-r-[1px] border-gray-200 shadow-sm">
     <Menu :model="docLinks" class="!border-none">
       <template #submenulabel="{ item }">
         <span class="font-bold text-black">{{ item.label }}</span>
