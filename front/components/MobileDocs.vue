@@ -45,7 +45,7 @@ watch(
               @click="isOpen = false"
             />
           </div>
-          <Menu :model="docLinks" class="!border-none" >
+          <Menu :model="docLinks" class="!border-none">
             <template #submenulabel="{ item }">
               <span class="font-bold text-black">{{ item.label }}</span>
             </template>
@@ -56,11 +56,11 @@ watch(
                 v-bind="props.action"
                 :to="item.url"
               >
-                <span :class="item.icon" />
+                <span :class="`pi ${item.icon}`" />
                 <span>{{ item.label }}</span>
               </NuxtLink>
             </template>
-        </Menu>
+          </Menu>
         </div>
       </div>
     </Transition>

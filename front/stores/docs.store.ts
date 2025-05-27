@@ -14,7 +14,7 @@ export const useDocsStore = defineStore("docs", () => {
         label: group,
         items: docs.map((doc) => ({
           label: doc.title,
-          icon: "pi pi-file",
+          icon: doc.icon || "pi-file",
           url: doc.path,
         })),
       })),

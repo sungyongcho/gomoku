@@ -202,6 +202,7 @@ onUnmounted(() => {
             <Button
               label="Undo a move"
               icon="pi pi-undo"
+              size="small"
               :disabled="histories.length < 1"
               @click="deleteLastHistory"
             />

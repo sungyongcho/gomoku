@@ -1,5 +1,5 @@
 <template>
-  <figure class="mx-auto my-3 flex flex-col justify-center">
+  <figure class="mx-auto my-3 flex w-full flex-col justify-center">
     <component
       :is="ImageComponent"
       :src="refinedSrc"
@@ -9,7 +9,9 @@
       class="object-cover"
       v-bind="$attrs"
     />
-    <figcaption class="text-center text-sm text-gray-800">- {{ props.alt }} -</figcaption>
+    <figcaption class="text-center text-sm text-gray-800">
+      - {{ props.alt }} -
+    </figcaption>
   </figure>
 </template>
 
@@ -21,7 +23,7 @@ import ImageComponent from "#build/mdc-image-component.mjs";
 
 defineOptions({
   inheritAttrs: false,
-})
+});
 
 const props = defineProps({
   src: {

@@ -1,5 +1,5 @@
 <template>
-  <div class="relative rounded-lg bg-slate-800 p-4">
+  <div class="relative my-2 rounded-lg bg-slate-800 px-4 py-1 text-gray-100">
     <pre :class="$props.class">
       <slot />
     </pre>
@@ -41,6 +41,5 @@ defineProps({
 <style>
 pre code .line {
   display: block;
-  /* min-height: 1rem; */
 }
 </style>
