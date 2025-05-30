@@ -8,6 +8,7 @@ EMPTY_SPACE = 0
 PLAYER_1 = 1  # Black stone
 PLAYER_2 = 2  # White stone
 OUT_OF_BOUNDS = 3
+CAPTURE_GOAL = 5
 
 
 def opponent_player(player):

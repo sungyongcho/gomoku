@@ -23,10 +23,10 @@ class Board:
         self.next_player: int = (
             PLAYER_1 if board_data["nextPlayer"] == PLAYER_X else PLAYER_2
         )
-        self.last_player_point: int = next(
+        self._last_player_point: int = next(
             s["score"] for s in board_data["scores"] if s["player"] == PLAYER_X
         )
-        self.next_player_point = next(
+        self._next_player_point = next(
             s["score"] for s in board_data["scores"] if s["player"] == PLAYER_X
         )
 
@@ -67,8 +67,8 @@ class Board:
     def reset_board(self) -> None:
         """Resets the board to an empty state."""
         self.position.fill(EMPTY_SPACE)
-        self.last_player_point = 0
-        self.next_player_point = 0
+        self._last_player_point = 0
+        self._next_player_point = 0
         self.last_x = None
         self.last_y = None
 
@@ -78,9 +78,9 @@ class Board:
 
     def switch_turn(self):
         self.last_player, self.next_player = self.next_player, self.last_player
-        self.last_player_point, self.next_player_point = (
-            self.next_player_point,
-            self.last_player_point,
+        self._last_player_point, self._next_player_point = (
+            self._next_player_point,
+            self._last_player_point,
         )
 
     def set_value(self, col: int, row: int, value: int) -> None:
@@ -131,8 +131,8 @@ class Board:
 
     @property
     def next_player_point(self) -> int:
-        return self.next_player_point
+        return self._next_player_point
 
     @property
     def last_player_point(self) -> int:
-        return self.last_player_point
+        return self._last_player_point

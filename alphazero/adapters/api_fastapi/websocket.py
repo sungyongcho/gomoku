@@ -1,3 +1,5 @@
+from ai.policy_value_net import PolicyValueNet
+from ai.state_encoder import encode
 from core.board import Board
 from core.gomoku import Gomoku
 from core.rules.capture import detect_captured_stones
@@ -92,6 +94,11 @@ async def websocket_endpoint(websocket: WebSocket):
                         {"type": "error", "error": "capture test"}
                     )
                 else:
+                    x = encode(game.board).unsqueeze(0)
+                    network = PolicyValueNet()  # log_prob, value
+                    p, v = network.forward(x)
+                    print(p, v)
+
                     await websocket.send_json({"type": "error", "error": "none"})
 
                 # game.set_game(board, last_player, next_player)
