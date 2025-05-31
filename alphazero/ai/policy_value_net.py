@@ -1,4 +1,5 @@
 import torch.nn as nn
+from core.game_config import NUM_LINES
 
 
 class PolicyValueNet(nn.Module):
@@ -47,19 +48,43 @@ class PolicyValueNet(nn.Module):
             nn.BatchNorm2d(channels),
         )
 
+    # def _make_policy_head(self, in_channels: int) -> nn.Sequential:
+    #     """1x1 Conv → BN → ReLU → FC → log_softmax"""
+    #     return nn.Sequential(
+    #         nn.Conv2d(in_channels, 2, kernel_size=1, bias=False),
+    #         nn.BatchNorm2d(2),
+    #         nn.ReLU(inplace=True),
+    #         nn.Flatten(),  # (B, 2*N²)
+    #         nn.Linear(2 * self.N2, self.N2),
+    #         nn.LogSoftmax(dim=1),  # 학습엔 log-prob 권장
+    #     )
+
+    # def _make_value_head(self, in_channels: int) -> nn.Sequential:
+    #     """1x1 Conv → BN → ReLU → FC(256) → ReLU → FC(1) → tanh"""
+    #     return nn.Sequential(
+    #         nn.Conv2d(in_channels, 1, kernel_size=1, bias=False),
+    #         nn.BatchNorm2d(1),
+    #         nn.ReLU(inplace=True),
+    #         nn.Flatten(),  # (B, N²)
+    #         nn.Linear(self.N2, 256),
+    #         nn.ReLU(inplace=True),
+    #         nn.Linear(256, 1),
+    #         nn.Tanh(),
+    #     )
     def _make_policy_head(self, in_channels: int) -> nn.Sequential:
-        """1x1 Conv → BN → ReLU → FC → log_softmax"""
+        """1×1 Conv → BN → ReLU → FC → softmax(평면 19×19)"""
         return nn.Sequential(
             nn.Conv2d(in_channels, 2, kernel_size=1, bias=False),
             nn.BatchNorm2d(2),
             nn.ReLU(inplace=True),
             nn.Flatten(),  # (B, 2*N²)
-            nn.Linear(2 * self.N2, self.N2),
-            nn.LogSoftmax(dim=1),  # 학습엔 log-prob 권장
+            nn.Linear(2 * self.N2, self.N2),  # (B, N²)
+            nn.Softmax(dim=1),  # 확률값
+            nn.Unflatten(1, (NUM_LINES, NUM_LINES)),  # (B, N, N)
         )
 
     def _make_value_head(self, in_channels: int) -> nn.Sequential:
-        """1x1 Conv → BN → ReLU → FC(256) → ReLU → FC(1) → tanh"""
+        """1×1 Conv → BN → ReLU → FC(256) → ReLU → FC(1) → sigmoid(0~1)"""
         return nn.Sequential(
             nn.Conv2d(in_channels, 1, kernel_size=1, bias=False),
             nn.BatchNorm2d(1),
@@ -68,5 +93,5 @@ class PolicyValueNet(nn.Module):
             nn.Linear(self.N2, 256),
             nn.ReLU(inplace=True),
             nn.Linear(256, 1),
-            nn.Tanh(),
+            nn.Sigmoid(),  # 0~1
         )

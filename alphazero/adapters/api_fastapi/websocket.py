@@ -97,7 +97,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     x = encode(game.board).unsqueeze(0)
                     network = PolicyValueNet()  # log_prob, value
                     p, v = network.forward(x)
-                    print(p, v)
+                    print(p.squeeze(0), v.squeeze(0))
+                    print(p.shape, v.shape)
 
                     await websocket.send_json({"type": "error", "error": "none"})
 

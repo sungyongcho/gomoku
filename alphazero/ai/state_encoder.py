@@ -31,6 +31,7 @@ def encode(board: Board) -> torch.Tensor:
     print(last_stone)
     print(turn_plane)
     print(cap_last)
+    print("ni hao")
     print(cap_next)
 
     stacked = np.stack(
@@ -44,6 +45,6 @@ def encode(board: Board) -> torch.Tensor:
         ]
     )  # (6, N, N)
 
-    print(torch.from_numpy(stacked))
+    # print(torch.from_numpy(stacked))
 
     return torch.from_numpy(stacked)  # float32
