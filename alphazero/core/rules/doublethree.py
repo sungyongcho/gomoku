@@ -22,10 +22,10 @@ def get_line(
     """Construct a line of cells in the given direction up to the specified length."""
     result = []
     for i in range(1, length + 1):
-        if not is_within_bounds(x, y, dir):
-            return np.array([], dtype=np.uint8)
         new_x = x + dir[0] * i
         new_y = y + dir[1] * i
+        if not (0 <= new_x < NUM_LINES and 0 <= new_y < NUM_LINES):
+            break
         result.append(board.get_value(new_x, new_y))
     return np.array(result, dtype=np.uint8)
 

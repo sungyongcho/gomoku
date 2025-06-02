@@ -1,5 +1,5 @@
+from ai.mcts.pv_mcts import PVMCTS
 from ai.policy_value_net import PolicyValueNet
-from ai.state_encoder import encode
 from core.board import Board
 from core.gomoku import Gomoku
 from core.rules.capture import detect_captured_stones
@@ -94,11 +94,16 @@ async def websocket_endpoint(websocket: WebSocket):
                         {"type": "error", "error": "capture test"}
                     )
                 else:
-                    x = encode(game.board).unsqueeze(0)
-                    network = PolicyValueNet()  # log_prob, value
-                    p, v = network.forward(x)
-                    print(p.squeeze(0), v.squeeze(0))
-                    print(p.shape, v.shape)
+                    _model = PolicyValueNet().eval()
+                    _mcts = PVMCTS(_model, sims=160)
+                    root = _mcts.search(game.board)  # encode 호출 포함
+                    best_move, pi = _mcts.get_move_and_pi(
+                        root
+                    )  # best_move = (row, col)
+
+                    # 4) 디버그 출력
+                    print("π sum :", pi.sum(), "v visits max :", pi.max())
+                    print("best_move :", best_move[0], best_move[1])
 
                     await websocket.send_json({"type": "error", "error": "none"})
 

@@ -33,3 +33,9 @@ UNIQUE_DIRECTIONS = [
     EAST,
     SOUTHEAST,
 ]
+
+
+# MCTS
+WIN = 1
+LOSE = -1
+DRAW = 0

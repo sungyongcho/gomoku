@@ -86,8 +86,9 @@ class Board:
     def set_value(self, col: int, row: int, value: int) -> None:
         """Set the value at a specific column and row."""
         self.position[row, col] = value
-        # if value != EMPTY_SPACE:
-        #     self.update_last_move(col, row)
+        if value != EMPTY_SPACE:
+            self.update_last_move(col, row)
+            self.switch_turn()
 
     def update_last_move(self, x: int, y: int) -> None:
         self.last_x = x
@@ -136,3 +137,17 @@ class Board:
     @property
     def last_player_point(self) -> int:
         return self._last_player_point
+
+    def get_legal_moves(self) -> List[tuple[int, int]]:
+        from core.rules.doublethree import detect_doublethree  # ← 함수 안 import
+
+        empty = self.position == EMPTY_SPACE
+        rows, cols = np.where(empty)
+        legal = []
+        for r, c in zip(rows, cols):
+            if self.enable_doublethree and detect_doublethree(
+                self, c, r, self.current_player
+            ):
+                continue
+            legal.append((r, c))
+        return legal
