@@ -1,3 +1,6 @@
+from typing import Tuple
+
+import torch
 import torch.nn as nn
 from core.game_config import NUM_LINES
 
@@ -5,13 +8,12 @@ from core.game_config import NUM_LINES
 class PolicyValueNet(nn.Module):
     def __init__(
         self,
-        board_size: int = 19,
         in_channels: int = 6,
         filters: int = 128,
         blocks: int = 10,
     ):
         super().__init__()
-        self.N2 = board_size * board_size
+        self.N2 = NUM_LINES * NUM_LINES
 
         # ─ shared stem ─
         self.stem = nn.Sequential(
@@ -28,12 +30,12 @@ class PolicyValueNet(nn.Module):
         self.value_head = self._make_value_head(filters)
 
     # ─────────── forward ───────────
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         x = self.stem(x)
         x = self.resblocks(x)
 
-        p = self.policy_head(x)  # (B, N²) log-prob
-        v = self.value_head(x)  # (B, 1)  tanh
+        p = self.policy_head(x)  # (B, N, N) TODO: log-prob
+        v = self.value_head(x)  # (B, 1)  TODO:tanh
 
         return p, v
 
@@ -72,7 +74,7 @@ class PolicyValueNet(nn.Module):
     #         nn.Tanh(),
     #     )
     def _make_policy_head(self, in_channels: int) -> nn.Sequential:
-        """1×1 Conv → BN → ReLU → FC → softmax(평면 19×19)"""
+        """1x1 Conv → BN → ReLU → FC → softmax(평면 19x19)"""
         return nn.Sequential(
             nn.Conv2d(in_channels, 2, kernel_size=1, bias=False),
             nn.BatchNorm2d(2),
@@ -84,7 +86,7 @@ class PolicyValueNet(nn.Module):
         )
 
     def _make_value_head(self, in_channels: int) -> nn.Sequential:
-        """1×1 Conv → BN → ReLU → FC(256) → ReLU → FC(1) → sigmoid(0~1)"""
+        """1x1 Conv → BN → ReLU → FC(256) → ReLU → FC(1) → sigmoid(0~1)"""
         return nn.Sequential(
             nn.Conv2d(in_channels, 1, kernel_size=1, bias=False),
             nn.BatchNorm2d(1),

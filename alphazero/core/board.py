@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import numpy as np
+import torch
 from core.game_config import (
     CAPTURE_GOAL,
     EMPTY_DOT,
@@ -127,6 +128,12 @@ class Board:
             row_label = f"{i + 1:>2}"  # Right-align single-digit numbers
             row_str = " ".join(map(str, row))
             print(f"{row_label} {row_str}")
+
+    def to_tensor(self) -> torch.Tensor:
+        from ai.state_encoder import encode  # 지연 임포트
+
+        # TODO: check encode function
+        return encode(self).unsqueeze(0)
 
 
 # class Board:

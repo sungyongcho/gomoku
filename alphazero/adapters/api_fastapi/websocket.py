@@ -1,3 +1,4 @@
+from ai.policy_value_net import PolicyValueNet
 from core.game_config import convert_index_to_coordinates
 from core.gomoku import Gomoku
 from core.rules.capture import detect_captured_stones
@@ -5,6 +6,10 @@ from core.rules.doublethree import detect_doublethree
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter()
+
+
+_model = PolicyValueNet().to("cpu").eval()
+# _mcts = PVMCTS(_model, sims=160, device=DEVICE)
 
 
 # Manage active connections
@@ -40,38 +45,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
             game.set_board(data)
 
-            game.debug_print()
             print(convert_index_to_coordinates(game.board.last_x, game.board.last_y))
-            # print(data)
-            # (
-            #     last_x,
-            #     last_y,
-            #     last_player,
-            #     next_player,
-            #     board,
-            #     goal,
-            #     enable_capture,
-            #     enable_doublethree,
-            # ) = (
-            #     data["lastPlay"]["coordinate"]["x"],
-            #     data["lastPlay"]["coordinate"]["y"],
-            #     data["lastPlay"]["stone"],
-            #     data["nextPlayer"],
-            #     data["board"],
-            #     data["goal"],
-            #     data["enableCapture"],
-            #     data["enableDoubleThreeRestriction"],
-            # )
-            # print(
-            #     last_x,
-            #     last_y,
-            #     last_player,
-            #     next_player,
-            #     board,
-            #     goal,
-            #     enable_capture,
-            #     enable_doublethree,
-            # )
             captured_test = detect_captured_stones(
                 game.board.pos,
                 game.board.last_x,
@@ -85,13 +59,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 game.board.last_y,
                 game.board.last_player,
             ):
-                game.debug_print()
                 await websocket.send_json({"type": "error", "error": "doublethree"})
             elif captured_test:
                 print("capture occured:", captured_test)
                 await websocket.send_json({"type": "error", "error": "capture test"})
             else:
                 game.debug_print()
+                p, v = _model.forward(game.board.to_tensor())
+                print(p, v)
                 # _model = PolicyValueNet().eval()
                 # _mcts = PVMCTS(_model, sims=160)
                 # root = _mcts.search(game.board)  # encode 호출 포함
