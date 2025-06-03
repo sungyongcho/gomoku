@@ -19,12 +19,8 @@ def encode(board: Board) -> torch.Tensor:
     # 턴 표시 (다음 차례가 last_player이면 1, 아니면 0)
     turn_plane = np.full_like(pos, 1.0 if board.next_player else 0.0, dtype=np.float32)
 
-    cap_last = np.full_like(
-        pos, board.last_player_point / CAPTURE_GOAL, dtype=np.float32
-    )
-    cap_next = np.full_like(
-        pos, board.next_player_point / CAPTURE_GOAL, dtype=np.float32
-    )
+    cap_last = np.full_like(pos, board.last_pts / CAPTURE_GOAL, dtype=np.float32)
+    cap_next = np.full_like(pos, board.next_pts / CAPTURE_GOAL, dtype=np.float32)
 
     print(last_board)
     print(next_board)

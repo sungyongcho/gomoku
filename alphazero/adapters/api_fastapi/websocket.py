@@ -1,6 +1,4 @@
-from ai.mcts.pv_mcts import PVMCTS
-from ai.policy_value_net import PolicyValueNet
-from core.board import Board
+from core.game_config import convert_index_to_coordinates
 from core.gomoku import Gomoku
 from core.rules.capture import detect_captured_stones
 from core.rules.doublethree import detect_doublethree
@@ -31,81 +29,79 @@ manager = ConnectionManager()
 
 @router.websocket("/ws/debug")
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+    await websocket.accept()
+
+    game = Gomoku()
+    # await manager.connect(websocket)
     try:
-        game = Gomoku()
         while True:
             data = await websocket.receive_json()
-            if data["type"] == "move":
-                # print(data)
-                (
-                    last_x,
-                    last_y,
-                    last_player,
-                    next_player,
-                    board,
-                    goal,
-                    enable_capture,
-                    enable_doublethree,
-                ) = (
-                    data["lastPlay"]["coordinate"]["x"],
-                    data["lastPlay"]["coordinate"]["y"],
-                    data["lastPlay"]["stone"],
-                    data["nextPlayer"],
-                    data["board"],
-                    data["goal"],
-                    data["enableCapture"],
-                    data["enableDoubleThreeRestriction"],
-                )
-                # print(
-                #     last_x,
-                #     last_y,
-                #     last_player,
-                #     next_player,
-                #     board,
-                #     goal,
-                #     enable_capture,
-                #     enable_doublethree,
-                # )
-                game.set_game(data)
-                game.print_board()
-                print(
-                    Board.convert_index_to_coordinates(
-                        game.board.last_x, game.board.last_y
-                    )
-                )
-                captured_test = detect_captured_stones(
-                    game.board,
-                    game.board.last_x,
-                    game.board.last_y,
-                    game.board.last_player,
-                )
+            if data["type"] != "move":
+                continue
+            game.set_board(data)
 
-                if detect_doublethree(
-                    game.board,
-                    game.board.last_x,
-                    game.board.last_y,
-                    game.board.last_player,
-                ):
-                    print("yatta")
-                if captured_test:
-                    print("capture occured:", captured_test)
-                    await websocket.send_json(
-                        {"type": "error", "error": "capture test"}
-                    )
-                else:
-                    _model = PolicyValueNet().eval()
-                    _mcts = PVMCTS(_model, sims=160)
-                    root = _mcts.search(game.board)  # encode 호출 포함
-                    best_move, pi = _mcts.get_move_and_pi(
-                        root
-                    )  # best_move = (row, col)
+            game.debug_print()
+            print(convert_index_to_coordinates(game.board.last_x, game.board.last_y))
+            # print(data)
+            # (
+            #     last_x,
+            #     last_y,
+            #     last_player,
+            #     next_player,
+            #     board,
+            #     goal,
+            #     enable_capture,
+            #     enable_doublethree,
+            # ) = (
+            #     data["lastPlay"]["coordinate"]["x"],
+            #     data["lastPlay"]["coordinate"]["y"],
+            #     data["lastPlay"]["stone"],
+            #     data["nextPlayer"],
+            #     data["board"],
+            #     data["goal"],
+            #     data["enableCapture"],
+            #     data["enableDoubleThreeRestriction"],
+            # )
+            # print(
+            #     last_x,
+            #     last_y,
+            #     last_player,
+            #     next_player,
+            #     board,
+            #     goal,
+            #     enable_capture,
+            #     enable_doublethree,
+            # )
+            captured_test = detect_captured_stones(
+                game.board.pos,
+                game.board.last_x,
+                game.board.last_y,
+                game.board.last_player,
+            )
 
-                    # 4) 디버그 출력
-                    print("π sum :", pi.sum(), "v visits max :", pi.max())
-                    print("best_move :", best_move[0], best_move[1])
+            if detect_doublethree(
+                game.board.pos,
+                game.board.last_x,
+                game.board.last_y,
+                game.board.last_player,
+            ):
+                game.debug_print()
+                await websocket.send_json({"type": "error", "error": "doublethree"})
+            elif captured_test:
+                print("capture occured:", captured_test)
+                await websocket.send_json({"type": "error", "error": "capture test"})
+            else:
+                game.debug_print()
+                # _model = PolicyValueNet().eval()
+                # _mcts = PVMCTS(_model, sims=160)
+                # root = _mcts.search(game.board)  # encode 호출 포함
+                # best_move, pi = _mcts.get_move_and_pi(root)  # best_move = (row, col)
 
-                    await websocket.send_json({"type": "error", "error": "none"})
+                # # 4) 디버그 출력
+                # print("π sum :", pi.sum(), "v visits max :", pi.max())
+                # print("best_move :", best_move[0], best_move[1])
+
+                await websocket.send_json({"type": "error", "error": "none"})
 
                 # game.set_game(board, last_player, next_player)
                 # success = game.update_board(x, y, player)
@@ -176,8 +172,8 @@ async def debug_endpoint(websocket: WebSocket):
                     print(lastPlay)
                     print(
                         game.get_scores(),
-                        game.board.last_player_point,
-                        game.board.next_player_point,
+                        game.board.last_pts,
+                        game.board.next_pts,
                         game.get_captured_stones(),
                     )
                     await websocket.send_json(

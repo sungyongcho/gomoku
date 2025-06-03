@@ -171,3 +171,10 @@ response_error.json (backend 착수 에러)
 - production 에서는 debug 페이지 보이지 않게
 - nuxt content (/about-project/)
 - ws 접속이 안되면 ai 관련 버튼 disabled 알림팝업 띄우기
+
+# 06/02/2025
+- for now, PolicyValueNetwork, PV_MCTS is implemented
+	- Check this is running properly step by step
+- refactor Board class to Dataclass
+- refactor Gomoku class
+- self play game logic there, need to connect all together

@@ -1,12 +1,12 @@
 from typing import Tuple
 
 import numpy as np
-from core.board import Board
 from core.game_config import (
     DIRECTIONS,
     EMPTY_SPACE,
     NUM_LINES,
     UNIQUE_DIRECTIONS,
+    get_pos,
     opponent_player,
 )
 
@@ -17,7 +17,7 @@ def is_within_bounds(x: int, y: int, offset: Tuple) -> bool:
 
 
 def get_line(
-    board: Board, x: int, y: int, dir: Tuple[int, int], length: int
+    board_pos: np.ndarray, x: int, y: int, dir: Tuple[int, int], length: int
 ) -> np.ndarray:
     """Construct a line of cells in the given direction up to the specified length."""
     result = []
@@ -26,15 +26,20 @@ def get_line(
         new_y = y + dir[1] * i
         if not (0 <= new_x < NUM_LINES and 0 <= new_y < NUM_LINES):
             break
-        result.append(board.get_value(new_x, new_y))
+        result.append(get_pos(board_pos, new_x, new_y))
     return np.array(result, dtype=np.uint8)
 
 
 def check_middle_1(
-    board: Board, x: int, y: int, dir: Tuple[int, int], player: int, opponent: int
+    board_pos: np.ndarray,
+    x: int,
+    y: int,
+    dir: Tuple[int, int],
+    player: int,
+    opponent: int,
 ) -> bool:
-    line = get_line(board, x, y, dir, 3)
-    line_opposite = get_line(board, x, y, (-dir[0], -dir[1]), 3)
+    line = get_line(board_pos, x, y, dir, 3)
+    line_opposite = get_line(board_pos, x, y, (-dir[0], -dir[1]), 3)
 
     if len(line) < 3 or len(line_opposite) < 3:
         return False
@@ -59,10 +64,14 @@ def check_middle_1(
 
 
 def check_middle_2(
-    board: Board, x: int, y: int, dir: Tuple[int, int], player: int, opponent: int
+    board_pos: np.ndarray,
+    x: int,
+    y: int,
+    dir: Tuple[int, int],
+    player: int,
 ) -> bool:
-    line = get_line(board, x, y, dir, 3)
-    line_opposite = get_line(board, x, y, (-dir[0], -dir[1]), 3)
+    line = get_line(board_pos, x, y, dir, 3)
+    line_opposite = get_line(board_pos, x, y, (-dir[0], -dir[1]), 3)
     if len(line) < 3 or len(line_opposite) < 3:
         return False
 
@@ -76,10 +85,15 @@ def check_middle_2(
 
 
 def check_edge(
-    board: Board, x: int, y: int, dir: Tuple[int, int], player: int, opponent: int
+    board_pos: np.ndarray,
+    x: int,
+    y: int,
+    dir: Tuple[int, int],
+    player: int,
+    opponent: int,
 ) -> bool:
-    line = get_line(board, x, y, dir, 4)
-    line_opposite = get_line(board, x, y, (-dir[0], -dir[1]), 2)
+    line = get_line(board_pos, x, y, dir, 4)
+    line_opposite = get_line(board_pos, x, y, (-dir[0], -dir[1]), 2)
 
     if len(line) < 4 or len(line_opposite) < 2:
         return False
@@ -117,7 +131,7 @@ def check_edge(
     return False
 
 
-def detect_doublethree(board: Board, x: int, y: int, player: int) -> bool:
+def detect_doublethree(board_pos: np.ndarray, x: int, y: int, player: int) -> bool:
     """Check if placing a stone creates a double three."""
     count: int = 0
     opponent = opponent_player(player)
@@ -126,17 +140,17 @@ def detect_doublethree(board: Board, x: int, y: int, player: int) -> bool:
         if not is_within_bounds(x, y, dir):
             continue
 
-        if check_edge(board, x, y, dir, player, opponent):
+        if check_edge(board_pos, x, y, dir, player, opponent):
             count += 1
             continue
 
         if dir in UNIQUE_DIRECTIONS and check_middle_1(
-            board, x, y, dir, player, opponent
+            board_pos, x, y, dir, player, opponent
         ):
             count += 1
             continue
 
-        if check_middle_2(board, x, y, dir, player, opponent):
+        if check_middle_2(board_pos, x, y, dir, player):
             count += 1
             continue
 
