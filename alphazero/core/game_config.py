@@ -60,3 +60,6 @@ UNIQUE_DIRECTIONS = [
 WIN = 1
 LOSE = -1
 DRAW = 0
+
+# Replay Buffer
+CAPACITY = 1_000_000

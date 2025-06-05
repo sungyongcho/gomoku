@@ -29,7 +29,7 @@ def board_is_functionally_full(board: Board) -> bool:
         for player in [board.last_player, board.next_player]:
             if np.any(
                 [
-                    not detect_doublethree(board, col, row, player)
+                    not detect_doublethree(board.pos, col, row, player)
                     for col, row in zip(*np.where(empty_positions))
                 ]
             ):

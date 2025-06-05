@@ -58,7 +58,7 @@ class Board:
         captures: list[dict] = []
         # 캡처
         if self.enable_capture:
-            captures = detect_captured_stones(self, x, y, player)
+            captures = detect_captured_stones(self.pos, x, y, player)
             for s in captures:
                 set_pos(self.pos, s["x"], s["y"], EMPTY_SPACE)
             if player == PLAYER_1:

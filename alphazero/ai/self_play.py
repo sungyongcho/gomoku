@@ -1,71 +1,77 @@
-# ai/self_play.py
-# ------------------------------------------------------------
-# 1판을 MCTS + 현 네트워크로 두고
-# (state_planes, π, z) 경험을 ReplayBuffer 에 저장
-# ------------------------------------------------------------
-from typing import List
+# ───────────────────────────── selfplay.py ──────────────────────────────
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List, Tuple
 
 import numpy as np
-from ai.pv_mcts import PVMCTS
-from ai.replay_buffer import ReplayBuffer
-from ai.state_encoder import encode
-from core.game_config import DRAW, LOSE, WIN
+import torch
+from ai.pv_mcts import PVMCTS  # 업데이트된 PVMCTS 포함
+from core.game_config import DRAW, LOSE, PLAYER_1, PLAYER_2, WIN
 from core.gomoku import Gomoku
-from core.rules.terminate import is_terminal
 
 
-def play_one_game(
-    mcts: PVMCTS,
-    buffer: ReplayBuffer,
-    temp_turns: int = 15,
-) -> int:
-    """
-    1판 셀프플레이를 수행하고 버퍼에 경험을 push
+# ───────────────────────────── 설정 ──────────────────────────────
+@dataclass
+class SelfPlayConfig:
+    sims: int = 800
+    c_puct: float = 1.4
+    temperature_turns: int = 30
+    temperature: float = 1.0
+    dirichlet_alpha: float = 0.3
+    dirichlet_epsilon: float = 0.25
+    resign_threshold: float = -0.8  # value 예측 Q
+    max_turns: int = 400  # 안전 캡
+    device: str = "cpu"
 
-    Returns
-    -------
-    winner :  1  (흑) / 2 (백) / 0 (무승부)
-    """
+
+# 샘플 타입
+State = np.ndarray  # (C, 19, 19)
+Pi = np.ndarray  # (19, 19)
+Z = float
+Sample = Tuple[State, Pi, Z]
+
+# ───────────────────────────── main function ──────────────────────────────
+
+
+def play_one_game(model: torch.nn.Module, cfg: SelfPlayConfig) -> List[Sample]:
+    """MCTS 로 한 판 자가대국 → (state, π, z) 리스트 반환"""
+
+    mcts = PVMCTS(model, sims=cfg.sims, c_puct=cfg.c_puct, device=cfg.device)
     game = Gomoku()
-    states: List[np.ndarray] = []
-    policies: List[np.ndarray] = []
+    history: List[Tuple[State, Pi]] = []
 
-    while True:
-        # ─ 1) MCTS 탐색
+    turn = 0
+    while game.winner is None and turn < cfg.max_turns:
+        # 1) MCTS 탐색
         root = mcts.search(game.board)
-        best_move, pi = mcts.get_move_and_pi(root)  # pi (N,N)
 
-        # ─ 2) 데이터 저장용
-        states.append(encode(game.board))  # (C,N,N)
-        policies.append(pi)
+        # 2) Dirichlet noise (root prior)
+        PVMCTS.apply_dirichlet_noise(root, cfg.dirichlet_alpha, cfg.dirichlet_epsilon)
 
-        # ─ 3) temperature 스케줄
-        move = (
-            np.unravel_index(np.random.choice(pi.size, p=pi.flatten()), pi.shape)
-            if game.turn < temp_turns
-            else best_move
-        )
+        # 3) π 및 수 선택 (temperature)
+        move, pi = mcts.get_move_and_pi(root)
+        if turn < cfg.temperature_turns:
+            move = PVMCTS.sample_with_temperature(pi, cfg.temperature)
 
-        # ─ 4) 수 두기
-        game.board.set_value(
-            move[1], move[0], game.board.next_player
-        )  # Gomoku 내부에서 규칙 처리
+        # 4) 상태 기록 (move 이전의 state)
+        state_planes = game.board.to_tensor().squeeze(0).numpy()
+        history.append((state_planes, pi))
 
-        # ─ 5) 종료 체크
-        check_terminal = is_terminal(game.board)
-        if check_terminal is not None or check_terminal == DRAW:
-            winner = 0 if check_terminal == DRAW else game.winner
-            z_final = {
-                game.board.last_player: WIN,
-                game.board.next_player: LOSE,
-                0: DRAW,
-            }[winner]
-            break
+        # 5) 실제 착수
+        game.play_move(*move)
+        turn += 1
 
-    # ─ 6) ReplayBuffer에 push
-    for idx, s in enumerate(states):
-        # 플레이어 시점 맞추어 ±
-        z = z_final if idx % 2 == 0 else -z_final
-        buffer.add(s, policies[idx], z)
+        # 6) 조기 기권 조건
+        if turn > 30 and root.Q < cfg.resign_threshold:
+            game.winner = PLAYER_2 if game.current_player == PLAYER_1 else PLAYER_1
 
-    return winner
+    # 최종 승패 값(z) 계산
+    if game.winner == PLAYER_1:
+        z_final = WIN
+    elif game.winner == PLAYER_2:
+        z_final = LOSE
+    else:
+        z_final = DRAW
+
+    return [(s, p, z_final) for s, p in history]

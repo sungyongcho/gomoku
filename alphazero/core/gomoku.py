@@ -43,7 +43,7 @@ class Gomoku:
             return
 
         if check_local_gomoku(
-            self.board.pos, self.board.last_x, self.board.last_y, self.current_player
+            self.board, self.board.last_x, self.board.last_y, self.current_player
         ) or is_won_by_score(self.board, self.current_player):
             self.winner = self.current_player
 

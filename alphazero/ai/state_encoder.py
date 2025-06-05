@@ -33,7 +33,7 @@ def encode(board: Board) -> torch.Tensor:
     cap_last = np.full_like(pos, board.last_pts / CAPTURE_GOAL, dtype=np.float32)
     cap_next = np.full_like(pos, board.next_pts / CAPTURE_GOAL, dtype=np.float32)
 
-    print(turn_plane)
+    # print(turn_plane)
 
     stacked = np.stack(
         [
