@@ -97,24 +97,32 @@ def parse_args():
     )
     return parser.parse_args()
 
+# ───────── util 함수 ─────────
+def load_checkpoint(path: Path, model: torch.nn.Module, device: str
+                    ) -> tuple[int, int, ReplayBuffer]:
+    ckpt = torch.load(path, map_location=device, weights_only=False)
+    model.load_state_dict(ckpt["model_state_dict"])
+    step   = ckpt.get("step", 0)
+    cycle  = ckpt.get("cycle", 0)
+    buffer = ckpt.get("buffer", ReplayBuffer(CAPACITY))
+    print(f"Loaded checkpoint {path} (step={step}, cycle={cycle}, "
+          f"buffer size={len(buffer)})")
+    return step, cycle, buffer
 
-def load_checkpoint(path: Path, model: torch.nn.Module, device: str) -> tuple[int, ReplayBuffer]:
-    checkpoint = torch.load(path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    step = checkpoint.get("step", 0)
-    buffer = checkpoint.get("buffer", ReplayBuffer(CAPACITY))
-    print(f"Loaded checkpoint {path} (step={step}, buffer size={len(buffer)})")
-    return step, buffer
 
-
-def save_checkpoint(path: Path, model: torch.nn.Module, step: int, buffer: ReplayBuffer):
+def save_checkpoint(model: torch.nn.Module, step: int,
+                    buffer: ReplayBuffer, cycle: int):
+    fname = f"{datetime.now():%Y%m%d-%H%M%S}-cycle{cycle}.pkl"
+    path  = Path("checkpoints")/fname
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({
         "model_state_dict": model.state_dict(),
-        "step": step,
+        "step"  : step,
+        "cycle" : cycle,
         "buffer": buffer,
     }, path)
-    print(f"Checkpoint saved → {path} (buffer size={len(buffer)})")
+    print(f"Checkpoint saved → {path} (buffer {len(buffer)})")
+
 
 
 def main():
@@ -165,28 +173,21 @@ def main():
         def save_plot():
             pass
 
-    # 체크포인트 경로
-    save_path = (
-        Path(args.save)
-        if args.save
-        else Path(
-            f"checkpoints/{datetime.now().strftime('%Y%m%d-%H%M%S')}-{cfg.train_steps_per_cycle}steps.pkl"
-        )
-    )
-
+    save_path = None
     # 모델 준비
     model = PolicyValueNet().to(learner_device)
     if args.fp16:
         model = model.half()
     step = 0
-    if args.load:
-        step, buffer = load_checkpoint(Path(args.load), model, learner_device)
-        print(f"Loaded checkpoint {args.load} (step={step})")
     model.share_memory()
     model.eval()
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=1e-4)
-    buffer = ReplayBuffer(cfg.buffer_capacity)
+    step, cycle_loaded, buffer = 0, 0, ReplayBuffer(cfg.buffer_capacity)
+    if args.load:
+        step, cycle_loaded, buffer = load_checkpoint(Path(args.load), model, learner_device)
+
+
     sp_cfg_template = SelfPlayConfig(device=args.worker_device)
 
     # ────────── Worker spawn ──────────
@@ -226,6 +227,7 @@ def main():
             cfg,
             model,
             optimizer,
+            cycle_loaded,
             buffer,
             sp_cfg_template,
             step,
@@ -251,6 +253,7 @@ def run_training_loop(
     cfg,
     model,
     optimizer,
+    cycle_start:int,
     buffer,
     sp_cfg,
     step,
@@ -260,7 +263,7 @@ def run_training_loop(
     losses_plot,
     save_plot,
 ):
-    cycle = 0
+    cycle = cycle_start
     while True:
         cycle += 1
         print(f"=== Cycle {cycle} ===")
@@ -306,8 +309,8 @@ def run_training_loop(
                     save_plot()
 
         model.eval()
-        if (step % 1000 == 0):
-            save_checkpoint(save_path, model, step, buffer)
+        if (step % 5000 == 0):
+            save_checkpoint(model, step, buffer, cycle)
         sleep(0.2)
 
 
