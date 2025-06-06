@@ -17,7 +17,7 @@ class ReplayBuffer:
 
     def __init__(self, capacity: int = CAPACITY):
         self.capacity = capacity
-        self.data: Deque[Sample] = deque(maxlen=capacity)
+        self.data: Deque[Sample] = deque(maxlen=self.capacity)
 
     def add(self, sample: Sample):
         self.data.append(sample)
