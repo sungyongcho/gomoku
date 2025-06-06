@@ -178,3 +178,13 @@ response_error.json (backend 착수 에러)
 - refactor Board class to Dataclass
 - refactor Gomoku class
 - self play game logic there, need to connect all together
+
+# 06/06/2025
+- pipeline done-- train awful slow
+	- pay money? rely on school? local linux machine is not working at all
+- understand each hyperparameter and what it does
+- fix checkpoint saving logic (different model by step)
+- distinguish the difference in between step / cycle / buffer
+	- is replay buffer even used?
+
+

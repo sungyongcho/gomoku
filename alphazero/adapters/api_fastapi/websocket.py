@@ -18,8 +18,7 @@ if CHECKPOINT_PATH.is_file():  # ▸ 체크포인트 있으면 로드
 
     checkpoint = torch.load(
         CHECKPOINT_PATH,
-        map_location=lambda storage, loc: torch.device("cpu"),
-        weights_only=False
+        map_location=torch.device("cpu"),
     )
     _model.load_state_dict(checkpoint["model_state_dict"])
 

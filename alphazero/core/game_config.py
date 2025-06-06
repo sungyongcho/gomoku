@@ -67,4 +67,4 @@ DRAW = 0
 CAPACITY = 1_000_000
 
 # Checkpoint loading path for websocket
-CHECKPOINT_PATH = Path("checkpoints/20250606-210855-8steps.pkl")  # 원하는 모델 경로
+CHECKPOINT_PATH = Path("checkpoints/20250606-215136-8steps.pkl")  # 원하는 모델 경로
