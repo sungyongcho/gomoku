@@ -1,5 +1,7 @@
+import torch
 from ai.policy_value_net import PolicyValueNet
-from core.game_config import convert_index_to_coordinates
+from ai.pv_mcts import PVMCTS
+from core.game_config import CHECKPOINT_PATH, convert_index_to_coordinates
 from core.gomoku import Gomoku
 from core.rules.capture import detect_captured_stones
 from core.rules.doublethree import detect_doublethree
@@ -8,8 +10,20 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 router = APIRouter()
 
 
-_model = PolicyValueNet().to("cpu").eval()
-# _mcts = PVMCTS(_model, sims=160, device=DEVICE)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+_model = PolicyValueNet().to(DEVICE)
+
+if CHECKPOINT_PATH.is_file():  # ▸ 체크포인트 있으면 로드
+    _model.load_state_dict(
+        torch.load(CHECKPOINT_PATH, map_location=DEVICE)["model_state_dict"]
+    )
+    print(f"[AI] checkpoint loaded → {CHECKPOINT_PATH}")
+else:  # ▸ 없으면 랜덤 초기값
+    print("[AI] checkpoint not found – using fresh weights")
+
+_model.eval()
+_mcts = PVMCTS(_model, sims=160, device=DEVICE)
 
 
 # Manage active connections
@@ -67,14 +81,18 @@ async def websocket_endpoint(websocket: WebSocket):
                 game.debug_print()
                 p, v = _model.forward(game.board.to_tensor())
                 print(p, v)
-                # _model = PolicyValueNet().eval()
-                # _mcts = PVMCTS(_model, sims=160)
-                # root = _mcts.search(game.board)  # encode 호출 포함
-                # best_move, pi = _mcts.get_move_and_pi(root)  # best_move = (row, col)
+                root = _mcts.search(game.board)  # PV-MCTS
+                best_move, pi = _mcts.get_move_and_pi(root)
 
                 # # 4) 디버그 출력
-                # print("π sum :", pi.sum(), "v visits max :", pi.max())
-                # print("best_move :", best_move[0], best_move[1])
+                print(
+                    "AI move :",
+                    convert_index_to_coordinates(*best_move),
+                    "Q =",
+                    root.Q,
+                    "Pi",
+                    pi,
+                )
 
                 await websocket.send_json({"type": "error", "error": "none"})
 

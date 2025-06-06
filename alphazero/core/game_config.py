@@ -1,4 +1,6 @@
 # board
+from pathlib import Path
+
 import numpy as np
 
 NUM_LINES = 19
@@ -63,3 +65,6 @@ DRAW = 0
 
 # Replay Buffer
 CAPACITY = 1_000_000
+
+# Checkpoint loading path for websocket
+CHECKPOINT_PATH = Path("checkpoints/latest.pkl")  # 원하는 모델 경로
