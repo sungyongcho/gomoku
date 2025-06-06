@@ -98,17 +98,24 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_checkpoint(path: Path, model: torch.nn.Module, device: str):
+def load_checkpoint(path: Path, model: torch.nn.Module, device: str) -> tuple[int, ReplayBuffer]:
     checkpoint = torch.load(path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
     step = checkpoint.get("step", 0)
-    print(f"Loaded checkpoint {path} (step={step})")
-    return step
+    buffer = checkpoint.get("buffer", ReplayBuffer(CAPACITY))
+    print(f"Loaded checkpoint {path} (step={step}, buffer size={len(buffer)})")
+    return step, buffer
 
-def save_checkpoint(path: Path, model: torch.nn.Module, step: int):
+
+def save_checkpoint(path: Path, model: torch.nn.Module, step: int, buffer: ReplayBuffer):
     path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"model_state_dict": model.state_dict(), "step": step}, path)
-    print(f"Checkpoint saved → {path}")
+    torch.save({
+        "model_state_dict": model.state_dict(),
+        "step": step,
+        "buffer": buffer,
+    }, path)
+    print(f"Checkpoint saved → {path} (buffer size={len(buffer)})")
+
 
 def main():
     args = parse_args()
@@ -173,7 +180,7 @@ def main():
         model = model.half()
     step = 0
     if args.load:
-        step = load_checkpoint(Path(args.load), model, learner_device)
+        step, buffer = load_checkpoint(Path(args.load), model, learner_device)
         print(f"Loaded checkpoint {args.load} (step={step})")
     model.share_memory()
     model.eval()
@@ -232,8 +239,7 @@ def main():
         for w in workers:
             w.terminate()
             w.join()
-        if step % 1000 == 0:
-            save_checkpoint(save_path, model, step)
+        save_checkpoint(save_path, model, step, buffer)
         if args.visualize:
             save_plot()
 
@@ -301,7 +307,7 @@ def run_training_loop(
 
         model.eval()
         if (step % 1000 == 0):
-            save_checkpoint(save_path, model, step)
+            save_checkpoint(save_path, model, step, buffer)
         sleep(0.2)
 
 
