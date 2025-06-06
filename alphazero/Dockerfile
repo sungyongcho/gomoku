@@ -9,7 +9,9 @@ WORKDIR /app
 
 # Copy dependencies and install them
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY requirements.cuda.txt /app/requirements.cuda.txt
+COPY requirements.cpu.txt /app/requirements.cpu.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt -r /app/requirements.cpu.txt
 
 # Copy the application code
 COPY . .

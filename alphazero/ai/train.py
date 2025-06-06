@@ -38,10 +38,10 @@ def alpha_zero_loss(
 
 class TrainerConfig:
     buffer_capacity: int = CAPACITY
-    batch_size: int = 512
+    batch_size: int = 192
     lr: float = 1e-3
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    games_per_cycle: int = 10
+    games_per_cycle: int = 30
     train_steps_per_cycle: int = 5
     fp16: bool = False
 
@@ -99,20 +99,16 @@ def parse_args():
 
 
 def load_checkpoint(path: Path, model: torch.nn.Module, device: str):
-    with open(path, "rb") as f:
-        ckpt = pickle.load(f)
-    model.load_state_dict(ckpt["model_state_dict"])
-    step = ckpt.get("step", 0)
+    checkpoint = torch.load(path, map_location=device)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    step = checkpoint.get("step", 0)
     print(f"Loaded checkpoint {path} (step={step})")
     return step
 
-
 def save_checkpoint(path: Path, model: torch.nn.Module, step: int):
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "wb") as f:
-        pickle.dump({"model_state_dict": model.state_dict(), "step": step}, f)
+    torch.save({"model_state_dict": model.state_dict(), "step": step}, path)
     print(f"Checkpoint saved → {path}")
-
 
 def main():
     args = parse_args()
@@ -236,7 +232,8 @@ def main():
         for w in workers:
             w.terminate()
             w.join()
-        save_checkpoint(save_path, model, step)
+        if step % 1000 == 0:
+            save_checkpoint(save_path, model, step)
         if args.visualize:
             save_plot()
 
@@ -273,6 +270,11 @@ def run_training_loop(
                 buffer.extend(game_samples)
                 collected += 1
         print(f"Buffer size → {len(buffer)}")
+        WARMUP = 5000
+        if len(buffer) < WARMUP:
+            print(f"Buffer < {WARMUP}  – skip training, keep collecting…")
+            continue
+
         if len(buffer) < cfg.batch_size:
             print("Buffer too small, continue collecting…")
             continue
@@ -298,7 +300,8 @@ def run_training_loop(
                     save_plot()
 
         model.eval()
-        save_checkpoint(save_path, model, step)
+        if (step % 1000 == 0):
+            save_checkpoint(save_path, model, step)
         sleep(0.2)
 
 

@@ -14,7 +14,7 @@ from core.gomoku import Gomoku
 
 @dataclass
 class SelfPlayConfig:
-    sims: int = 400
+    sims: int = 200
     c_puct: float = 1.4
     temperature_turns: int = 20
     temperature: float = 1.0
