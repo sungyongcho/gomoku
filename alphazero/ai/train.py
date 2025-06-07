@@ -41,7 +41,7 @@ class TrainerConfig:
     batch_size: int = 192
     lr: float = 1e-3
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    games_per_cycle: int = 30
+    games_per_cycle: int = 50
     train_steps_per_cycle: int = 5
     fp16: bool = False
 
@@ -250,8 +250,8 @@ def main():
 
 def run_training_loop(
     cfg,
-    model,
     optimizer,
+    model,
     cycle:int,
     buffer,
     sp_cfg,
