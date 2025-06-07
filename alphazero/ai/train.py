@@ -225,13 +225,12 @@ def main():
     try:
         run_training_loop(
             cfg,
-            model,
             optimizer,
+            model,
             cycle_loaded,
             buffer,
             sp_cfg_template,
             step,
-            save_path,
             learner_device,
             queue,
             losses_plot,
@@ -241,7 +240,7 @@ def main():
         for w in workers:
             w.terminate()
             w.join()
-        save_checkpoint(save_path, model, step, buffer)
+        save_checkpoint(model, step, buffer, cycle_loaded)
         if args.visualize:
             save_plot()
 
@@ -253,17 +252,15 @@ def run_training_loop(
     cfg,
     model,
     optimizer,
-    cycle_start:int,
+    cycle:int,
     buffer,
     sp_cfg,
     step,
-    save_path,
     device,
     queue,
     losses_plot,
     save_plot,
 ):
-    cycle = cycle_start
     while True:
         cycle += 1
         print(f"=== Cycle {cycle} ===")
@@ -279,9 +276,9 @@ def run_training_loop(
                 buffer.extend(game_samples)
                 collected += 1
         print(f"Buffer size → {len(buffer)}")
-        WARMUP = 5000
+        WARMUP = 200000
         if len(buffer) < WARMUP:
-            print(f"Buffer < {WARMUP}  – skip training, keep collecting…")
+            print(f"Buffer < {WARMUP} - skip training, keep collecting…")
             continue
 
         if len(buffer) < cfg.batch_size:
