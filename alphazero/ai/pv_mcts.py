@@ -6,8 +6,9 @@ from typing import Dict, Tuple
 
 import numpy as np
 import torch
+from ai.ai_config import DRAW, LOSE, WIN
 from core.board import Board
-from core.game_config import DRAW, LOSE, NUM_LINES, WIN
+from core.game_config import NUM_LINES
 from core.rules.terminate import is_terminal
 
 
@@ -152,9 +153,14 @@ class PVMCTS:
         # 2) 신경망 추론
         with torch.no_grad():
             planes = node.state.to_tensor().to(self.device)
-            p_logits, v_raw = self.model(planes)
-        policy = p_logits.squeeze(0).cpu().numpy()  # (N, N
-        value = 2.0 * v_raw.item() - 1.0
+            log_pi, v_raw = self.model(planes)
+        policy = (
+            torch.exp(log_pi.squeeze(0))  # (N²,) 확률
+            .view(NUM_LINES, NUM_LINES)  # → (N, N)
+            .cpu()
+            .numpy()
+        )
+        value = float(v_raw.item())  # value-head 는 이미 tanh(−1 ~ 1) 범위임
 
         move_probs: Dict[Tuple[int, int], float] = {}
         total_p = 0.0

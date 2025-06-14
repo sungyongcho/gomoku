@@ -5,10 +5,10 @@ from typing import Deque, List
 
 import numpy as np
 import torch
+from ai.ai_config import CAPACITY
 
 # Sample 타입 alias 가져오기
 from ai.self_play import Sample  # <-- 추가 (타입 체크용)
-from core.game_config import CAPACITY
 from torch.utils.data import Dataset
 
 

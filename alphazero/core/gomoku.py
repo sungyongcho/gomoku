@@ -1,5 +1,5 @@
+from ai.ai_config import DRAW
 from core.board import Board
-from core.game_config import DRAW
 from core.rules.terminate import (
     board_is_functionally_full,
     check_local_gomoku,

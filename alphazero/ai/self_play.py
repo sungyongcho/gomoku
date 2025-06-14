@@ -65,11 +65,16 @@ class SelfPlayWorker(mp.Process):
     """독립 프로세스에서 자가대국을 생성해 Queue 에 샘플 리스트 push"""
 
     def __init__(
-        self, cfg: SelfPlayConfig, queue: mp.Queue, shared_model: torch.nn.Module
+        self,
+        cfg: SelfPlayConfig,
+        data_queue: mp.Queue,
+        param_queue: mp.Queue,  # ← NEW
+        shared_model: torch.nn.Module,
     ):
         super().__init__()
         self.cfg = cfg
-        self.queue = queue
+        self.data_queue = data_queue
+        self.param_queue = param_queue
         # 로컬 모델: shared_model state_dict 복사
         self.model = PolicyValueNet().to(cfg.device)
         self.model.load_state_dict(shared_model.state_dict())
@@ -77,5 +82,10 @@ class SelfPlayWorker(mp.Process):
 
     def run(self):
         while True:
+            try:
+                sd = self.param_queue.get_nowait()
+                self.model.load_state_dict(sd)
+            except Exception:
+                pass
             samples = play_one_game(self.model, self.cfg)
-            self.queue.put(samples)  # 한 게임 분량 전송
+            self.data_queue.put(samples)  # 한 게임 분량 전송
