@@ -18,19 +18,19 @@ from ai.self_play import SelfPlayConfig, SelfPlayWorker, play_one_game
 from core.game_config import PLAYER_1, PLAYER_2
 from core.gomoku import Gomoku
 
-# ─────────────────────────────── configs ────────────────────────────────
+# ───────────────────────── configs ─────────────────────────
 
 
 @dataclass
 class EvalConfig:
     games: int = 20  # matches per eval
-    sims: int = 200  # MCTS simulations per move during eval
+    sims: int = 200  # MCTS sims per move during eval
     interval: int = 1_000  # learner steps between evaluations
     gating_threshold: float = 0.55  # promote if win‑rate ≥ 55 %
     K: int = 32  # Elo K‑factor
 
 
-# ─────────────────────────── helper utils ───────────────────────────────
+# ───────────────────────── utils ───────────────────────────
 
 CHECKPOINT_DIR = Path("checkpoints")
 CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
@@ -67,7 +67,7 @@ def load_checkpoint(
     )
 
 
-# ───────────────────────── loss function ────────────────────────────────
+# ───────────────────── loss & eval helpers ─────────────────
 
 
 def alpha_zero_loss(
@@ -78,86 +78,72 @@ def alpha_zero_loss(
     return policy_loss + value_loss
 
 
-# ─────────────────────────── evaluation logic ───────────────────────────
-
-
 def play_match(
     net_a: torch.nn.Module, net_b: torch.nn.Module, sims: int, device: str
 ) -> int:
-    """Return +1 if A wins, -1 if B wins, 0 for draw. Color alternates."""
+    """Return +1 if A wins, −1 if B wins, 0 for draw (colors alternate)."""
     game = Gomoku()
     mcts_black = PVMCTS(net_a, sims=sims, device=device)
     mcts_white = PVMCTS(net_b, sims=sims, device=device)
     while game.winner is None and len(game.history) < 400:
-        root = (
-            mcts_black.search(game.board)
-            if game.current_player == PLAYER_1
-            else mcts_white.search(game.board)
-        )
-        move, _ = (
-            mcts_black.get_move_and_pi(root)
-            if game.current_player == PLAYER_1
-            else mcts_white.get_move_and_pi(root)
-        )
+        if game.current_player == PLAYER_1:
+            root = mcts_black.search(game.board)
+            move, _ = mcts_black.get_move_and_pi(root)
+        else:
+            root = mcts_white.search(game.board)
+            move, _ = mcts_white.get_move_and_pi(root)
         game.play_move(*move)
     if game.winner == PLAYER_1:
-        return +1  # black(net_a) win
+        return +1
     if game.winner == PLAYER_2:
-        return -1  # white(net_b) win
-    return 0  # draw
+        return -1
+    return 0
 
 
 def evaluate(
     candidate: torch.nn.Module, best: torch.nn.Module, cfg: EvalConfig, device: str
 ) -> Tuple[float, float]:
-    """Play cfg.games matches and return (win_rate, elo_delta)."""
     wins = draws = 0
-    # alternate first‑move advantage
     for g in range(cfg.games):
         if g % 2 == 0:
-            result = play_match(candidate, best, cfg.sims, device)
+            res = play_match(candidate, best, cfg.sims, device)
         else:
-            result = -play_match(best, candidate, cfg.sims, device)  # switch colors
-        if result == 1:
+            res = -play_match(best, candidate, cfg.sims, device)  # switch colors
+        if res == 1:
             wins += 1
-        elif result == 0:
+        elif res == 0:
             draws += 1
     losses = cfg.games - wins - draws
-
     win_rate = wins / max(1, wins + losses)
-    # simple Elo delta estimation against equal‑rating opponent
-    expected = 0.5
-    elo_delta = cfg.K * ((wins + 0.5 * draws) / cfg.games - expected)
+    elo_delta = cfg.K * ((wins + 0.5 * draws) / cfg.games - 0.5)
     return win_rate, elo_delta
 
 
-# ───────────────────────── argument parsing ─────────────────────────────
+# ───────────────────── argument parsing ───────────────────
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="AlphaZero trainer + evaluator")
-    p.add_argument(
-        "--workers", type=int, default=0, help="self‑play processes (0:inline)"
-    )
-    p.add_argument("--gpu-workers", type=int, default=0, help="workers allowed on GPU")
+    p = argparse.ArgumentParser(description="AlphaZero trainer (full)")
+    p.add_argument("--workers", type=int, default=0)
+    p.add_argument("--gpu-workers", type=int, default=0)
     p.add_argument(
         "--device",
         choices=["cpu", "cuda"],
         default="cuda" if torch.cuda.is_available() else "cpu",
     )
-    p.add_argument(
-        "--train-steps", type=int, default=None, help="SGD steps per cycle override"
-    )
-    p.add_argument("--load", type=str, help="checkpoint to resume")
+    p.add_argument("--train-steps", type=int, help="SGD steps per cycle override")
+    p.add_argument("--load", type=str)
     p.add_argument("--eval-games", type=int, default=20)
     p.add_argument("--eval-sims", type=int, default=200)
-    p.add_argument(
-        "--gating", type=float, default=0.55, help="promote if win‑rate ≥ x (0~1)"
-    )
+    p.add_argument("--gating", type=float, default=0.55)
+    # auto‑stop
+    p.add_argument("--max-steps", type=int)
+    p.add_argument("--max-cycles", type=int)
+    p.add_argument("--max-games", type=int)
     return p.parse_args()
 
 
-# ─────────────────────────── main control ───────────────────────────────
+# ─────────────────────── main loop ────────────────────────
 
 
 def main() -> None:
@@ -183,11 +169,12 @@ def main() -> None:
     if args.load:
         step, cycle, buffer = load_checkpoint(Path(args.load), model, device)
 
-    # best model snapshot
-    best_model = deepcopy(model).to(device)
+    # best network
+    best_model = deepcopy(model)
     if BEST_PATH.exists():
-        best_sd = torch.load(BEST_PATH, map_location=device)
-        best_model.load_state_dict(best_sd["model_state_dict"])
+        best_model.load_state_dict(
+            torch.load(BEST_PATH, map_location=device)["model_state_dict"]
+        )
         print("[best] loaded existing best.pkl")
 
     # queues & workers
@@ -207,72 +194,98 @@ def main() -> None:
             workers.append(w)
         print(f"[spawn] {len(workers)} workers")
 
-    # training loop
-    WARMUP = 5_000
+    # loop state
+    WARMUP = 1_000
     next_eval_at = eval_cfg.interval
-    while True:
-        cycle += 1
-        print(f"\n=== Cycle {cycle} ===")
+    total_games = 0
 
-        # 1. collect games
-        collected = 0
-        if data_q is None:
-            for _ in range(train_cfg.games_per_cycle):
-                buffer.extend(play_one_game(model, SelfPlayConfig(device=device)))
-                collected += 1
-        else:
-            while collected < train_cfg.games_per_cycle:
-                buffer.extend(data_q.get())
-                collected += 1
-        print(f"[buffer] {len(buffer)} samples")
+    try:
+        while True:
+            cycle += 1
+            print(f"\n=== Cycle {cycle} ===")
 
-        if len(buffer) < WARMUP:
-            print(f"< warm-up {WARMUP} – keep collecting…")
-            continue
-        if len(buffer) < train_cfg.batch_size:
-            print("< buffer < batch_size – collecting…")
-            continue
-        # 2. SGD steps
-        model.train()
-        for _ in range(train_cfg.train_steps_per_cycle):
-            s, pi, z = buffer.sample(train_cfg.batch_size)
-            s, pi, z = s.to(device), pi.to(device), z.to(device)
-            p_pred, v_pred = model(s)
-            loss = alpha_zero_loss(p_pred, pi, v_pred, z)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            step += 1
-            if step % 100 == 0:
-                print(f"step {step:>7} | loss {loss.item():.4f}")
+            # 1) self‑play collection
+            collected = 0
+            if data_q is None:
+                for _ in range(train_cfg.games_per_cycle):
+                    buffer.extend(play_one_game(model, SelfPlayConfig(device=device)))
+                    collected += 1
+            else:
+                while collected < train_cfg.games_per_cycle:
+                    buffer.extend(data_q.get())
+                    collected += 1
+            total_games += collected
+            print(f"[buffer] {len(buffer)} samples | games {total_games}")
 
-        model.eval()
+            if len(buffer) < WARMUP:
+                print(f"< warm‑up {WARMUP} – keep collecting…")
+                continue
+            if len(buffer) < train_cfg.batch_size:
+                print("< buffer < batch_size – collecting…")
+                continue
 
-        # 3. param broadcast
-        if param_q is not None:
-            while not param_q.empty():
-                try:
-                    param_q.get_nowait()
-                except Exception:
-                    break
-            param_q.put(model.state_dict())
+            # 2) SGD updates
+            model.train()
+            for _ in range(train_cfg.train_steps_per_cycle):
+                s, pi, z = buffer.sample(train_cfg.batch_size)
+                s, pi, z = s.to(device), pi.to(device), z.to(device)
+                p_pred, v_pred = model(s)
+                loss = alpha_zero_loss(p_pred, pi, v_pred, z)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                step += 1
+                if step % 100 == 0:
+                    print(f"step {step:>7} | loss {loss.item():.4f}")
 
-        # 4. checkpoint
-        if step % 5_000 == 0:
-            save_checkpoint(model, step, cycle, buffer)
+            model.eval()
 
-        # 5. evaluation / gating
-        if step >= next_eval_at:
-            print(f"[eval] start {eval_cfg.games} games…")
-            win_rate, elo_delta = evaluate(model, best_model, eval_cfg, device)
-            print(f"[eval] win‑rate {win_rate * 100:.1f}%  | ΔElo ≈ {elo_delta:+.1f}")
-            if win_rate >= eval_cfg.gating_threshold:
-                best_model.load_state_dict(model.state_dict())
-                torch.save({"model_state_dict": model.state_dict()}, BEST_PATH)
-                print(f"[gating] promoted new best → win‑rate {win_rate * 100:.1f}%")
-            next_eval_at += eval_cfg.interval
+            # 3) broadcast params
+            if param_q is not None:
+                while not param_q.empty():
+                    try:
+                        param_q.get_nowait()
+                    except Exception:
+                        break
+                param_q.put(model.state_dict())
 
-        sleep(0.2)
+            # 4) periodic checkpoint
+            if step % 5_000 == 0:
+                save_checkpoint(model, step, cycle, buffer)
+
+            # 5) evaluation & gating
+            if step >= next_eval_at:
+                print(f"[eval] {eval_cfg.games} games…")
+                win_rate, elo_delta = evaluate(model, best_model, eval_cfg, device)
+                print(
+                    f"[eval] win-rate {win_rate * 100:.1f}% | ΔElo ≈ {elo_delta:+.1f}"
+                )
+                if win_rate >= eval_cfg.gating_threshold:
+                    best_model.load_state_dict(model.state_dict())
+                    torch.save({"model_state_dict": model.state_dict()}, BEST_PATH)
+                    print("[gating] promoted new best ✔")
+                next_eval_at += eval_cfg.interval
+
+            # 6) auto-stop checks
+            stop = False
+            if args.max_steps is not None and step >= args.max_steps:
+                stop = True
+            if args.max_cycles is not None and cycle >= args.max_cycles:
+                stop = True
+            if args.max_games is not None and total_games >= args.max_games:
+                stop = True
+            if stop:
+                print(
+                    "[done] reached stop criterion — saving checkpoint & shutting down…"
+                )
+                save_checkpoint(model, step, cycle, buffer)
+                break
+
+            sleep(0.2)
+    finally:
+        for w in workers:
+            w.terminate()
+            w.join()
 
 
 if __name__ == "__main__":
