@@ -23,9 +23,9 @@ from core.gomoku import Gomoku
 
 @dataclass
 class EvalConfig:
-    games: int = 20  # matches per eval
+    games: int = 40  # matches per eval
     sims: int = 200  # MCTS sims per move during eval
-    interval: int = 1_000  # learner steps between evaluations
+    interval: int = 300  # learner steps between evaluations
     gating_threshold: float = 0.55  # promote if win‑rate ≥ 55 %
     K: int = 32  # Elo K‑factor
 
@@ -73,8 +73,25 @@ def load_checkpoint(
 def alpha_zero_loss(
     p_pred: torch.Tensor, pi: torch.Tensor, v_pred: torch.Tensor, z: torch.Tensor
 ) -> torch.Tensor:
-    policy_loss = -(pi * torch.log(p_pred + 1e-8)).sum(dim=(1, 2)).mean()
-    value_loss = torch.nn.functional.mse_loss(v_pred.squeeze(), z.squeeze())
+    """
+    * p_pred : (B,N,N) **or** (B,N²) – Softmax 확률 **또는** LogSoftmax(log π)
+    * pi     : (B,N,N) **or** (B,N²) – 타깃 확률 π*
+    → 두 텐서를 (B,N²) 로 맞춘 뒤 정책/가치 손실을 계산한다.
+    """
+    # --- 모양 맞추기 ---------------------------------------------------------
+    if p_pred.dim() == 3:
+        p_pred = p_pred.flatten(start_dim=1)   # (B,N²)
+    if pi.dim() == 3:
+        pi = pi.flatten(start_dim=1)           # (B,N²)
+
+    # --- p_pred 가 확률인지(log 확률인지) 자동 판별 ----------------------------
+    if p_pred.min() >= 0.0:                    # Softmax 확률일 때
+        log_p = torch.log(torch.clamp(p_pred, min=1e-8))
+    else:                                      # 이미 LogSoftmax 일 때
+        log_p = p_pred
+
+    policy_loss = -(pi * log_p).sum(dim=1).mean()          # (B,)
+    value_loss  = torch.nn.functional.mse_loss(v_pred.squeeze(), z.squeeze())
     return policy_loss + value_loss
 
 
@@ -195,7 +212,7 @@ def main() -> None:
         print(f"[spawn] {len(workers)} workers")
 
     # loop state
-    WARMUP = 1_000
+    WARMUP = 2_000
     next_eval_at = eval_cfg.interval
     total_games = 0
 
@@ -241,7 +258,7 @@ def main() -> None:
             model.eval()
 
             # 3) broadcast params
-            if param_q is not None:
+            if param_q is not None and step % 500 == 0:
                 while not param_q.empty():
                     try:
                         param_q.get_nowait()
@@ -283,10 +300,19 @@ def main() -> None:
 
             sleep(0.2)
     finally:
+        # ─ 1) 브로드캐스트 큐 정리 (GPU·CPU 공통) ─
+        if param_q is not None:
+            param_q.close()          # 생산자 파이프 닫기
+            param_q.join_thread()    # 백그라운드 스레드 종료
+
+        # ─ 2) 워커 프로세스 정상 종료 대기 ─
         for w in workers:
             w.terminate()
             w.join()
 
+        # ─ 3) CUDA IPC 공유 메모리 회수 (CPU 실행 시 no-op) ─
+        if torch.cuda.is_available():
+            torch.cuda.ipc_collect()
 
 if __name__ == "__main__":
     main()

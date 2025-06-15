@@ -9,12 +9,12 @@ LOSE = -1
 DRAW = 0
 
 # Replay Buffer
-CAPACITY = 200_000
+CAPACITY = 5000
 
 
 @dataclass
 class SelfPlayConfig:
-    sims: int = 200
+    sims: int = 600
     c_puct: float = 1.4
     temperature_turns: int = 20
     temperature: float = 1.0
@@ -28,10 +28,10 @@ class SelfPlayConfig:
 class TrainerConfig:
     buffer_capacity: int = CAPACITY
     batch_size: int = 192
-    lr: float = 1e-3
+    lr: float = 3e-4
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     games_per_cycle: int = 50
-    train_steps_per_cycle: int = 5
+    train_steps_per_cycle: int = 120
     fp16: bool = False
 
 

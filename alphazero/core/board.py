@@ -21,8 +21,8 @@ class Board:
     pos: np.ndarray
     last_x: int | None = None
     last_y: int | None = None
-    last_player: int = PLAYER_1
-    next_player: int = PLAYER_2
+    last_player: int = PLAYER_2
+    next_player: int = PLAYER_1
     last_pts: int = 0
     next_pts: int = 0
     enable_capture: bool = True
@@ -56,15 +56,24 @@ class Board:
         set_pos(self.pos, x, y, player)
         self.last_x, self.last_y = x, y
         captures: list[dict] = []
-        # 캡처
+
+        # ─ 캡처 처리 ─
         if self.enable_capture:
             captures = detect_captured_stones(self.pos, x, y, player)
             for s in captures:
                 set_pos(self.pos, s["x"], s["y"], EMPTY_SPACE)
+            # 점수 가산
             if player == PLAYER_1:
                 self.last_pts += len(captures) // 2
             else:
                 self.next_pts += len(captures) // 2
+
+        # ─ 턴 교대 ─
+        self.last_player = player
+        self.next_player = PLAYER_2 if player == PLAYER_1 else PLAYER_1
+        # 점수 레이블(last/next)도 플레이어 교대에 맞춰 스왑
+        # self.last_pts, self.next_pts = self.next_pts, self.last_pts
+
         return captures
 
     def legal_moves(self, player: int) -> list[tuple[int, int]]:
@@ -136,154 +145,3 @@ class Board:
         return encode(self).unsqueeze(0)
 
 
-# class Board:
-#     def __init__(
-#         self,
-#         board_data: dict,
-#     ) -> None:
-#         """Initialize the board from a provided game state dictionary."""
-#         self.goal: int = board_data["goal"]
-#         self.last_player: int = (
-#             PLAYER_1 if board_data["lastPlay"]["stone"] == PLAYER_X else PLAYER_2
-#         )
-#         self.next_player: int = (
-#             PLAYER_1 if board_data["nextPlayer"] == PLAYER_X else PLAYER_2
-#         )
-#         self._last_pts: int = next(
-#             s["score"] for s in board_data["scores"] if s["player"] == PLAYER_X
-#         )
-#         self._next_pts = next(
-#             s["score"] for s in board_data["scores"] if s["player"] == PLAYER_X
-#         )
-
-#         # Convert board from list of strings to NumPy array
-#         self.position: np.array = np.array(
-#             [
-#                 [
-#                     EMPTY_SPACE
-#                     if cell == EMPTY_DOT
-#                     else (PLAYER_1 if cell == PLAYER_X else PLAYER_2)
-#                     for cell in row
-#                 ]
-#                 for row in board_data["board"]
-#             ],
-#             dtype=np.uint8,
-#         )
-#         self.enable_capture: bool = board_data["enableCapture"]
-#         self.enable_doublethree: bool = board_data["enableDoubleThreeRestriction"]
-#         self.last_x: int | None = None
-#         self.last_y: int | None = None
-#         last_x = board_data["lastPlay"]["coordinate"].get("x")
-#         last_y = board_data["lastPlay"]["coordinate"].get("y")
-
-#         if last_x is not None and last_y is not None:
-#             self.last_x: int | None = last_x
-#             self.last_y: int | None = last_y
-
-#     def __getitem__(self, indices: tuple[int, int]) -> int:
-#         """Get the value at a specific column and row."""
-#         return self.position[indices]
-
-#     def __setitem__(self, indices: tuple[int, int], value: int) -> None:
-#         """Set the value at a specific column and row."""
-#         self.position[indices] = value
-
-#     def get_board(self) -> np.ndarray:
-#         """Get the current board state."""
-#         return self.position
-
-#     def reset_board(self) -> None:
-#         """Resets the board to an empty state."""
-#         self.position.fill(EMPTY_SPACE)
-#         self._last_pts = 0
-#         self._next_pts = 0
-#         self.last_x = None
-#         self.last_y = None
-
-#     def get_value(self, col: int, row: int) -> int:
-#         """Get the value at a specific column and row."""
-#         return self.position[row, col]
-
-#     def switch_turn(self):
-#         self.last_player, self.next_player = self.next_player, self.last_player
-#         self._last_pts, self._next_pts = (
-#             self._next_pts,
-#             self._last_pts,
-#         )
-
-#     def set_value(self, col: int, row: int, value: int) -> None:
-#         """Set the value at a specific column and row."""
-#         self.position[row, col] = value
-#         if value != EMPTY_SPACE:
-#             self.update_last_move(col, row)
-#             self.switch_turn()
-
-#     def update_last_move(self, x: int, y: int) -> None:
-#         self.last_x = x
-#         self.last_y = y
-
-#     def get_row(self, row: int) -> np.ndarray:
-#         """Return a specific row."""
-#         return self.position[row, :]
-
-#     def get_column(self, col: int) -> np.ndarray:
-#         """Return a specific column."""
-#         return self.position[:, col]
-
-#     def update_captured_stone(self, captured_stones: List[dict]) -> None:
-#         """Removes captured stones from the board."""
-#         for captured in captured_stones:
-#             self.position[captured["y"], captured["x"]] = EMPTY_SPACE
-
-
-#     # @staticmethod
-#     # def print_board_param(board) -> None:
-#     #     """Prints the board with column letters (A-T) and row numbers (1-19)."""
-#     #     size = len(board)
-#     #     column_labels = " ".join(chr(ord("A") + i) for i in range(size))
-#     #     print("   " + column_labels)
-#     #     for i, row in enumerate(board):
-#     #         row_label = f"{i + 1:>2}"  # Right-align single-digit numbers
-#     #         row_str = " ".join(map(str, row))
-#     #         print(f"{row_label} {row_str}")
-
-
-#     @property
-#     def current_player(self) -> int:
-#         return self.next_player
-
-#     @property
-#     def next_pts(self) -> int:
-#         return self._next_pts
-
-#     @property
-#     def last_pts(self) -> int:
-#         return self._last_pts
-
-#     def get_legal_moves(self) -> List[tuple[int, int]]:
-#         from core.rules.doublethree import detect_doublethree  # ← 함수 안 import
-
-#         empty = self.position == EMPTY_SPACE
-#         rows, cols = np.where(empty)
-#         legal = []
-#         for r, c in zip(rows, cols):
-#             if self.enable_doublethree and detect_doublethree(
-#                 self, c, r, self.current_player
-#             ):
-#                 continue
-#             legal.append((r, c))
-#         return legal
-
-#     def print_legal_moves_grid(self) -> None:
-#         """Prints the board showing legal moves as 1, others as 0."""
-#         size = self.position.shape[0]
-#         legal_positions = np.zeros((size, size), dtype=int)
-#         for row, col in self.get_legal_moves():
-#             legal_positions[row, col] = 1
-
-#         column_labels = " ".join(chr(ord("A") + i) for i in range(size))
-#         print("   " + column_labels)
-#         for i, row in enumerate(legal_positions):
-#             row_label = f"{i + 1:>2}"
-#             row_str = " ".join(map(str, row))
-#             print(f"{row_label} {row_str}")
