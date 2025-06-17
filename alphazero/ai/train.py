@@ -249,10 +249,18 @@ def main() -> None:
                 loss = alpha_zero_loss(p_pred, pi, v_pred, z)
                 optimizer.zero_grad()
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
                 step += 1
                 if step % 100 == 0:
                     print(f"step {step:>7} | loss {loss.item():.4f}")
+                    with torch.no_grad():
+                        s_dbg, pi_tgt, z_tgt = buffer.sample(256)
+                        p_log, v_pred = model(s_dbg.to(device))
+                        corr = torch.corrcoef(torch.stack([
+                                    v_pred.cpu().flatten(),
+                                    z_tgt.flatten()]))[0, 1]
+                        print(f"[debug] value-z corr {corr:.2f} | pi_max {pi_tgt.max():.2f}")
 
             model.eval()
 

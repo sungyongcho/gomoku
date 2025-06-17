@@ -13,7 +13,7 @@ model = PolicyValueNet().to(DEVICE).eval()
 ckpts = sorted(Path("checkpoints").glob("*.pkl"))
 if ckpts:
     print("loading", ckpts[-1])
-    model.load_state_dict(torch.load(ckpts[-1], map_location=DEVICE)["model_state_dict"])
+    model.load_state_dict(torch.load(ckpts[-1], map_location=DEVICE, weights_only=False)["model_state_dict"])
 
 # ② self-play 한 판 돌리기 (MCTS sims=600)
 cfg = SelfPlayConfig(device=DEVICE, sims=600)
@@ -39,4 +39,3 @@ with torch.no_grad():
 v = float(v_pred.item())
 print("value head 출력 =", v)
 print("  (흑 승자면 + 값이어야 정상)")
-

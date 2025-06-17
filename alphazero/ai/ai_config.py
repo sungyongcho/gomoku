@@ -9,20 +9,20 @@ LOSE = -1
 DRAW = 0
 
 # Replay Buffer
-CAPACITY = 5000
+CAPACITY = 10000
 
 
-WARMUP = 2_000
+WARMUP = 4_000
 
 
 @dataclass
 class SelfPlayConfig:
-    sims: int = 150
+    sims: int = 300
     c_puct: float = 1.4
-    temperature_turns: int = 20
+    temperature_turns: int = 15
     temperature: float = 1.0
-    dirichlet_alpha: float = 0.3
-    dirichlet_epsilon: float = 0.25
+    dirichlet_alpha: float = 0.2
+    dirichlet_epsilon: float = 0.40
     resign_threshold: float = -1.1  # value 예측 Q
     max_turns: int = 400  # 안전 캡
     device: str = "cpu"
@@ -33,7 +33,7 @@ class TrainerConfig:
     batch_size: int = 128
     lr: float = 3e-4
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    games_per_cycle: int = 20
+    games_per_cycle: int = 40
     train_steps_per_cycle: int = 80
     fp16: bool = False
 
@@ -41,7 +41,7 @@ class TrainerConfig:
 @dataclass
 class EvalConfig:
     games: int = 40  # matches per eval
-    sims: int = 400  # MCTS sims per move during eval
+    sims: int = 300  # MCTS sims per move during eval
     interval: int = 300  # learner steps between evaluations
     gating_threshold: float = 0.55  # promote if win‑rate ≥ 55 %
     K: int = 32  # Elo K‑factor
