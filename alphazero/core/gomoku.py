@@ -23,28 +23,11 @@ class Gomoku:
         player = self.board.next_player
         if not self.board.is_legal_move(x, y, player):
             return False
-        self.board.apply_move(x, y, player)      # Board 쪽에서 next_player 토글 수행
+        self.board.apply_move(x, y, player)  # Board 쪽에서 next_player 토글 수행
         self.history.append((x, y, player))
-        self._check_terminal(player)             # ← 플레이어 전달
+        self._check_terminal(player)  # ← 플레이어 전달
         self.turn += 1
         return True
-
-        # if not self.board.is_legal_move(x, y, self.current_player):
-        #     return False
-        # self.board.apply_move(x, y, self.current_player)
-        # self.history.append((x, y, self.current_player))
-        # self._check_terminal()
-        # self.turn += 1
-        # # 턴 스왑
-        # self.board.last_player, self.board.next_player = (
-        #     self.board.next_player,
-        #     self.board.last_player,
-        # )
-        # self.board.last_pts, self.board.next_pts = (
-        #     self.board.next_pts,
-        #     self.board.last_pts,
-        # )
-        # return True
 
     def _check_terminal(self, player: int) -> None:
         # 5목·점수·가득참 체크 → self.winner 갱신
@@ -74,4 +57,3 @@ class Gomoku:
             f"  Winner:{self.winner}"
         )
         self.board.print_board()
-

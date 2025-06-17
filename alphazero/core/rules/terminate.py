@@ -57,14 +57,7 @@ def is_terminal(board: Board) -> int | None:
     ) or is_won_by_score(board, board.last_player):
         return board.last_player
 
-    # 2) 상대 플레이어가 이미 5목 완성 상태였는지 (이론적 안전장치)
-    opp_player = board.next_player
-    if check_local_gomoku(
-        board, board.last_x, board.last_y, opp_player
-    ) or is_won_by_score(board, opp_player):
-        return opp_player
-
-    # 3) 무승부 (둘 곳 없음)
+    # 2) 무승부 (둘 곳 없음)
     if board_is_functionally_full(board):
         return 0  # 0을 무승부 코드로 사용
 

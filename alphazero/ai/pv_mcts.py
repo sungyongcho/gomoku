@@ -20,7 +20,7 @@ class Node:
         self.P: float = prior  # 네트워크 prior (policy)
         self.N: int = 0  # 방문 횟수
         self.W: float = 0.0  # 누적 가치
-        self.Q: int = 0.0  # 평균 가치 (W / N)
+        self.Q: int = 0  # 평균 가치 (W / N)
 
     def is_leaf(self) -> bool:  # 자식 없는지
         return len(self.children) == 0
@@ -35,29 +35,7 @@ class Node:
                 continue
             child_state = deepcopy(self.state)
             child_state.apply_move(x, y, child_state.next_player)
-            child_state.last_player, child_state.next_player = (
-                child_state.next_player,
-                child_state.last_player,
-            )
-            child_state.last_pts, child_state.next_pts = (
-                child_state.next_pts,
-                child_state.last_pts,
-            )
             self.children[(x, y)] = Node(child_state, parent=self, prior=p)
-
-    # def best_child(self, c_puct: float):
-    #     """
-    #     Q + c * P * sqrt(N_parent)/(1+N_child) 최대인 자식을 반환.
-    #     c_puct : 탐색vs활용 계수.
-    #     """
-    #     parent_visits = math.sqrt(self.N)
-    #     best_score, best_move, best_node = -float("inf"), None, None
-
-    #     for move, child in self.children.items():
-    #         ucb = child.Q + c_puct * child.P * parent_visits / (1 + child.N)
-    #         if ucb > best_score:
-    #             best_score, best_move, best_node = ucb, move, child
-    #     return best_node
 
     def best_child(self, scorer, c_puct: float) -> "Node":
         """
@@ -229,6 +207,10 @@ class PVMCTS:
         temperature → 0  이면 argmax, 1 은 그대로,  >1 은 더 균등.
         """
         flat = pi.flatten()
+        if temperature == 0.0:
+            choice = flat.argmax()
+            y, x = divmod(choice, NUM_LINES)
+            return int(x), int(y)
         if temperature != 1.0:
             flat = np.power(flat, 1.0 / temperature)
             flat /= flat.sum()

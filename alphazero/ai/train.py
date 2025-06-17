@@ -2,15 +2,22 @@ from __future__ import annotations
 
 import argparse
 import multiprocessing as mp
+import time
 from copy import deepcopy
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from time import sleep
 from typing import List, Tuple
 
 import torch
-from ai.ai_config import CAPACITY, TrainerConfig
+from ai.ai_config import (
+    BEST_PATH,
+    CAPACITY,
+    CHECKPOINT_DIR,
+    WARMUP,
+    EvalConfig,
+    TrainerConfig,
+)
 from ai.dataset import ReplayBuffer
 from ai.policy_value_net import PolicyValueNet
 from ai.pv_mcts import PVMCTS
@@ -21,20 +28,7 @@ from core.gomoku import Gomoku
 # ───────────────────────── configs ─────────────────────────
 
 
-@dataclass
-class EvalConfig:
-    games: int = 40  # matches per eval
-    sims: int = 200  # MCTS sims per move during eval
-    interval: int = 300  # learner steps between evaluations
-    gating_threshold: float = 0.55  # promote if win‑rate ≥ 55 %
-    K: int = 32  # Elo K‑factor
-
-
 # ───────────────────────── utils ───────────────────────────
-
-CHECKPOINT_DIR = Path("checkpoints")
-CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-BEST_PATH = CHECKPOINT_DIR / "best.pkl"
 
 
 def save_checkpoint(
@@ -80,18 +74,18 @@ def alpha_zero_loss(
     """
     # --- 모양 맞추기 ---------------------------------------------------------
     if p_pred.dim() == 3:
-        p_pred = p_pred.flatten(start_dim=1)   # (B,N²)
+        p_pred = p_pred.flatten(start_dim=1)  # (B,N²)
     if pi.dim() == 3:
-        pi = pi.flatten(start_dim=1)           # (B,N²)
+        pi = pi.flatten(start_dim=1)  # (B,N²)
 
     # --- p_pred 가 확률인지(log 확률인지) 자동 판별 ----------------------------
-    if p_pred.min() >= 0.0:                    # Softmax 확률일 때
+    if p_pred.min() >= 0.0:  # Softmax 확률일 때
         log_p = torch.log(torch.clamp(p_pred, min=1e-8))
-    else:                                      # 이미 LogSoftmax 일 때
+    else:  # 이미 LogSoftmax 일 때
         log_p = p_pred
 
-    policy_loss = -(pi * log_p).sum(dim=1).mean()          # (B,)
-    value_loss  = torch.nn.functional.mse_loss(v_pred.squeeze(), z.squeeze())
+    policy_loss = -(pi * log_p).sum(dim=1).mean()  # (B,)
+    value_loss = torch.nn.functional.mse_loss(v_pred.squeeze(), z.squeeze())
     return policy_loss + value_loss
 
 
@@ -212,7 +206,6 @@ def main() -> None:
         print(f"[spawn] {len(workers)} workers")
 
     # loop state
-    WARMUP = 2_000
     next_eval_at = eval_cfg.interval
     total_games = 0
 
@@ -228,9 +221,15 @@ def main() -> None:
                     buffer.extend(play_one_game(model, SelfPlayConfig(device=device)))
                     collected += 1
             else:
+                start = time.time()
                 while collected < train_cfg.games_per_cycle:
                     buffer.extend(data_q.get())
                     collected += 1
+                    if collected % 10 == 0:
+                        print(
+                            f"[debug] collected {collected} games "
+                            f"in {time.time() - start:.1f}s"
+                        )
             total_games += collected
             print(f"[buffer] {len(buffer)} samples | games {total_games}")
 
@@ -302,8 +301,8 @@ def main() -> None:
     finally:
         # ─ 1) 브로드캐스트 큐 정리 (GPU·CPU 공통) ─
         if param_q is not None:
-            param_q.close()          # 생산자 파이프 닫기
-            param_q.join_thread()    # 백그라운드 스레드 종료
+            param_q.close()  # 생산자 파이프 닫기
+            param_q.join_thread()  # 백그라운드 스레드 종료
 
         # ─ 2) 워커 프로세스 정상 종료 대기 ─
         for w in workers:
@@ -313,6 +312,7 @@ def main() -> None:
         # ─ 3) CUDA IPC 공유 메모리 회수 (CPU 실행 시 no-op) ─
         if torch.cuda.is_available():
             torch.cuda.ipc_collect()
+
 
 if __name__ == "__main__":
     main()

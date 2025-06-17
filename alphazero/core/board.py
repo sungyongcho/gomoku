@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -6,6 +8,7 @@ from core.game_config import (
     CAPTURE_GOAL,
     EMPTY_DOT,
     EMPTY_SPACE,
+    NUM_LINES,
     PLAYER_1,
     PLAYER_2,
     PLAYER_X,
@@ -21,8 +24,8 @@ class Board:
     pos: np.ndarray
     last_x: int | None = None
     last_y: int | None = None
-    last_player: int = PLAYER_2
-    next_player: int = PLAYER_1
+    last_player: int | None = None
+    next_player: int | None = None
     last_pts: int = 0
     next_pts: int = 0
     enable_capture: bool = True
@@ -32,13 +35,15 @@ class Board:
     @classmethod
     def empty(
         cls,
-        size: int = 19,
+        size: int = NUM_LINES,
         enable_capture: bool = True,
         enable_doublethree: bool = True,
-        goal: int = 10,
-    ) -> "Board":
+        goal: int = CAPTURE_GOAL,
+    ) -> Board:
         return cls(
             pos=np.full((size, size), EMPTY_SPACE, np.uint8),
+            last_player=PLAYER_2,
+            next_player=PLAYER_1,  # make sure the black stone is always play first
             goal=goal,
             enable_capture=enable_capture,
             enable_doublethree=enable_doublethree,
@@ -62,8 +67,8 @@ class Board:
             captures = detect_captured_stones(self.pos, x, y, player)
             for s in captures:
                 set_pos(self.pos, s["x"], s["y"], EMPTY_SPACE)
-            # 점수 가산
-            if player == PLAYER_1:
+            # won't need below as next player is always current playing player
+            if player == self.last_player:
                 self.last_pts += len(captures) // 2
             else:
                 self.next_pts += len(captures) // 2
@@ -72,7 +77,7 @@ class Board:
         self.last_player = player
         self.next_player = PLAYER_2 if player == PLAYER_1 else PLAYER_1
         # 점수 레이블(last/next)도 플레이어 교대에 맞춰 스왑
-        # self.last_pts, self.next_pts = self.next_pts, self.last_pts
+        self.last_pts, self.next_pts = self.next_pts, self.last_pts
 
         return captures
 
@@ -143,5 +148,3 @@ class Board:
 
         # TODO: check encode function
         return encode(self).unsqueeze(0)
-
-

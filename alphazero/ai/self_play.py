@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import multiprocessing as mp
+import queue
 from typing import List, Tuple
 
 import numpy as np
@@ -82,10 +83,22 @@ class SelfPlayWorker(mp.Process):
 
     def run(self):
         while True:
+            # ① 새 파라미터가 있으면 최대 1개만 로드
             try:
-                sd = self.param_queue.get_nowait()
-                self.model.load_state_dict(sd)
-            except Exception:
+                while True:
+                    sd = self.param_queue.get_nowait()
+                    self.model.load_state_dict(sd)
+            except queue.Empty:
                 pass
+
+            # ② 게임 1판
             samples = play_one_game(self.model, self.cfg)
-            self.data_queue.put(samples)  # 한 게임 분량 전송
+
+            # ③ 큐가 꽉 차면 버리지 말고 1초 대기
+            put_ok = False
+            while not put_ok:
+                try:
+                    self.data_queue.put(samples, timeout=1)
+                    put_ok = True
+                except queue.Full:
+                    pass
