@@ -1,7 +1,8 @@
 from typing import Dict, List
 
 import numpy as np
-from core.game_config import DIRECTIONS, NUM_LINES, PLAYER_1, PLAYER_2, get_pos
+
+from game_config import DIRECTIONS, NUM_LINES, PLAYER_1, PLAYER_2, get_pos
 
 CAPTURE_WINDOW: int = 3
 
