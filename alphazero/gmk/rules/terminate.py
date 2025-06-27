@@ -1,6 +1,6 @@
 import numpy as np
 
-from game_config import NUM_LINES
+from game_config import GOMOKU_GOAL, NUM_LINES
 
 
 def check_local_gomoku(pos: np.ndarray, x: int, y: int, player: int) -> bool:
@@ -19,7 +19,7 @@ def check_local_gomoku(pos: np.ndarray, x: int, y: int, player: int) -> bool:
         nx, ny = x + dx, y + dy
         while 0 <= nx < NUM_LINES and 0 <= ny < NUM_LINES and pos[ny, nx] == player:
             count += 1
-            if count == 5:
+            if count == GOMOKU_GOAL:
                 return True
             nx += dx
             ny += dy
@@ -28,7 +28,7 @@ def check_local_gomoku(pos: np.ndarray, x: int, y: int, player: int) -> bool:
         nx, ny = x - dx, y - dy
         while 0 <= nx < NUM_LINES and 0 <= ny < NUM_LINES and pos[ny, nx] == player:
             count += 1
-            if count == 5:
+            if count == GOMOKU_GOAL:
                 return True
             nx -= dx
             ny -= dy

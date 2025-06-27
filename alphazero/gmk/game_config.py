@@ -2,7 +2,7 @@
 
 import numpy as np
 
-NUM_LINES = 19
+NUM_LINES = 3
 EMPTY_DOT = "."
 
 PLAYER_X = "X"  # Black stone
@@ -12,6 +12,7 @@ PLAYER_1 = 1  # Black stone
 PLAYER_2 = 2  # White stone
 OUT_OF_BOUNDS = 3
 CAPTURE_GOAL = 5
+GOMOKU_GOAL = 3
 
 
 def opponent_player(player):
