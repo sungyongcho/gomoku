@@ -27,6 +27,7 @@ class GameState:
     p1_pts: int  # 흑(PLAYER_1)의 포획 점수
     p2_pts: int  # 백(PLAYER_2)의 포획 점수
     next_player: int
+    last_move: tuple[int, int] | None
 
 
 class Gomoku:
@@ -40,7 +41,9 @@ class Gomoku:
 
     def get_initial_state(self) -> np.ndarray:
         board = np.zeros((self.row_count, self.col_count))
-        return GameState(board=board, p1_pts=0, p2_pts=0, next_player=PLAYER_1)
+        return GameState(
+            board=board, p1_pts=0, p2_pts=0, next_player=PLAYER_1, last_move=None
+        )
 
     def get_next_state(
         self, state: GameState, action: Tuple[int, int], player: int
@@ -67,6 +70,7 @@ class Gomoku:
             p1_pts=p1_pts,
             p2_pts=p2_pts,
             next_player=opponent_player(player),
+            last_move=action,
         )
 
     def get_legal_moves(self, state: GameState) -> list[str]:
@@ -123,6 +127,39 @@ class Gomoku:
         for i, row in enumerate(board):
             print(f"{i + 1:>2} " + " ".join(str(int(c)) for c in row))
         print(f"Captures  P1:{state.p1_pts}  P2:{state.p2_pts}\n")
+
+    def get_encoded_state(self, state: GameState):
+        board = state.board
+        me = state.next_player
+        opp = opponent_player(me)
+
+        # 0,1,2번 평면
+        my_stones = (board == me).astype(np.float32)
+        opp_stones = (board == opp).astype(np.float32)
+        empties = (board == EMPTY_SPACE).astype(np.float32)
+
+        # 3번 평면: 마지막 착점
+        last_move_plane = np.zeros_like(board, dtype=np.float32)
+        if state.last_move is not None:
+            lx, ly = state.last_move
+            last_move_plane[ly, lx] = 1.0
+
+        # 4,5번 평면: 포획 점수
+        my_pts = state.p1_pts if me == PLAYER_1 else state.p2_pts
+        opp_pts = state.p2_pts if me == PLAYER_1 else state.p1_pts
+        my_cap_plane = np.full_like(board, my_pts / CAPTURE_GOAL, dtype=np.float32)
+        opp_cap_plane = np.full_like(board, opp_pts / CAPTURE_GOAL, dtype=np.float32)
+
+        return np.stack(
+            [
+                my_stones,
+                opp_stones,
+                empties,
+                last_move_plane,
+                my_cap_plane,
+                opp_cap_plane,
+            ]
+        )
 
 
 def convert_coordinates_to_index(coord: str) -> Tuple[int, int] | None:

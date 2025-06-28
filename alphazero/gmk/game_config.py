@@ -56,3 +56,7 @@ UNIQUE_DIRECTIONS = (
     EAST,
     SOUTHEAST,
 )
+
+
+# PolicyValueNet
+N_PLANES = 6
