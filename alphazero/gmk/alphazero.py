@@ -6,12 +6,13 @@ import torch.nn.functional as F
 from tqdm import trange
 
 from gomoku import GameState, Gomoku
+from policy_value_net import PolicyValueNet
 from pvmcts import PVMCTS
 
 
 class AlphaZero:
     def __init__(self, model, optimizer, game, args):
-        self.model = model
+        self.model: PolicyValueNet = model
         self.optimizer = optimizer
         self.game: Gomoku = game
         self.args = args
@@ -25,7 +26,10 @@ class AlphaZero:
             action_probs = self.mcts.search(state)
             memory.append((state, action_probs, player))
 
-            flat_idx = np.random.choice(self.game.action_size, p=action_probs)
+            temperature_action_probs = action_probs ** (1 / self.args["temperature"])
+            flat_idx = np.random.choice(
+                self.game.action_size, p=temperature_action_probs
+            )
 
             # 평탄 인덱스 → 2D 좌표
             x = flat_idx % self.game.col_count  # 열
@@ -54,10 +58,16 @@ class AlphaZero:
             raw_states, policy_targets, value_targets = zip(*sample)
 
             enc_states = [self.game.get_encoded_state(s) for s in raw_states]
-            state = torch.tensor(np.array(enc_states), dtype=torch.float32)
-            policy_targets = torch.tensor(np.array(policy_targets), dtype=torch.float32)
+            state = torch.tensor(
+                np.array(enc_states), dtype=torch.float32, device=self.model.device
+            )
+            policy_targets = torch.tensor(
+                np.array(policy_targets), dtype=torch.float32, device=self.model.device
+            )
             value_targets = torch.tensor(
-                np.array(value_targets).reshape(-1, 1), dtype=torch.float32
+                np.array(value_targets).reshape(-1, 1),
+                dtype=torch.float32,
+                device=self.model.device,
             )
 
             out_policy, out_value = self.model(state)

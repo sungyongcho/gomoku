@@ -7,6 +7,7 @@ import numpy as np
 import torch
 
 from gomoku import GameState, Gomoku, convert_coordinates_to_index
+from policy_value_net import PolicyValueNet
 
 
 class Node:
@@ -18,6 +19,7 @@ class Node:
         parent=None,
         action_taken=None,
         prior=0,
+        visit_count=0,
     ):
         self.game = game
         self.args = args
@@ -27,7 +29,7 @@ class Node:
         self.prior = prior
         self.children = []
 
-        self.visit_count = 0
+        self.visit_count = visit_count
         self.value_sum = 0
 
     def is_fully_expanded(self):
@@ -87,11 +89,32 @@ class PVMCTS:
     def __init__(self, game: Gomoku, args, model):
         self.game = game
         self.args = args
-        self.model = model
+        self.model: PolicyValueNet = model
 
     @torch.no_grad()
     def search(self, state):
-        root = Node(self.game, self.args, state)
+        root = Node(self.game, self.args, state, visit_count=1)
+
+        policy, _ = self.model(
+            torch.tensor(
+                self.game.get_encoded_state(state),
+                device=self.model.device,
+            ).unsqueeze(0)
+        )
+
+        policy = torch.softmax(policy, axis=1).squeeze(0).detach().cpu().numpy()
+
+        policy = (1 - self.args["dirichlet_epsilon"]) * policy + self.args[
+            "dirichlet_epsilon"
+        ] * np.random.dirichlet([self.args["dirichlet_alpha"]] * self.game.action_size)
+
+        legal_mask = np.zeros(self.game.action_size, np.float32)
+        for coord in self.game.get_legal_moves(state):
+            x, y = convert_coordinates_to_index(coord)
+            legal_mask[x + y * self.game.col_count] = 1.0
+        policy *= legal_mask
+        policy /= np.sum(policy)
+        root.expand(policy)
 
         for search in range(self.args["num_searches"]):
             node: Node = root
@@ -106,7 +129,10 @@ class PVMCTS:
 
             if not is_terminal:
                 policy, value = self.model(
-                    torch.tensor(self.game.get_encoded_state(node.state)).unsqueeze(0)
+                    torch.tensor(
+                        self.game.get_encoded_state(node.state),
+                        device=self.model.device,
+                    ).unsqueeze(0)
                 )
                 policy = torch.softmax(policy, axis=1).squeeze(0).detach().cpu().numpy()
 

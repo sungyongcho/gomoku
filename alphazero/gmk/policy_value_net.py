@@ -6,8 +6,9 @@ from gomoku import Gomoku
 
 
 class PolicyValueNet(nn.Module):
-    def __init__(self, game: Gomoku, num_ResBlocks, num_hidden):
+    def __init__(self, game: Gomoku, num_ResBlocks, num_hidden, device):
         super().__init__()
+        self.device = device
         self.startBlock = nn.Sequential(
             nn.Conv2d(
                 N_PLANES, num_hidden, kernel_size=3, padding=1
@@ -38,6 +39,8 @@ class PolicyValueNet(nn.Module):
             nn.Linear(3 * game.row_count * game.col_count, 1),
             nn.Tanh(),
         )
+
+        self.to(device)
 
     def forward(self, x):
         x = self.startBlock(x)

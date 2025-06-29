@@ -6,6 +6,7 @@ from gomoku import Gomoku
 from policy_value_net import PolicyValueNet
 
 gomoku = Gomoku()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 state = gomoku.get_initial_state()
 # state = gomoku.get_next_state(state, (2, 0), PLAYER_2)
 # state = gomoku.get_next_state(state, (1, 1), PLAYER_2)
@@ -19,7 +20,7 @@ encoded_state = gomoku.get_encoded_state(state)
 
 tensor_state = torch.tensor(encoded_state).unsqueeze(0)
 
-model = PolicyValueNet(gomoku, 4, 64)
+model = PolicyValueNet(gomoku, 4, 64, device=device)
 model.load_state_dict(torch.load("model_7.pt"))
 model.eval()
 
