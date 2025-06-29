@@ -2,7 +2,7 @@ import numpy as np
 
 from game_config import NUM_LINES, PLAYER_1, opponent_player
 from gomoku import Gomoku, convert_coordinates_to_index
-from PolicyValueNet import PolicyValueNet
+from policy_value_net import PolicyValueNet
 from pvmcts import PVMCTS
 
 gomoku = Gomoku()

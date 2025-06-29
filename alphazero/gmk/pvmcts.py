@@ -129,5 +129,5 @@ class PVMCTS:
             idx = x + y * self.game.col_count
             action_probs[idx] = child.visit_count
         action_probs /= np.sum(action_probs)
-        print(action_probs)
+        # print(action_probs)
         return action_probs
