@@ -27,6 +27,7 @@ class AlphaZero:
             memory.append((state, action_probs, player))
 
             temperature_action_probs = action_probs ** (1 / self.args["temperature"])
+            temperature_action_probs /= temperature_action_probs.sum()  # ← 정규화 추가
             flat_idx = np.random.choice(
                 self.game.action_size, p=temperature_action_probs
             )
@@ -75,7 +76,7 @@ class AlphaZero:
             # ① 확률 분포 그대로 사용
             policy_loss = F.cross_entropy(out_policy, policy_targets)
             value_loss = F.mse_loss(out_value, value_targets)
-            print(policy_loss.item(), value_loss.item())
+            # print(policy_loss.item(), value_loss.item())
             loss = policy_loss + value_loss
 
             self.optimizer.zero_grad()
