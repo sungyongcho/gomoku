@@ -2,7 +2,6 @@
 
 import numpy as np
 
-NUM_LINES = 3
 EMPTY_DOT = "."
 
 PLAYER_X = "X"  # Black stone
@@ -11,8 +10,10 @@ EMPTY_SPACE = 0
 PLAYER_1 = 1  # Black stone
 PLAYER_2 = 2  # White stone
 OUT_OF_BOUNDS = 3
-CAPTURE_GOAL = 5
-GOMOKU_GOAL = 3
+
+NUM_LINES = 5
+CAPTURE_GOAL = 2
+GOMOKU_GOAL = 4
 
 
 def opponent_player(player):
@@ -60,3 +61,5 @@ UNIQUE_DIRECTIONS = (
 
 # PolicyValueNet
 N_PLANES = 6
+NUM_RESBLOCKS = 2
+NUM_HIDDEN_LAYERS = 64

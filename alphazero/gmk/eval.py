@@ -1,11 +1,10 @@
 import numpy as np
 import torch
 
-from game_config import NUM_LINES, PLAYER_1
+from game_config import NUM_HIDDEN_LAYERS, NUM_LINES, NUM_RESBLOCKS, PLAYER_1
 from gomoku import GameState, Gomoku, convert_coordinates_to_index
 from policy_value_net import PolicyValueNet
 from pvmcts import PVMCTS
-from train import NUM_HIDDEN_LAYERS, NUM_RESBLOCKS
 
 game = Gomoku()
 
@@ -18,10 +17,11 @@ args = {
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+print("bbb")
 model = PolicyValueNet(game, NUM_RESBLOCKS, NUM_HIDDEN_LAYERS, device)
-model.load_state_dict(torch.load("model_2.pt", map_location=device))
+model.load_state_dict(torch.load("model_9.pt", map_location=device))
 model.eval()
-
+print("aaa")
 mcts = PVMCTS(game, args, model)
 state: GameState = game.get_initial_state()
 
