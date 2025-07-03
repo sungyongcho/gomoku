@@ -36,7 +36,7 @@ class Gomoku:
         self.col_count = NUM_LINES
         self.last_captures = []
         self.action_size = self.row_count * self.col_count
-        self.enable_doublethree = True
+        self.enable_doublethree = False
         self.enable_capture = True
 
     def get_initial_state(self) -> np.ndarray:

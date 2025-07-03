@@ -10,18 +10,17 @@ game = Gomoku()
 
 args = {
     "C": 2,
-    "num_searches": 100,
+    "num_searches": 1000,
     "dirichlet_epsilon": 0.0,
     "dirichlet_alpha": 0.3,
 }
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-print("bbb")
 model = PolicyValueNet(game, NUM_RESBLOCKS, NUM_HIDDEN_LAYERS, device)
-model.load_state_dict(torch.load("model_9.pt", map_location=device))
+model.load_state_dict(torch.load("model_2.pt", map_location=device))
 model.eval()
-print("aaa")
+
 mcts = PVMCTS(game, args, model)
 state: GameState = game.get_initial_state()
 

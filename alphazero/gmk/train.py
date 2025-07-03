@@ -15,36 +15,36 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.002, weight_decay=0.0001)
 
 args = {
     # -------------------- MCTS-related --------------------
-    "C": 1.4,  # UCB exploration constant
+    "C": 2,  # UCB exploration constant
     #   larger → explores unseen / low-visit moves more
     #   smaller → relies on high-Q, well-visited moves more
-    "num_searches": 250,  # Monte-Carlo tree-search rollouts per move
+    "num_searches": 60,  # Monte-Carlo tree-search rollouts per move
     #   larger → better statistics, slower per turn
     #   smaller → faster, less accurate
     # -------- self-play volume per outer iteration --------
-    "num_iterations": 10,  # how many [self-play → train] outer cycles
+    "num_iterations": 3,  # how many [self-play → train] outer cycles
     #   larger → longer overall training, stronger model
-    "num_selfPlay_iterations": 700,  # self-play games generated in ONE iteration
+    "num_selfPlay_iterations": 500,  # self-play games generated in ONE iteration
     #   larger → more fresh data, runtime ↑
     #   smaller → risk of over-fit / noisy gradients
     # ---------------- training loop ----------------------
-    "num_epochs": 6,  # passes over the SAME memory set in one iteration
+    "num_epochs": 4,  # passes over the SAME memory set in one iteration
     #   larger → better convergence, risk of over-fit
     #   smaller → may under-fit
-    "batch_size": 256,  # mini-batch size used by the optimiser
+    "batch_size": 64,  # mini-batch size used by the optimiser
     #   larger → steadier gradients & better GPU utilisation
     #   smaller → fits in low VRAM, noisier gradients
     # --------------- exploration modifiers ---------------
-    "temperature": 1.5,  # **Boltzmann temperature** applied to π before sampling
+    "temperature": 1.25,  # **Boltzmann temperature** applied to π before sampling
     #   >1.0 → flatter distribution  (more exploration)
     #   <1.0 → sharper distribution (more exploitation)
     #   0.0  → argmax (greedy)      (typically evaluation)
     # Dirichlet noise is mixed into root prior to force
     # at-least-once exploration of every legal child
-    "dirichlet_epsilon": 0.15,  # how much of the root prior is replaced by noise
+    "dirichlet_epsilon": 0.25,  # how much of the root prior is replaced by noise
     #   0.25 → 75 % model policy + 25 % noise
     #   0.0  → no noise
-    "dirichlet_alpha": 0.4,  # concentration parameter of Dirichlet(α,…,α)
+    "dirichlet_alpha": 0.3,  # concentration parameter of Dirichlet(α,…,α)
     #   smaller α  → “spiky” noise (one child gets a big boost)
     #   larger α   → almost uniform noise
 }
