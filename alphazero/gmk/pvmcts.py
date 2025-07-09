@@ -48,18 +48,21 @@ class Node:
         return best_child
 
     def get_ucb(self, child: Node):
-        if child.visit_count == 0:
-            q_value = 0
-        else:
-            q_value = 1 - ((child.value_sum / child.visit_count) + 1) / 2
-        return (
-            q_value
-            + self.args["C"]
-            * (math.sqrt(self.visit_count) / (child.visit_count + 1))
+        # not normalized
+        q = 0 if child.visit_count == 0 else child.value_sum / child.visit_count
+        u = (
+            self.args["C"]
             * child.prior
+            * math.sqrt(self.visit_count)
+            / (1 + child.visit_count)
         )
+        return q + u
 
     def expand(self, policy):
+        if self.game.get_value_and_terminated(self.state, self.action_taken)[
+            1
+        ]:  # getting is_terminal
+            return
         for idx, prob in enumerate(policy):
             if prob > 0:
                 x = idx % self.game.col_count
@@ -80,9 +83,8 @@ class Node:
         self.value_sum += value
         self.visit_count += 1
 
-        value = -value
         if self.parent is not None:
-            self.parent.backpropagate(value)
+            self.parent.backpropagate(-value)
 
 
 class PVMCTS:
@@ -125,7 +127,11 @@ class PVMCTS:
             value, is_terminal = self.game.get_value_and_terminated(
                 node.state, node.action_taken
             )
-            value = -value
+
+            # move = node.action_taken if node.action_taken is not None else (-1, -1)
+            # value, is_terminal = self.game.get_value_and_terminated(
+            #     node.state, move
+            # )
 
             if not is_terminal:
                 policy, value = self.model(
@@ -142,6 +148,7 @@ class PVMCTS:
                     legal_mask[x + y * self.game.col_count] = 1.0
 
                 policy *= legal_mask
+                policy = np.maximum(policy, 1e-8)
                 policy /= np.sum(policy)
                 value = value.item()
 
