@@ -70,6 +70,7 @@ class Node:
         value, is_terminal = self.game.get_value_and_terminated(
             self.state, self.action_taken
         )
+        # *** here also how are you sure that the node will be same or different from the root node's player? ***
         value = -value
 
         if is_terminal:
@@ -104,6 +105,7 @@ class Node:
         self.value_sum += value
         self.visit_count += 1
 
+        # *** here also how are you sure that the node will be same or different from the root node's player? ***
         value = -value
         if self.parent is not None:
             self.parent.backpropagate(value)
@@ -115,27 +117,40 @@ class MCTS:
         self.args = args
 
     def search(self, state):
+        # 1. begin search by selecting the root node
         root = Node(self.game, self.args, state)
 
+        # 2. searching by using number of 'num_search' args
         for search in range(self.args["num_searches"]):
+            # 3. select the node to traverse down, which will be the root
             node: Node = root
 
+            # 4. selecting by traversing down based on getting the best ucb value. it will traverse down until it reaches leaf node
+            #    which means from root, it will stay at root, but if child exist, it will select based on the best ucb value among all the child nodes
             while node.is_fully_expanded():
                 node = node.select()
 
+            # 5. get the value and terminal state of the game of the selected node's state.
             value, is_terminal = self.game.get_value_and_terminated(
                 node.state, node.action_taken
             )
-            value = -value
+            # 6. reverse the value.
+            # *** but what if the node's player is same as the player? ***
+            if node.state.next_player != root.state.next_player:
+                value = -value
 
+            # 7. if the current node's state is not terminal, which means there is a chance that the game can be continued
+            #    so, it will expand the game and simulate the game.
             if not is_terminal:
                 # expansion
-                node = node.expand()
+                node = node.expand()  # 8. current node will be changed to the expanded node, because later it will be backpropagated based on the leaf of selected
                 # simulation
-                value = node.simulate()
+                value = node.simulate()  # 9. simulate the game
 
             # backpropagation
-            node.backpropagate(value)
+            node.backpropagate(
+                value
+            )  # 10. with selected node result, it will backpropagate the tree of the result of value
 
         action_probs = np.zeros(self.game.action_size)
         for child in root.children:
