@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import math
 
 import numpy as np
@@ -68,9 +67,12 @@ class Node:
                 x = idx % self.game.col_count
                 y = idx // self.game.col_count
                 action = (x, y)
-                child_state: GameState = copy.deepcopy(self.state)
+                # child_state: GameState = copy.deepcopy(self.state)
+                # child_state = self.game.get_next_state(
+                #     child_state, action, child_state.next_player
+                # )
                 child_state = self.game.get_next_state(
-                    child_state, action, child_state.next_player
+                    self.state, action, self.state.next_player
                 )
 
                 child: Node = Node(

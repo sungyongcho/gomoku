@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -48,7 +47,9 @@ class Gomoku:
     def get_next_state(
         self, state: GameState, action: Tuple[int, int], player: int
     ) -> GameState:
-        board = copy.deepcopy(state.board)
+        # board = copy.deepcopy(state.board)
+
+        board = state.board.copy()
         p1_pts, p2_pts = state.p1_pts, state.p2_pts
 
         x, y = action
