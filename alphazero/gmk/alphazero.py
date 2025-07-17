@@ -24,21 +24,24 @@ class AlphaZero:
             memory = []
             state: GameState = self.game.get_initial_state()
             player = state.next_player
+            turn = 0
 
             while True:
                 action_probs = self.mcts.search(state)
                 memory.append((state, action_probs, player))
-
-                temperature_action_probs = np.maximum(action_probs, 1e-8)  # ε 보정
-                temperature_action_probs = action_probs ** (
-                    1 / self.args["temperature"]
-                )
-                temperature_action_probs /= (
-                    temperature_action_probs.sum()
-                )  # ← 정규화 추가
-                flat_idx = np.random.choice(
-                    self.game.action_size, p=temperature_action_probs
-                )
+                if turn < self.args["exploration_turns"]:
+                    temperature_action_probs = np.maximum(action_probs, 1e-8)  # ε 보정
+                    temperature_action_probs = action_probs ** (
+                        1 / self.args["temperature"]
+                    )
+                    temperature_action_probs /= (
+                        temperature_action_probs.sum()
+                    )  # ← 정규화 추가
+                    flat_idx = np.random.choice(
+                        self.game.action_size, p=temperature_action_probs
+                    )
+                else:
+                    flat_idx = np.argmax(action_probs)
 
                 # 평탄 인덱스 → 2D 좌표
                 x = flat_idx % self.game.col_count  # 열
@@ -46,6 +49,7 @@ class AlphaZero:
                 action = (x, y)
 
                 state = self.game.get_next_state(state, action, player)
+                turn += 1
 
                 value, is_terminal = self.game.get_value_and_terminated(state, action)
 

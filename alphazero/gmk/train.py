@@ -47,6 +47,10 @@ args = {
     "dirichlet_alpha": 0.3,  # concentration parameter of Dirichlet(α,…,α)
     #   smaller α  → “spiky” noise (one child gets a big boost)
     #   larger α   → almost uniform noise
+    "exploration_turns": 15,  # Number of initial moves where temperature is applied for exploration.
+    #   For the first `exploration_turns` moves, the AI samples an action from the MCTS policy distribution.
+    #   After this, it switches to a greedy approach, always selecting the move with the highest visit count.
+    #   This ensures a balance between exploring diverse opening strategies and exploiting strong lines later in the game.
 }
 
 
