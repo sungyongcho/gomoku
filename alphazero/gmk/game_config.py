@@ -57,35 +57,3 @@ UNIQUE_DIRECTIONS = (
     EAST,
     SOUTHEAST,
 )
-
-
-def calc_num_hidden(num_lines: int, min_ch: int = 32, max_ch: int = 128) -> int:
-    """
-    보드 한 변(N)을 받아 적절한 num_hidden(2의 거듭제곱)을 리턴.
-    규칙: N ≤ 6 → 32, 7~12 → 64, 13↑ → 128
-    """
-    if num_lines <= 6:
-        val = 32
-    elif num_lines <= 12:
-        val = 64
-    else:
-        val = 128
-    # 혹시 모르는 사용자가 min/max를 바꿔도 안전하게
-    val = max(min_ch, min(max_ch, val))
-    return val
-
-
-def calc_num_resblocks(num_lines: int) -> int:
-    # 3~6 → 2, 7~12 → 4, 13↑ → 6
-    if num_lines <= 6:
-        return 2
-    elif num_lines <= 12:
-        return 4
-    else:
-        return 6
-
-
-# PolicyValueNet
-N_PLANES = 6
-NUM_RESBLOCKS = calc_num_resblocks(NUM_LINES)
-NUM_HIDDEN_LAYERS = calc_num_hidden(NUM_LINES)

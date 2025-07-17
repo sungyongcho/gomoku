@@ -1,7 +1,9 @@
+import json
+
 import numpy as np
 import torch
 
-from game_config import NUM_HIDDEN_LAYERS, NUM_LINES, NUM_RESBLOCKS, PLAYER_1
+from game_config import NUM_LINES, PLAYER_1
 from gomoku import GameState, Gomoku, convert_coordinates_to_index
 from policy_value_net import PolicyValueNet
 from pvmcts import PVMCTS
@@ -15,9 +17,22 @@ args = {
     "dirichlet_alpha": 0.3,
 }
 
+try:
+    with open("model_config.json", "r") as f:
+        model_config = json.load(f)
+except FileNotFoundError:
+    print("Error: Config file not found at model_config.json")
+    exit()
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = PolicyValueNet(game, NUM_RESBLOCKS, NUM_HIDDEN_LAYERS, device)
+model = PolicyValueNet(
+    game,
+    model_config["num_planes"],
+    model_config["num_resblocks"],
+    model_config["num_hidden"],
+    device,
+)
 model.load_state_dict(torch.load("model_2.pt", map_location=device))
 model.eval()
 

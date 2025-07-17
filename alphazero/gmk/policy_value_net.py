@@ -3,7 +3,6 @@ import math
 import torch.nn as nn
 import torch.nn.functional as F
 
-from game_config import N_PLANES
 from gomoku import Gomoku
 
 
@@ -22,7 +21,9 @@ def calc_conv2d_output(h_w, kernel_size=1, stride=1, pad=0, dilation=1):
 
 
 class PolicyValueNet(nn.Module):
-    def __init__(self, game: Gomoku, num_ResBlocks, num_hidden, device):
+    def __init__(
+        self, game: Gomoku, num_planes: int, num_ResBlocks, num_hidden, device
+    ):
         super().__init__()
         self.device = device
 
@@ -33,7 +34,7 @@ class PolicyValueNet(nn.Module):
 
         self.startBlock = nn.Sequential(
             nn.Conv2d(
-                N_PLANES, num_hidden, kernel_size=3, padding=3, bias=False
+                num_planes, num_hidden, kernel_size=3, padding=3, bias=False
             ),  # selected kernel size of 3 for gomoku only edge problem
             nn.BatchNorm2d(num_hidden),
             nn.ReLU(),
