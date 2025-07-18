@@ -11,9 +11,9 @@ PLAYER_1 = 1  # Black stone
 PLAYER_2 = 2  # White stone
 OUT_OF_BOUNDS = 3
 
-NUM_LINES = 5
-CAPTURE_GOAL = 2
-GOMOKU_GOAL = 4
+NUM_LINES = 3
+CAPTURE_GOAL = 5
+GOMOKU_GOAL = 3
 
 
 def opponent_player(player):

@@ -47,34 +47,30 @@ class Node:
         return best_child
 
     def get_ucb(self, child: Node):
-        # not normalized
-        q = 0 if child.visit_count == 0 else child.value_sum / child.visit_count
-        u = (
-            self.args["C"]
-            * child.prior
-            * math.sqrt(self.visit_count)
-            / (1 + child.visit_count)
+        q = (
+            0
+            if child.visit_count == 0
+            else 1
+            - ((child.value_sum / child.visit_count) + 1)
+            / 2  # normalize + switch to parent's perspective
         )
-        return q + u
+        return (
+            q
+            + self.args["C"]
+            * (math.sqrt(self.visit_count) / (child.visit_count + 1))
+            * child.prior
+        )
 
     def expand(self, policy):
-        if self.game.get_value_and_terminated(self.state, self.action_taken)[
-            1
-        ]:  # getting is_terminal
-            return
         for idx, prob in enumerate(policy):
             if prob > 0:
                 x = idx % self.game.col_count
                 y = idx // self.game.col_count
                 action = (x, y)
-                # child_state: GameState = copy.deepcopy(self.state)
-                # child_state = self.game.get_next_state(
-                #     child_state, action, child_state.next_player
-                # )
+
                 child_state = self.game.get_next_state(
                     self.state, action, self.state.next_player
                 )
-
                 child: Node = Node(
                     self.game, self.args, child_state, self, action, prob
                 )
@@ -85,8 +81,9 @@ class Node:
         self.value_sum += value
         self.visit_count += 1
 
+        value = -value  # parent -> opposite player
         if self.parent is not None:
-            self.parent.backpropagate(-value)
+            self.parent.backpropagate(value)
 
 
 class PVMCTS:
@@ -129,11 +126,7 @@ class PVMCTS:
             value, is_terminal = self.game.get_value_and_terminated(
                 node.state, node.action_taken
             )
-
-            # move = node.action_taken if node.action_taken is not None else (-1, -1)
-            # value, is_terminal = self.game.get_value_and_terminated(
-            #     node.state, move
-            # )
+            value = -value  # important
 
             if not is_terminal:
                 policy, value = self.model(

@@ -30,13 +30,13 @@ class GameState:
 
 
 class Gomoku:
-    def __init__(self):
+    def __init__(self, enable_doublethree: bool = False, enable_capture: bool = False):
         self.row_count = NUM_LINES
         self.col_count = NUM_LINES
         self.last_captures = []
         self.action_size = self.row_count * self.col_count
-        self.enable_doublethree = False
-        self.enable_capture = True
+        self.enable_doublethree = enable_doublethree
+        self.enable_capture = enable_capture
 
     def get_initial_state(self) -> np.ndarray:
         board = np.zeros((self.row_count, self.col_count))

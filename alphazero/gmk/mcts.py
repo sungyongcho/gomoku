@@ -136,8 +136,7 @@ class MCTS:
             )
             # 6. reverse the value.
             # *** but what if the node's player is same as the player? ***
-            if node.state.next_player != root.state.next_player:
-                value = -value
+            value = -value
 
             # 7. if the current node's state is not terminal, which means there is a chance that the game can be continued
             #    so, it will expand the game and simulate the game.

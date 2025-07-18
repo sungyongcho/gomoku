@@ -3,6 +3,7 @@ import json
 import torch
 
 from alphazero import AlphaZero
+from game_config import NUM_LINES
 from gomoku import Gomoku
 from policy_value_net import PolicyValueNet
 
@@ -32,10 +33,6 @@ def calc_num_resblocks(num_lines: int) -> int:
     else:
         return 6
 
-
-gomoku = Gomoku()
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 args = {
     # -------------------- MCTS-related --------------------
@@ -79,9 +76,20 @@ args = {
     #   This ensures a balance between exploring diverse opening strategies and exploiting strong lines later in the game.
     # ---------------Neural Network Architecture --------------------
     "num_planes": 6,
-    "num_resblocks": calc_num_resblocks(gomoku.row_count),
-    "num_hidden": calc_num_hidden(gomoku.row_count),
+    "num_resblocks": calc_num_resblocks(NUM_LINES),
+    "num_hidden": calc_num_hidden(NUM_LINES),
+    # ---game config---
+    "enable_doublethree": False,
+    "enable_capture": False,
 }
+
+
+gomoku = Gomoku(
+    enable_doublethree=args["enable_doublethree"],
+    enable_capture=args["enable_capture"],
+)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 model = PolicyValueNet(

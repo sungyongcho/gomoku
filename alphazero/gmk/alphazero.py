@@ -94,6 +94,10 @@ class AlphaZero:
             # print(policy_loss.item(), value_loss.item())
             loss = policy_loss + value_loss
 
+            print(
+                f"Policy Loss: {policy_loss.item():.4f}, Value Loss: {value_loss.item():.4f}, Total Loss: {loss.item():.4f}"
+            )
+
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
