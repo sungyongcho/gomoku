@@ -1,3 +1,4 @@
+import os
 import random
 
 import numpy as np
@@ -5,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import trange
 
+from arena import Arena
 from gomoku import GameState, Gomoku
 from policy_value_net import PolicyValueNet
 from pvmcts import PVMCTS
@@ -91,27 +93,93 @@ class AlphaZero:
             # ① 확률 분포 그대로 사용
             policy_loss = F.cross_entropy(out_policy, policy_targets, reduction="mean")
             value_loss = F.mse_loss(out_value, value_targets)
-            # print(policy_loss.item(), value_loss.item())
             loss = policy_loss + value_loss
 
-            print(
-                f"Policy Loss: {policy_loss.item():.4f}, Value Loss: {value_loss.item():.4f}, Total Loss: {loss.item():.4f}"
-            )
+            # print(
+            #     f"Policy Loss: {policy_loss.item():.4f}, Value Loss: {value_loss.item():.4f}, Total Loss: {loss.item():.4f}"
+            # )
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
-    def learn(self):
-        for iteration in range(self.args["num_iterations"]):
-            memory = []
+    # def learn(self):
+    #     for iteration in range(self.args["num_iterations"]):
+    #         memory = []
 
-            for selfPlay_iteration in trange(self.args["num_selfPlay_iterations"]):
+    #         for selfPlay_iteration in trange(self.args["num_selfPlay_iterations"]):
+    #             memory += self.selfPlay()
+
+    #         self.model.train()
+    #         for epoch in range(self.args["num_epochs"]):
+    #             self.train(memory)
+
+    #         torch.save(self.model.state_dict(), f"model_{iteration}.pt")
+    #         torch.save(self.optimizer.state_dict(), f"optimizer_{iteration}.pt")
+
+    def learn(self):
+        # 챔피언 모델과 도전자 모델의 파일 경로 정의
+        champion_model_path = "champion.pt"
+        challenger_model_path = "challenger.pt"
+
+        # 만약 챔피언 모델이 이미 존재하면, 불러옵니다.
+        if os.path.exists(champion_model_path):
+            print(f"Loading existing champion model from {champion_model_path}")
+            self.model.load_state_dict(torch.load(champion_model_path))
+        else:
+            print(
+                "No champion model found. Starting from scratch and saving initial model."
+            )
+            torch.save(self.model.state_dict(), champion_model_path)
+
+        # Arena 인스턴스 생성
+        arena = Arena(self.game, self.args)
+
+        for i in range(self.args["num_iterations"]):
+            print(f"--- Iteration {i + 1} / {self.args['num_iterations']} ---")
+
+            # 1. Self-Play: 현재 챔피언 모델로 데이터를 생성합니다.
+            # (매번 최신 챔피언 모델을 다시 불러와서 데이터 생성 시작)
+            self.model.load_state_dict(torch.load(champion_model_path))
+            self.model.eval()
+
+            memory = []
+            for _ in trange(self.args["num_selfPlay_iterations"], desc="Self-Playing"):
                 memory += self.selfPlay()
 
+            # 2. Train: 생성된 데이터로 새 모델(도전자)을 훈련합니다.
             self.model.train()
-            for epoch in range(self.args["num_epochs"]):
+            for _ in trange(self.args["num_epochs"], desc="Training"):
                 self.train(memory)
 
-            torch.save(self.model.state_dict(), f"model_{iteration}.pt")
-            torch.save(self.optimizer.state_dict(), f"optimizer_{iteration}.pt")
+            # 훈련된 도전자 모델을 임시 저장
+            torch.save(self.model.state_dict(), challenger_model_path)
+
+            # 3. Evaluate: 새로운 도전자와 기존 챔피언을 비교 평가합니다.
+            print("\n--- Evaluating New Model (Challenger) vs. Champion ---")
+
+            # 도전자 모델과 챔피언 모델을 Arena에서 사용할 수 있도록 준비
+            challenger = self.model  # 현재 self.model이 바로 도전자
+            champion = PolicyValueNet(
+                self.game,
+                self.args["num_planes"],
+                self.args["num_resblocks"],
+                self.args["num_hidden"],
+                self.model.device,
+            )
+            champion.load_state_dict(torch.load(champion_model_path))
+
+            # Arena를 통해 대결 진행
+            win_rate = arena.evaluate(challenger, champion)
+            print(
+                f"\nChallenger Win Rate: {win_rate:.2f} (Required: > {self.args['eval_win_rate']})"
+            )
+
+            # 4. Select: 승률에 따라 챔피언을 교체할지 결정합니다.
+            if win_rate > self.args["eval_win_rate"]:
+                print("🏆 New model is stronger! Promoting to Champion.")
+                # 도전자 모델이 새로운 챔피언이 됨
+                torch.save(challenger.state_dict(), champion_model_path)
+            else:
+                print(" Challenger is not strong enough. Keeping the old Champion.")
+                # 변경사항 없음, 다음 iteration에서 기존 챔피언으로 다시 self-play 진행

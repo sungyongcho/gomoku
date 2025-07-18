@@ -33,7 +33,7 @@ model = PolicyValueNet(
     model_config["num_hidden"],
     device,
 )
-model.load_state_dict(torch.load("model_2.pt", map_location=device))
+model.load_state_dict(torch.load("champion.pt", map_location=device))
 model.eval()
 
 mcts = PVMCTS(game, args, model)

@@ -81,6 +81,9 @@ args = {
     # ---game config---
     "enable_doublethree": False,
     "enable_capture": False,
+    # --- arena----
+    "num_eval_games": 20,
+    "eval_win_rate": 0.55,
 }
 
 
