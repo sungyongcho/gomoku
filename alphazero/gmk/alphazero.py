@@ -73,7 +73,7 @@ class AlphaZero:
 
             raw_states, policy_targets, value_targets = zip(*sample)
 
-            enc_states = [self.game.get_encoded_state(s) for s in raw_states]
+            enc_states = self.game.get_encoded_state(list(raw_states))
             state = torch.tensor(
                 np.array(enc_states), dtype=torch.float32, device=self.model.device
             )
@@ -94,9 +94,9 @@ class AlphaZero:
             # print(policy_loss.item(), value_loss.item())
             loss = policy_loss + value_loss
 
-            print(
-                f"Policy Loss: {policy_loss.item():.4f}, Value Loss: {value_loss.item():.4f}, Total Loss: {loss.item():.4f}"
-            )
+            # print(
+            #     f"Policy Loss: {policy_loss.item():.4f}, Value Loss: {value_loss.item():.4f}, Total Loss: {loss.item():.4f}"
+            # )
 
             self.optimizer.zero_grad()
             loss.backward()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Sequence, Tuple
 
 import numpy as np
 
@@ -129,38 +129,83 @@ class Gomoku:
             print(f"{i + 1:>2} " + " ".join(str(int(c)) for c in row))
         print(f"Captures  P1:{state.p1_pts}  P2:{state.p2_pts}\n")
 
-    def get_encoded_state(self, state: GameState):
-        board = state.board
-        me = state.next_player
-        opp = opponent_player(me)
+    # def get_encoded_state(self, state: GameState):
+    #     board = state.board
+    #     me = state.next_player
+    #     opp = opponent_player(me)
 
-        # 0,1,2번 평면
-        my_stones = (board == me).astype(np.float32)
-        opp_stones = (board == opp).astype(np.float32)
-        empties = (board == EMPTY_SPACE).astype(np.float32)
+    #     # 0,1,2번 평면
+    #     my_stones = (board == me).astype(np.float32)
+    #     opp_stones = (board == opp).astype(np.float32)
+    #     empties = (board == EMPTY_SPACE).astype(np.float32)
 
-        # 3번 평면: 마지막 착점
-        last_move_plane = np.zeros_like(board, dtype=np.float32)
-        if state.last_move is not None:
-            lx, ly = state.last_move
-            last_move_plane[ly, lx] = 1.0
+    #     # 3번 평면: 마지막 착점
+    #     last_move_plane = np.zeros_like(board, dtype=np.float32)
+    #     if state.last_move is not None:
+    #         lx, ly = state.last_move
+    #         last_move_plane[ly, lx] = 1.0
 
-        # 4,5번 평면: 포획 점수
-        my_pts = state.p1_pts if me == PLAYER_1 else state.p2_pts
-        opp_pts = state.p2_pts if me == PLAYER_1 else state.p1_pts
-        my_cap_plane = np.full_like(board, my_pts / CAPTURE_GOAL, dtype=np.float32)
-        opp_cap_plane = np.full_like(board, opp_pts / CAPTURE_GOAL, dtype=np.float32)
+    #     # 4,5번 평면: 포획 점수
+    #     my_pts = state.p1_pts if me == PLAYER_1 else state.p2_pts
+    #     opp_pts = state.p2_pts if me == PLAYER_1 else state.p1_pts
+    #     my_cap_plane = np.full_like(board, my_pts / CAPTURE_GOAL, dtype=np.float32)
+    #     opp_cap_plane = np.full_like(board, opp_pts / CAPTURE_GOAL, dtype=np.float32)
 
-        return np.stack(
+    #     return np.stack(
+    #         [
+    #             my_stones,
+    #             opp_stones,
+    #             empties,
+    #             last_move_plane,
+    #             my_cap_plane,
+    #             opp_cap_plane,
+    #         ]
+    #     )
+
+    def get_encoded_state(self, states: Sequence[GameState]) -> np.ndarray:
+        # 단일 GameState면 리스트로 감싸서 처리
+        if isinstance(states, GameState):
+            states = [states]
+
+        boards = np.stack([st.board for st in states])  # (N,H,W)
+        next_players = np.array([st.next_player for st in states])  # (N,)
+        last_moves = np.array([st.last_move or (-1, -1) for st in states])
+        p1_pts = np.array([st.p1_pts for st in states], dtype=np.float32)
+        p2_pts = np.array([st.p2_pts for st in states], dtype=np.float32)
+
+        # me / opp / empty
+        me_plane = boards == next_players[:, None, None]  # (N,H,W)
+        opps = np.where(next_players == PLAYER_1, PLAYER_2, PLAYER_1)  # (N,)
+        opp_plane = boards == opps[:, None, None]  # (N,H,W)
+        empty_plane = boards == EMPTY_SPACE  # (N,H,W)
+
+        # last move (last_move = (x,y))
+        last_mv_plane = np.zeros_like(boards, dtype=bool)  # (N,H,W)
+        valid = last_moves[:, 1] >= 0
+        last_mv_plane[valid, last_moves[valid, 1], last_moves[valid, 0]] = True
+
+        # capture score
+        my_pts = np.where(next_players == PLAYER_1, p1_pts, p2_pts)  # (N,)
+        opp_pts = np.where(next_players == PLAYER_1, p2_pts, p1_pts)  # (N,)
+        my_cap_plane = (my_pts / CAPTURE_GOAL)[:, None, None] * np.ones_like(
+            boards, dtype=np.float32
+        )
+        opp_cap_plane = (opp_pts / CAPTURE_GOAL)[:, None, None] * np.ones_like(
+            boards, dtype=np.float32
+        )
+
+        planes = np.stack(
             [
-                my_stones,
-                opp_stones,
-                empties,
-                last_move_plane,
+                me_plane,
+                opp_plane,
+                empty_plane,
+                last_mv_plane,
                 my_cap_plane,
                 opp_cap_plane,
-            ]
-        )
+            ],
+            axis=0,
+        ).astype(np.float32)  # (6,N,H,W)
+        return np.swapaxes(planes, 0, 1)  # (N,6,H,W)
 
 
 def convert_coordinates_to_index(coord: str) -> Tuple[int, int] | None:
