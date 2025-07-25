@@ -31,7 +31,7 @@ class AlphaZero:
                 memory.append((state, action_probs, player))
                 if turn < self.args["exploration_turns"]:
                     temperature_action_probs = np.maximum(action_probs, 1e-8)  # ε 보정
-                    temperature_action_probs = action_probs ** (
+                    temperature_action_probs = temperature_action_probs ** (
                         1 / self.args["temperature"]
                     )
                     temperature_action_probs /= (
@@ -88,10 +88,8 @@ class AlphaZero:
 
             out_policy, out_value = self.model(state)
 
-            # ① 확률 분포 그대로 사용
             policy_loss = F.cross_entropy(out_policy, policy_targets, reduction="mean")
             value_loss = F.mse_loss(out_value, value_targets)
-            # print(policy_loss.item(), value_loss.item())
             loss = policy_loss + value_loss
 
             # print(

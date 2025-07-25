@@ -2,7 +2,7 @@ import json
 
 import torch
 
-from alphazero import AlphaZero
+from alphazero_parallel import AlphaZeroParallel
 from game_config import NUM_LINES
 from gomoku import Gomoku
 from policy_value_net import PolicyValueNet
@@ -81,6 +81,8 @@ args = {
     # ---game config---
     "enable_doublethree": False,
     "enable_capture": False,
+    # ----parallelize-------
+    "num_parallel_games": 100,
 }
 
 
@@ -100,7 +102,7 @@ optimizer = torch.optim.Adam(
     model.parameters(), lr=args["learning_rate"], weight_decay=args["weight_decay"]
 )
 
-alphaZero = AlphaZero(model, optimizer, gomoku, args)
+alphaZero = AlphaZeroParallel(model, optimizer, gomoku, args)
 
 alphaZero.learn()
 
