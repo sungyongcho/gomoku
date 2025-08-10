@@ -99,7 +99,7 @@ class PVMCTS:
             torch.tensor(
                 self.game.get_encoded_state(state),
                 device=self.model.device,
-            ).unsqueeze(0)
+            )
         )
 
         policy = torch.softmax(policy, axis=1).squeeze(0).detach().cpu().numpy()
@@ -132,7 +132,7 @@ class PVMCTS:
                     torch.tensor(
                         self.game.get_encoded_state(node.state),
                         device=self.model.device,
-                    ).unsqueeze(0)
+                    )
                 )
                 policy = torch.softmax(policy, axis=1).squeeze(0).detach().cpu().numpy()
 

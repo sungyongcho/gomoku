@@ -74,7 +74,8 @@ class AlphaZero:
 
             raw_states, policy_targets, value_targets = zip(*sample)
 
-            enc_states = [self.game.get_encoded_state(s) for s in raw_states]
+            # enc_states = [self.game.get_encoded_state(s) for s in raw_states]
+            enc_states = self.game.get_encoded_state(list(raw_states))
             state = torch.tensor(
                 np.array(enc_states), dtype=torch.float32, device=self.model.device
             )

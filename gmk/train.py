@@ -1,11 +1,10 @@
+import argparse
 import json
 
 import torch
 from game_config import NUM_LINES
 from gomoku import Gomoku
 from policy_value_net import PolicyValueNet
-
-from alphazero import AlphaZero
 
 
 def calc_num_hidden(num_lines: int, min_ch: int = 32, max_ch: int = 128) -> int:
@@ -89,34 +88,46 @@ args = {
 }
 
 
-gomoku = Gomoku(
-    enable_doublethree=args["enable_doublethree"],
-    enable_capture=args["enable_capture"],
-)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--parallel", action="store_true", help="Use AlphaZeroParallel")
+    cli = parser.parse_args()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    gomoku = Gomoku(
+        enable_doublethree=args["enable_doublethree"],
+        enable_capture=args["enable_capture"],
+    )
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = PolicyValueNet(
+        gomoku, args["num_planes"], args["num_resblocks"], args["num_hidden"], device
+    )
+
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=args["learning_rate"], weight_decay=args["weight_decay"]
+    )
+
+    ## if args is "--parallel" then import AlphaZeroParallel, if not, import AlphaZero
+    if cli.parallel:
+        from alphazero_parallel import AlphaZeroParallel as AZ
+    else:
+        from alphazero import AlphaZero as AZ
+    alphaZero = AZ(model, optimizer, gomoku, args)
+
+    alphaZero.learn()
+
+    # [추가] 모델 구조와 관련된 설정만 따로 저장합니다.
+    model_config = {
+        "num_planes": args["num_planes"],
+        "num_resblocks": args["num_resblocks"],
+        "num_hidden": args["num_hidden"],
+    }
+    with open("model_config.json", "w") as f:
+        json.dump(model_config, f)
+
+    print("Model config saved to model_config.json")
 
 
-model = PolicyValueNet(
-    gomoku, args["num_planes"], args["num_resblocks"], args["num_hidden"], device
-)
-
-optimizer = torch.optim.Adam(
-    model.parameters(), lr=args["learning_rate"], weight_decay=args["weight_decay"]
-)
-
-alphaZero = AlphaZero(model, optimizer, gomoku, args)
-
-alphaZero.learn()
-
-
-# [추가] 모델 구조와 관련된 설정만 따로 저장합니다.
-model_config = {
-    "num_planes": args["num_planes"],
-    "num_resblocks": args["num_resblocks"],
-    "num_hidden": args["num_hidden"],
-}
-with open("model_config.json", "w") as f:
-    json.dump(model_config, f)
-
-print("Model config saved to model_config.json")
+if __name__ == "__main__":
+    main()

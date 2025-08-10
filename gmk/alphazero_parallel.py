@@ -1,13 +1,14 @@
+import os
 import random
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-from tqdm import trange
-
+from arena import Arena
 from gomoku import GameState, Gomoku
 from policy_value_net import PolicyValueNet
 from pvmcts_parallel import PVMCTSParallel
+from tqdm import trange
 
 
 class AlphaZeroParallel:
@@ -127,21 +128,81 @@ class AlphaZeroParallel:
             loss.backward()
             self.optimizer.step()
 
-    def learn(self):
-        for iteration in range(self.args["num_iterations"]):
-            memory = []
+    # def learn(self):
+    #     for iteration in range(self.args["num_iterations"]):
+    #         memory = []
 
-            for selfPlay_iteration in trange(
-                self.args["num_selfPlay_iterations"] // self.args["num_parallel_games"]
-            ):
+    #         for selfPlay_iteration in trange(
+    #             self.args["num_selfPlay_iterations"] // self.args["num_parallel_games"]
+    #         ):
+    #             memory += self.selfPlay()
+
+    #         self.model.train()
+    #         for epoch in range(self.args["num_epochs"]):
+    #             self.train(memory)
+
+    #         torch.save(self.model.state_dict(), f"model_{iteration}.pt")
+    #         torch.save(self.optimizer.state_dict(), f"optimizer_{iteration}.pt")
+
+    def learn(self):
+        champion_model_path = "champion.pt"
+        challenger_model_path = "challenger.pt"
+
+        if os.path.exists(champion_model_path):
+            print(f"Loading existing champion model from {champion_model_path}")
+            self.model.load_state_dict(torch.load(champion_model_path))
+        else:
+            print(
+                "No champion model found. Starting from scratch and saving initial model."
+            )
+            torch.save(self.model.state_dict(), champion_model_path)
+
+        arena = Arena(self.game, self.args)
+
+        for i in range(self.args["num_iterations"]):
+            print(f"--- Iteration {i + 1} / {self.args['num_iterations']} ---")
+
+            self.model.load_state_dict(torch.load(champion_model_path))
+            self.model.eval()
+
+            memory = []
+            sp_loops = max(
+                1,
+                self.args["num_selfPlay_iterations"] // self.args["num_parallel_games"],
+            )
+
+            for _ in trange(sp_loops, desc="Self-Playing (parallel)"):
                 memory += self.selfPlay()
 
             self.model.train()
-            for epoch in range(self.args["num_epochs"]):
+            for _ in trange(self.args["num_epochs"], desc="Training"):
                 self.train(memory)
 
-            torch.save(self.model.state_dict(), f"model_{iteration}.pt")
-            torch.save(self.optimizer.state_dict(), f"optimizer_{iteration}.pt")
+            torch.save(self.model.state_dict(), challenger_model_path)
+
+            print("\n--- Evaluating New Model (Challenger) vs. Champion ---")
+
+            # 도전자 모델과 챔피언 모델을 Arena에서 사용할 수 있도록 준비
+            challenger = self.model  # 현재 self.model이 바로 도전자
+            champion = PolicyValueNet(
+                self.game,
+                self.args["num_planes"],
+                self.args["num_resblocks"],
+                self.args["num_hidden"],
+                self.model.device,
+            )
+            champion.load_state_dict(torch.load(champion_model_path))
+            win_rate = arena.evaluate(challenger, champion)
+
+            print(
+                f"\nChallenger Win Rate: {win_rate:.2f} (Needed > {self.args['eval_win_rate']})"
+            )
+
+            if win_rate > self.args["eval_win_rate"]:
+                print("🏆 New model is stronger! Promoting to Champion.")
+                torch.save(challenger.state_dict(), champion_model_path)
+            else:
+                print(" Challenger is not strong enough. Keeping the old Champion.")
 
 
 class SelfPlayGame:
