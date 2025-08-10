@@ -5,7 +5,6 @@ import math
 import random
 
 import numpy as np
-
 from gomoku import GameState, Gomoku, convert_coordinates_to_index
 
 

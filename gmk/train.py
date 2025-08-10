@@ -1,11 +1,11 @@
 import json
 
 import torch
-
-from alphazero import AlphaZero
 from game_config import NUM_LINES
 from gomoku import Gomoku
 from policy_value_net import PolicyValueNet
+
+from alphazero import AlphaZero
 
 
 def calc_num_hidden(num_lines: int, min_ch: int = 32, max_ch: int = 128) -> int:
@@ -84,6 +84,8 @@ args = {
     # --- arena----
     "num_eval_games": 20,
     "eval_win_rate": 0.55,
+    # ----parallelize-------
+    "num_parallel_games": 100,
 }
 
 

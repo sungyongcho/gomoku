@@ -4,12 +4,11 @@ import random
 import numpy as np
 import torch
 import torch.nn.functional as F
-from tqdm import trange
-
 from arena import Arena
 from gomoku import GameState, Gomoku
 from policy_value_net import PolicyValueNet
 from pvmcts import PVMCTS
+from tqdm import trange
 
 
 class AlphaZero:

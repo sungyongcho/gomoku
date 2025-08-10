@@ -2,7 +2,6 @@ import json
 
 import numpy as np
 import torch
-
 from game_config import NUM_LINES, PLAYER_1
 from gomoku import GameState, Gomoku, convert_coordinates_to_index
 from policy_value_net import PolicyValueNet
@@ -34,6 +33,9 @@ model = PolicyValueNet(
     device,
 )
 model.load_state_dict(torch.load("champion.pt", map_location=device))
+# for parallel
+# model.load_state_dict(torch.load("model_2.pt", map_location=device))
+
 model.eval()
 
 mcts = PVMCTS(game, args, model)

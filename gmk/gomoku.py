@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-
 from game_config import (
     CAPTURE_GOAL,
     EMPTY_SPACE,

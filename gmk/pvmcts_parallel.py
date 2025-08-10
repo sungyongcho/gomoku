@@ -85,76 +85,103 @@ class Node:
             self.parent.backpropagate(value)
 
 
-class PVMCTS:
+class PVMCTSParallel:
     def __init__(self, game: Gomoku, args, model):
         self.game = game
         self.args = args
         self.model: PolicyValueNet = model
 
     @torch.no_grad()
-    def search(self, state):
-        root = Node(self.game, self.args, state, visit_count=1)
-
+    def search(self, states, spGames):
         policy, _ = self.model(
             torch.tensor(
-                self.game.get_encoded_state(state),
+                self.game.get_encoded_state(states),
                 device=self.model.device,
-            ).unsqueeze(0)
+            )
         )
-
-        policy = torch.softmax(policy, axis=1).squeeze(0).detach().cpu().numpy()
-
+        policy = torch.softmax(policy, axis=1).detach().cpu().numpy()
         policy = (1 - self.args["dirichlet_epsilon"]) * policy + self.args[
             "dirichlet_epsilon"
-        ] * np.random.dirichlet([self.args["dirichlet_alpha"]] * self.game.action_size)
+        ] * np.random.dirichlet(
+            [self.args["dirichlet_alpha"]] * self.game.action_size, size=policy.shape[0]
+        )
 
-        legal_mask = np.zeros(self.game.action_size, np.float32)
-        for coord in self.game.get_legal_moves(state):
-            x, y = convert_coordinates_to_index(coord)
-            legal_mask[x + y * self.game.col_count] = 1.0
-        policy *= legal_mask
-        policy /= np.sum(policy)
-        root.expand(policy)
+        for i, spg in enumerate(spGames):
+            spg_policy = policy[i]
+            legal_mask = np.zeros(self.game.action_size, np.float32)
+            for coord in self.game.get_legal_moves(states[i]):
+                x, y = convert_coordinates_to_index(coord)
+                legal_mask[x + y * self.game.col_count] = 1.0
+            spg_policy *= legal_mask
+            spg_policy /= np.sum(spg_policy)
+
+            spg.root = Node(self.game, self.args, states[i], visit_count=1)
+
+            spg.root.expand(spg_policy)
 
         for search in range(self.args["num_searches"]):
-            node: Node = root
+            for spg in spGames:
+                spg.node = None
+                node: Node = spg.root
 
-            while node.is_fully_expanded():
-                node = node.select()
+                while node.is_fully_expanded():
+                    node = node.select()
 
-            value, is_terminal = self.game.get_value_and_terminated(
-                node.state, node.action_taken
-            )
-            value = -value  # important
+                value, is_terminal = self.game.get_value_and_terminated(
+                    node.state, node.action_taken
+                )
+                value = -value  # important
 
-            if not is_terminal:
+                if is_terminal:
+                    node.backpropagate(value)
+                else:
+                    spg.node = node
+
+            expandable_spGames = [
+                mappingIdx
+                for mappingIdx in range(len(spGames))
+                if spGames[mappingIdx].node is not None
+            ]
+
+            if len(expandable_spGames) > 0:
+                states = np.stack(
+                    [
+                        spGames[mappingIdx].node.state
+                        for mappingIdx in expandable_spGames
+                    ]
+                )
                 policy, value = self.model(
                     torch.tensor(
-                        self.game.get_encoded_state(node.state),
+                        self.game.get_encoded_state(states),
                         device=self.model.device,
-                    ).unsqueeze(0)
+                    )
                 )
-                policy = torch.softmax(policy, axis=1).squeeze(0).detach().cpu().numpy()
+                policy = torch.softmax(policy, axis=1).detach().cpu().numpy()
+                value = value.cpu().numpy()
+
+            for i, mappingIdx in enumerate(expandable_spGames):
+                node = spGames[mappingIdx].node
+
+                spg_policy, spg_value = policy[i], value[i]
 
                 legal_mask = np.zeros(self.game.action_size, np.float32)
                 for coord in self.game.get_legal_moves(node.state):
                     x, y = convert_coordinates_to_index(coord)
                     legal_mask[x + y * self.game.col_count] = 1.0
 
-                policy *= legal_mask
-                policy = np.maximum(policy, 1e-8)
-                policy /= np.sum(policy)
-                value = value.item()
+                spg_policy *= legal_mask
+                spg_policy = np.maximum(spg_policy, 1e-8)
+                spg_policy /= np.sum(spg_policy)
 
-                node.expand(policy)
+                node.expand(spg_policy)
 
-            node.backpropagate(value)
+                node.backpropagate(spg_value)
 
-        action_probs = np.zeros(self.game.action_size)
-        for child in root.children:
-            x, y = child.action_taken
-            idx = x + y * self.game.col_count
-            action_probs[idx] = child.visit_count
-        action_probs /= np.sum(action_probs)
-        # print(action_probs)
-        return action_probs
+        # action_probs = np.zeros(self.game.action_size)
+        # for child in root.children:
+        #     x, y = child.action_taken
+        #     idx = x + y * self.game.col_count
+        #     action_probs[idx] = child.visit_count
+        # action_probs /= np.sum(action_probs)
+        # # print(action_probs)
+        # return action_probs

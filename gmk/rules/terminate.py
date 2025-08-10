@@ -1,5 +1,4 @@
 import numpy as np
-
 from game_config import GOMOKU_GOAL, NUM_LINES
 
 

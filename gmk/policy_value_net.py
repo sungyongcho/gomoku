@@ -2,7 +2,6 @@ import math
 
 import torch.nn as nn
 import torch.nn.functional as F
-
 from gomoku import Gomoku
 
 

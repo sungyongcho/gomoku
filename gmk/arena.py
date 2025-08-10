@@ -1,9 +1,8 @@
 import numpy as np
-from tqdm import trange
-
 from gomoku import GameState, Gomoku
 from policy_value_net import PolicyValueNet  # 챔피언 모델 로딩을 위해 필요
 from pvmcts import PVMCTS
+from tqdm import trange
 
 
 class Arena:

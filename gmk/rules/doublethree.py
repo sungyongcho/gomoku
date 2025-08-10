@@ -1,7 +1,6 @@
 from typing import Tuple
 
 import numpy as np
-
 from game_config import (
     DIRECTIONS,
     EMPTY_SPACE,
