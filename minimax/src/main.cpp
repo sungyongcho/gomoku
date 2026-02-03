@@ -12,7 +12,6 @@ void handleSignal(int signal) {
 
 int main() {
   // Register signal handlers for graceful shutdown.
-  // dotenv::init("/gomoku/.env"); <--- here
   dotenv::init();
   std::signal(SIGINT, handleSignal);
   std::signal(SIGTERM, handleSignal);

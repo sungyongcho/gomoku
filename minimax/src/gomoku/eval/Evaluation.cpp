@@ -1,6 +1,8 @@
 #include "Evaluation.hpp"
 
 #include <iostream>
+
+#include "Board.hpp"
 namespace Evaluation {
 int patternScoreTablePlayerOne[LOOKUP_TABLE_SIZE];
 int patternScoreTablePlayerTwo[LOOKUP_TABLE_SIZE];

@@ -4,6 +4,7 @@
 /minimax/server
 /minimax/build/
 /minimax/build_debug/
+/minimax/doublethree_test
 *.o
 *.obj
 *.so

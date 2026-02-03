@@ -1,3 +1,4 @@
+#include "Board.hpp"
 #include "Evaluation.hpp"
 
 namespace Evaluation {
