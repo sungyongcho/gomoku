@@ -171,3 +171,8 @@ response_error.json (backend 착수 에러)
 - production 에서는 debug 페이지 보이지 않게
 - nuxt content (/about-project/)
 - ws 접속이 안되면 ai 관련 버튼 disabled 알림팝업 띄우기
+
+----------------------NEW--------------------------
+# 2026.02.03
+- minimax 버전 오픈소스 ForbiddenPointFinder 와 비트 보드 버전 구현, 동작확인
+- 프론트 package.json dependency 오류 수정, docker 노드 컨테이너 버전 고정됨 (확인 필요)
