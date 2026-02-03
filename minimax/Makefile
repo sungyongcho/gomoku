@@ -1,7 +1,7 @@
 # Compiler and flags
 CXX        := g++
-CXXFLAGS   := -std=c++98 -Wall -Wextra -Werror -Wreorder -Iinc -Iinc/gomoku -Iinc/ws -O2
-DBGFLAGS   := -std=c++98 -Wall -Wextra -Werror -Wreorder -Iinc -Iinc/gomoku -Iinc/ws -g
+CXXFLAGS   := -std=c++98 -Wall -Wextra -Werror -Wreorder -Iinc -Iinc/gomoku -Iinc/ws -O2 -DBOOST_DISABLE_PRAGMA_MESSAGE
+DBGFLAGS   := -std=c++98 -Wall -Wextra -Werror -Wreorder -Iinc -Iinc/gomoku -Iinc/ws -g -DBOOST_DISABLE_PRAGMA_MESSAGE
 LDFLAGS    := -lwebsockets -lpthread
 
 # Directories

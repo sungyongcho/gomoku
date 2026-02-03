@@ -3,11 +3,12 @@
     {
       "name": "Linux",
       "includePath": [
-        "${workspaceFolder}/minimax/inc/**/**",
-        "${workspaceFolder}/minimax/src/**/**/**",
+        "${workspaceFolder}/minimax/inc",
+        "${workspaceFolder}/minimax/inc/gomoku",
+        "${workspaceFolder}/minimax/inc/ws",
+        "${workspaceFolder}/minimax/src",
         "/usr/include",
-        "/usr/local/include",
-        "${workspaceFolder}/minimax/inc/gomoku"
+        "/usr/local/include"
       ],
       "defines": [],
       "compilerPath": "/usr/bin/g++",
