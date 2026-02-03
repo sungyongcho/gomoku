@@ -1,6 +1,7 @@
 # === C++ Binaries and Build Artifacts ===
 /minimax/minimax
 /minimax/minimax_debug
+/minimax/server
 /minimax/build/
 /minimax/build_debug/
 *.o
