@@ -3,10 +3,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <set>
 
-#include "Board.hpp"
-#include "Gomoku.hpp"
+class Board;
 
 #define MINIMAX_TERMINATION 1000000
 

@@ -1,18 +1,18 @@
 #include "json_parser.hpp"
 
-void sendJsonResponse(struct lws *wsi, const std::string &response) {
+void sendJsonResponse(struct lws* wsi, const std::string& response) {
   size_t resp_len = response.size();
   size_t buf_size = LWS_PRE + resp_len;
-  unsigned char *buf = new unsigned char[buf_size];
-  unsigned char *p = &buf[LWS_PRE];
+  unsigned char* buf = new unsigned char[buf_size];
+  unsigned char* p = &buf[LWS_PRE];
   memcpy(p, response.c_str(), resp_len);
   lws_write(wsi, p, resp_len, LWS_WRITE_TEXT);
   delete[] buf;
 }
 
-bool extractMoveFields(const rapidjson::Document &doc, int &x, int &y, std::string &last_player,
-                       std::string &next_player, int &goal, std::string &difficulty,
-                       bool &enable_capture, bool &enable_double_three_restriction) {
+bool extractMoveFields(const rapidjson::Document& doc, int& x, int& y, std::string& last_player,
+                       std::string& next_player, int& goal, std::string& difficulty,
+                       bool& enable_capture, bool& enable_double_three_restriction) {
   if (doc.HasMember("lastPlay")) {
     x = doc["lastPlay"]["coordinate"]["x"].GetInt();
     y = doc["lastPlay"]["coordinate"]["y"].GetInt();
@@ -42,9 +42,9 @@ bool extractMoveFields(const rapidjson::Document &doc, int &x, int &y, std::stri
   return true;
 }
 
-bool extractEvaluationFields(const rapidjson::Document &doc, int &x, int &y,
-                             std::string &last_player, std::string &next_player, int &goal,
-                             bool &enable_capture, bool &enable_double_three_restriction) {
+bool extractEvaluationFields(const rapidjson::Document& doc, int& x, int& y,
+                             std::string& last_player, std::string& next_player, int& goal,
+                             bool& enable_capture, bool& enable_double_three_restriction) {
   next_player = doc["nextPlayer"].GetString();
   last_player = (next_player[0] == PLAYER_X) ? PLAYER_O : PLAYER_X;
   // x = doc["coordinate"]["x"].GetInt();
@@ -67,13 +67,13 @@ bool extractEvaluationFields(const rapidjson::Document &doc, int &x, int &y,
   return true;
 }
 
-std::vector<std::vector<char> > parseBoardFromJson(const rapidjson::Document &doc) {
+std::vector<std::vector<char> > parseBoardFromJson(const rapidjson::Document& doc) {
   std::vector<std::vector<char> > board_data;
 
   for (rapidjson::SizeType i = 0; i < doc["board"].Size(); i++) {
     std::vector<char> row;
     for (rapidjson::SizeType j = 0; j < doc["board"][i].Size(); j++) {
-      const char *cellStr = doc["board"][i][j].GetString();
+      const char* cellStr = doc["board"][i][j].GetString();
       row.push_back(cellStr[0]);
     }
     board_data.push_back(row);
@@ -81,7 +81,7 @@ std::vector<std::vector<char> > parseBoardFromJson(const rapidjson::Document &do
   return board_data;
 }
 
-bool parseBoard(const rapidjson::Document &doc, std::vector<std::vector<char> > &board_data) {
+bool parseBoard(const rapidjson::Document& doc, std::vector<std::vector<char> >& board_data) {
   if (!doc.HasMember("board") || !doc["board"].IsArray()) {
     std::cerr << "Error: Missing or invalid 'board' field." << std::endl;
     return false;
@@ -91,8 +91,8 @@ bool parseBoard(const rapidjson::Document &doc, std::vector<std::vector<char> > 
   return true;
 }
 
-bool parseScores(const rapidjson::Document &doc, std::string last_player, std::string next_player,
-                 int &last_player_score, int &next_player_score) {
+bool parseScores(const rapidjson::Document& doc, std::string last_player, std::string next_player,
+                 int& last_player_score, int& next_player_score) {
   if (!doc.HasMember("scores") || !doc["scores"].IsArray()) {
     std::cerr << "Error: Missing or invalid 'scores' field." << std::endl;
     return false;
@@ -111,9 +111,9 @@ bool parseScores(const rapidjson::Document &doc, std::string last_player, std::s
 }
 
 // Main parseJson function using ParseResult enum
-ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std::string &error,
+ParseResult parseMoveRequest(const rapidjson::Document& doc, Board*& pBoard, std::string& error,
                              // temporary for storing the position
-                             int *last_x, int *last_y, std::string &difficulty) {
+                             int* last_x, int* last_y, std::string& difficulty) {
   int x, y, goal;
   std::string last_player, next_player;
   std::vector<std::vector<char> > board_data;
@@ -154,9 +154,9 @@ ParseResult parseMoveRequest(const rapidjson::Document &doc, Board *&pBoard, std
   return PARSE_OK;
 }
 
-ParseResult parseEvaluateRequest(const rapidjson::Document &doc, Board *&pBoard, std::string &error,
+ParseResult parseEvaluateRequest(const rapidjson::Document& doc, Board*& pBoard, std::string& error,
                                  // temporary for storing the position
-                                 int *eval_x, int *eval_y) {
+                                 int* eval_x, int* eval_y) {
   int x, y, goal;
   std::string last_player, next_player;
   std::vector<std::vector<char> > board_data;

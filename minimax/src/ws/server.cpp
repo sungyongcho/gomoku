@@ -13,7 +13,7 @@ static bool isPortAvailable(int port) {
     return false;  // Unable to create socket; assume port not available.
   }
   int opt = 1;
-  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&opt, sizeof(opt));
+  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&opt, sizeof(opt));
 
   struct sockaddr_in addr;
   std::memset(&addr, 0, sizeof(addr));
@@ -22,7 +22,7 @@ static bool isPortAvailable(int port) {
   addr.sin_addr.s_addr = INADDR_ANY;
 
   // Try binding to the port.
-  int bindResult = bind(sockfd, (struct sockaddr *)&addr, sizeof(addr));
+  int bindResult = bind(sockfd, (struct sockaddr*)&addr, sizeof(addr));
   close(sockfd);
   return (bindResult == 0);
 }
@@ -49,8 +49,8 @@ Server::Server(int port) {
   info.options = LWS_SERVER_OPTION_HTTP_HEADERS_SECURITY_BEST_PRACTICES_ENFORCE;
 
   /* ── TLS only if both env-vars exist ─────────────────── */
-  const char *cert = std::getenv("CERT_FULLCHAIN");
-  const char *key = std::getenv("CERT_PRIVKEY");
+  const char* cert = std::getenv("CERT_FULLCHAIN");
+  const char* key = std::getenv("CERT_PRIVKEY");
   if (cert && *cert && key && *key) {
     info.options |= LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
     info.ssl_cert_filepath = cert;
@@ -77,7 +77,7 @@ Server::Server(int port) {
   std::cout << "WebSocket Server running on ws://localhost:" << port << "/ws" << std::endl;
 }
 
-void Server::run(volatile std::sig_atomic_t &stopFlag) {
+void Server::run(volatile std::sig_atomic_t& stopFlag) {
   while (!stopFlag) {
     lws_service(context, 100);
   }

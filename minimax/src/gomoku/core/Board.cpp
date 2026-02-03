@@ -2,6 +2,44 @@
 
 #include "Rules.hpp"
 
+namespace {
+
+inline void assertZobristInitialized() {
+  assert(Zobrist::initialized &&
+         "Zobrist keys must be initialized before creating a Board object!");
+}
+
+inline void addScoreAndTurnHash(uint64_t &hash, int last_player, int last_score, int next_player,
+                                int next_score) {
+  hash ^= Zobrist::capture_keys[last_player][last_score];
+  hash ^= Zobrist::capture_keys[next_player][next_score];
+  if (next_player == PLAYER_2) {
+    hash ^= Zobrist::turn_key;
+  }
+}
+
+inline void updatePieceHash(uint64_t &hash, int oldStone, int newStone, int col, int row) {
+  if (oldStone == newStone) return;
+  if (oldStone == PLAYER_1) {
+    hash ^= Zobrist::piece_keys[col][row][PLAYER_1];
+  } else if (oldStone == PLAYER_2) {
+    hash ^= Zobrist::piece_keys[col][row][PLAYER_2];
+  }
+
+  if (newStone == PLAYER_1) {
+    hash ^= Zobrist::piece_keys[col][row][PLAYER_1];
+  } else if (newStone == PLAYER_2) {
+    hash ^= Zobrist::piece_keys[col][row][PLAYER_2];
+  }
+}
+
+inline void updateCaptureScoreHash(uint64_t &hash, int player, int old_score, int new_score) {
+  hash ^= Zobrist::capture_keys[player][old_score];
+  hash ^= Zobrist::capture_keys[player][new_score];
+}
+
+}  // namespace
+
 Board::Board()
     : goal(5),
       last_player(PLAYER_1),
@@ -9,15 +47,10 @@ Board::Board()
       last_player_score(0),
       next_player_score(0),
       currentHash(0) {
-  assert(Zobrist::initialized &&
-         "Zobrist keys must be initialized before creating a Board object!");
+  assertZobristInitialized();
 
   this->reset_bitboard();
-  currentHash ^= Zobrist::capture_keys[PLAYER_1][0];  // Black starts with 0 points
-  currentHash ^= Zobrist::capture_keys[PLAYER_2][0];  // White starts with 0 points
-  if (this->next_player == PLAYER_2) {                // Check if P2 starts by default
-    currentHash ^= Zobrist::turn_key;
-  }
+  addScoreAndTurnHash(currentHash, last_player, last_player_score, next_player, next_player_score);
 }
 
 Board::Board(const Board &other)
@@ -44,18 +77,11 @@ Board::Board(const std::vector<std::vector<char> > &board_data, int goal, int la
       enable_capture(enableCapture),
       enable_double_three_restriction(enableDoubleThreeRestriction),
       currentHash(0) {
-  assert(Zobrist::initialized &&
-         "Zobrist keys must be initialized before creating a Board object!");
+  assertZobristInitialized();
 
   this->reset_bitboard();
   this->init_bitboard_from_data(board_data);
-
-  currentHash ^= Zobrist::capture_keys[this->last_player][this->last_player_score];
-  currentHash ^= Zobrist::capture_keys[this->next_player][this->next_player_score];
-
-  if (this->next_player == PLAYER_2) {
-    currentHash ^= Zobrist::turn_key;
-  }
+  addScoreAndTurnHash(currentHash, last_player, last_player_score, next_player, next_player_score);
 }
 
 Board::Board(int goal, int last_player_int, int next_player_int, int last_score, int next_score,
@@ -68,17 +94,10 @@ Board::Board(int goal, int last_player_int, int next_player_int, int last_score,
       enable_capture(enableCapture),
       enable_double_three_restriction(enableDoubleThreeRestriction),
       currentHash(0) {
-  assert(Zobrist::initialized &&
-         "Zobrist keys must be initialized before creating a Board object!");
+  assertZobristInitialized();
 
   this->reset_bitboard();
-
-  currentHash ^= Zobrist::capture_keys[this->last_player][this->last_player_score];
-  currentHash ^= Zobrist::capture_keys[this->next_player][this->next_player_score];
-
-  if (this->next_player == PLAYER_2) {
-    currentHash ^= Zobrist::turn_key;
-  }
+  addScoreAndTurnHash(currentHash, last_player, last_player_score, next_player, next_player_score);
 }
 
 /**
@@ -159,19 +178,7 @@ void Board::setValueBit(int col, int row, int stone) {
 
   int old_player_at_cell = this->getValueBit(col, row);  // Will be 0, 1, or 2
 
-  // Only update the hash if the state is actually changing.
-  if (old_player_at_cell != stone) {
-    if (old_player_at_cell == PLAYER_1) {
-      this->currentHash ^= Zobrist::piece_keys[col][row][PLAYER_1];
-    } else if (old_player_at_cell == PLAYER_2) {
-      this->currentHash ^= Zobrist::piece_keys[col][row][PLAYER_2];
-    }
-    if (stone == PLAYER_1) {
-      this->currentHash ^= Zobrist::piece_keys[col][row][PLAYER_1];
-    } else if (stone == PLAYER_2) {
-      this->currentHash ^= Zobrist::piece_keys[col][row][PLAYER_2];
-    }
-  }
+  updatePieceHash(this->currentHash, old_player_at_cell, stone, col, row);
 
   // // stone: 0=empty (removal), 1=PLAYER_1, 2=PLAYER_2
   // // update the bitboards (C++98)
@@ -223,11 +230,7 @@ void Board::applyCapture(bool clearCapture) {
     }
 
     if (new_total_score != old_score) {
-      // Update Zobrist hash for the score change:
-      // XOR out the key for the old score, XOR in the key for the new score.
-      this->currentHash ^= Zobrist::capture_keys[capturing_player][old_score];
-      this->currentHash ^= Zobrist::capture_keys[capturing_player][new_total_score];
-
+      updateCaptureScoreHash(this->currentHash, capturing_player, old_score, new_total_score);
       // Update the player's score
       this->last_player_score = new_total_score;
     }
@@ -428,9 +431,8 @@ void Board::undoMove(const UndoInfo &undo_data) {
     //     score_after_capture - score_change;  // Calculate the score before capture
 
     // Update Zobrist hash for score change *before* changing the score variable
-    this->currentHash ^= Zobrist::capture_keys[player_who_moved][score_after_capture];
-    this->currentHash ^= Zobrist::capture_keys
-        [player_who_moved][undo_data.scoreBeforeCapture];  // Assumes keys are for absolute scores
+    updateCaptureScoreHash(this->currentHash, player_who_moved, score_after_capture,
+                           undo_data.scoreBeforeCapture);  // Assumes keys are for absolute scores
 
     // Restore the player's score member variable
     this->next_player_score = undo_data.scoreBeforeCapture;

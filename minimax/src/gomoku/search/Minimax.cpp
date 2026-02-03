@@ -5,10 +5,17 @@
 #include <limits>
 #include <sstream>
 
+#include "Evaluation.hpp"
+
 namespace Minimax {
+
+// ---- Constants & shared state -------------------------------------------------
 
 static const uint64_t rowMask = ((uint64_t)1 << BOARD_SIZE) - 1;
 static std::pair<int, int> killerMoves[MAX_DEPTH + 1][2];
+static const std::pair<int, int> kInvalidMove(-1, -1);
+
+// ---- Bitboard helpers ---------------------------------------------------------
 
 // Horizontal shifts for a row.
 inline uint64_t shiftRowLeft(uint64_t row) { return (row << 1) & rowMask; }
@@ -35,26 +42,68 @@ void computeNeighborMask(const uint64_t occupancy[BOARD_SIZE], uint64_t neighbor
   }
 }
 
+// ---- Move generation helpers --------------------------------------------------
+
+inline uint64_t computeCandidateMask(uint64_t occupancyRow, uint64_t neighborRow) {
+  return neighborRow & (~occupancyRow) & rowMask;
+}
+
+inline int initialExtreme(bool isMaximizing) {
+  return isMaximizing ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+}
+
+inline bool timeExceeded(clock_t start, clock_t limit) {
+  return (clock() - start) >= limit;
+}
+
+inline void updateBestAndBounds(bool isMaximizing, int eval, const std::pair<int, int> &mv,
+                                int &bestEval, std::pair<int, int> &bestMove, int &alpha,
+                                int &beta) {
+  if (isMaximizing) {
+    if (eval > bestEval) {
+      bestEval = eval;
+      bestMove = mv;
+    }
+    alpha = std::max(alpha, eval);
+  } else {
+    if (eval < bestEval) {
+      bestEval = eval;
+      bestMove = mv;
+    }
+    beta = std::min(beta, eval);
+  }
+}
+
+inline bool shouldIncludeMove(Board *board, int col, int row, int player,
+                              bool enableDoubleThreeRestriction) {
+  if (!enableDoubleThreeRestriction) return true;
+  if (!Rules::detectDoublethree(*board, col, row, player)) return true;
+
+  return Rules::detectCaptureStonesNotStore(*board, col, row, player);
+}
+
+inline bool isCaptureMove(Board *board, int col, int row, int player) {
+  return Rules::detectCaptureStonesNotStore(*board, col, row, player);
+}
+
+// ---- Move generation ----------------------------------------------------------
+
 // Generate candidate moves using row-based neighbor mask.
 std::vector<std::pair<int, int> > generateCandidateMoves(Board *&board) {
   std::vector<std::pair<int, int> > moves;
   uint64_t occupancy[BOARD_SIZE];
   uint64_t neighbor[BOARD_SIZE];
+  int nextPlayer = board->getNextPlayer();
+  bool enableDoubleThreeRestriction = board->getEnableDoubleThreeRestriction();
 
   board->getOccupancy(occupancy);
   computeNeighborMask(occupancy, neighbor);
 
   for (int row = 0; row < BOARD_SIZE; row++) {
-    uint64_t candidates = neighbor[row] & (~occupancy[row]) & rowMask;
+    uint64_t candidates = computeCandidateMask(occupancy[row], neighbor[row]);
     for (int col = 0; col < BOARD_SIZE; col++) {
       if (candidates & (1ULL << col)) {
-        bool enableDoubleThreeRestriction = board->getEnableDoubleThreeRestriction();
-        bool isDoubleThree =
-            enableDoubleThreeRestriction
-                ? Rules::detectDoublethreeBit(*board, col, row, board->getNextPlayer())
-                : false;
-        if (!isDoubleThree ||
-            Rules::detectCaptureStonesNotStore(*board, col, row, board->getNextPlayer()))
+        if (shouldIncludeMove(board, col, row, nextPlayer, enableDoubleThreeRestriction))
           moves.push_back(std::make_pair(col, row));
       }
     }
@@ -66,21 +115,24 @@ std::vector<std::pair<int, int> > generateCaptureMoves(Board *&board) {
   std::vector<std::pair<int, int> > moves;
   uint64_t occupancy[BOARD_SIZE];
   uint64_t neighbor[BOARD_SIZE];
+  int nextPlayer = board->getNextPlayer();
 
   board->getOccupancy(occupancy);
   computeNeighborMask(occupancy, neighbor);
 
   for (int row = 0; row < BOARD_SIZE; row++) {
-    uint64_t candidates = neighbor[row] & (~occupancy[row]) & rowMask;
+    uint64_t candidates = computeCandidateMask(occupancy[row], neighbor[row]);
     for (int col = 0; col < BOARD_SIZE; col++) {
       if (candidates & (1ULL << col)) {
-        if (Rules::detectCaptureStonesNotStore(*board, col, row, board->getNextPlayer()))
+        if (isCaptureMove(board, col, row, nextPlayer))
           moves.push_back(std::make_pair(col, row));
       }
     }
   }
   return moves;
 }
+
+// ---- Debug utilities ----------------------------------------------------------
 
 void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, int> > &candidates) {
   // Create a 2D display grid.
@@ -110,10 +162,12 @@ void printBoardWithCandidates(Board *&board, const std::vector<std::pair<int, in
   std::cout << std::flush;
 }
 
+// ---- Killer moves -------------------------------------------------------------
+
 void initKillerMoves() {
   for (int d = 0; d < MAX_DEPTH; ++d) {
-    killerMoves[d][0] = std::make_pair(-1, -1);
-    killerMoves[d][1] = std::make_pair(-1, -1);
+    killerMoves[d][0] = kInvalidMove;
+    killerMoves[d][1] = kInvalidMove;
   }
 }
 
@@ -141,6 +195,8 @@ struct CompareScoredMovesMin {
     return a.score < b.score;
   }
 };
+
+// ---- Search helpers -----------------------------------------------------------
 
 int quiescenceSearch(Board *board, int alpha, int beta, bool isMaximizing, int x, int y, int depth,
                      EvalFn evalFn) {
@@ -293,19 +349,7 @@ inline bool tryMoveAndCutoff(Board *board, const std::pair<int, int> &mv, int de
   board->undoMove(ui);
 
   // 4) update bestEval & α/β
-  if (isMaximizing) {
-    if (eval > bestEval) {
-      bestEval = eval;
-      bestMoveForNode = mv;
-    }
-    alpha = std::max(alpha, eval);
-  } else {
-    if (eval < bestEval) {
-      bestEval = eval;
-      bestMoveForNode = mv;
-    }
-    beta = std::min(beta, eval);
-  }
+  updateBestAndBounds(isMaximizing, eval, mv, bestEval, bestMoveForNode, alpha, beta);
 
   // 5) on cutoff, record killer & TT and tell caller to exit
   if (alpha >= beta) {
@@ -322,12 +366,14 @@ inline bool tryMoveAndCutoff(Board *board, const std::pair<int, int> &mv, int de
   return false;
 }
 
+// ---- Main search --------------------------------------------------------------
+
 int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int lastX, int lastY,
             bool isMaximizing, EvalFn evalFn) {
   // --- Alpha-Beta Preamble ---
   int initial_alpha = alpha;            // Store original alpha for TT storing logic later
   uint64_t preHash = board->getHash();  // *** Requires Board::getHash() ***
-  std::pair<int, int> bestMoveFromTT = std::make_pair(-1, -1);  // Candidate Hash Move from TT
+  std::pair<int, int> bestMoveFromTT = kInvalidMove;  // Candidate Hash Move from TT
   int ttScore;
   if (probeTT(board, depth, alpha, beta, bestMoveFromTT, ttScore)) return ttScore;
 
@@ -345,8 +391,8 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
     return evalScore;
   }
 
-  int bestEval = isMaximizing ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
-  std::pair<int, int> bestFromNode(-1, -1);
+  int bestEval = initialExtreme(isMaximizing);
+  std::pair<int, int> bestFromNode(kInvalidMove);
 
   if (processHashMove(board, bestMoveFromTT, depth, alpha, beta, isMaximizing, bestFromNode,
                       bestEval, evalFn)) {
@@ -361,11 +407,11 @@ int minimax(Board *board, int depth, int alpha, int beta, int currentPlayer, int
   if (moves.empty()) {
     int final_eval = (*evalFn)(board, currentPlayer, lastX, lastY);
     // Store this terminal evaluation in TT
-    transTable[currentHash] = TTEntry(final_eval, depth, std::make_pair(-1, -1), EXACT);
+    transTable[currentHash] = TTEntry(final_eval, depth, kInvalidMove, EXACT);
     return final_eval;
   }
 
-  std::pair<int, int> bestMoveForNode = std::make_pair(-1, -1);
+  std::pair<int, int> bestMoveForNode = kInvalidMove;
 
   std::vector<ScoredMove> scored_moves;
   scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored_moves, evalFn);
@@ -386,7 +432,7 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
                 std::pair<int, int> &bestMoveOut, int &bestScoreOut, clock_t startTime,
                 clock_t timeLimitClocks, bool &timedOut, EvalFn evalFn) {
   // 0) pre‐timer check
-  if ((clock() - startTime) >= timeLimitClocks) {
+  if (timeExceeded(startTime, timeLimitClocks)) {
     timedOut = true;
     return true;
   }
@@ -394,7 +440,7 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
   // 1) TT lookup
   uint64_t h0 = board->getHash();
   int alpha0 = alpha;
-  std::pair<int, int> ttMv(-1, -1);
+  std::pair<int, int> ttMv(kInvalidMove);
   boost::unordered_map<uint64_t, TTEntry>::iterator it = transTable.find(h0);
   if (it != transTable.end()) {
     ttMv = it->second.bestMove;
@@ -410,7 +456,7 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
   }
 
   // 3) timer check again
-  if ((clock() - startTime) >= timeLimitClocks) {
+  if (timeExceeded(startTime, timeLimitClocks)) {
     timedOut = true;
     return true;
   }
@@ -435,11 +481,11 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
   }
 
   // 6) main loop
-  bestScoreOut = isMaximizing ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+  bestScoreOut = initialExtreme(isMaximizing);
 
   for (size_t i = 0; i < scored.size(); ++i) {
     // inside‐loop timer check
-    if ((clock() - startTime) >= timeLimitClocks) {
+    if (timeExceeded(startTime, timeLimitClocks)) {
       std::cout << "Time limit exceeded during depth " << depth << "!" << std::endl;
       timedOut = true;
       return true;
@@ -455,21 +501,9 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
     // std::cout << "  Depth " << depth << " Move (" << mv.first << "," << mv.second
     //           << ") score: " << val << std::endl;
 
-    if (isMaximizing) {
-      if (val > bestScoreOut) {
-        bestScoreOut = val;
-        bestMoveOut = mv;
-        alpha = std::max(alpha, val);
-      }
-    } else {
-      if (val < bestScoreOut) {
-        bestScoreOut = val;
-        bestMoveOut = mv;
-        beta = std::min(beta, val);
-      }
-    }
+    updateBestAndBounds(isMaximizing, val, mv, bestScoreOut, bestMoveOut, alpha, beta);
 
-    if ((clock() - startTime) >= timeLimitClocks) {
+    if (timeExceeded(startTime, timeLimitClocks)) {
       std::cout << "Time limit exceeded AFTER completing depth " << depth << " loop." << std::endl;
     }
   }
@@ -481,7 +515,7 @@ bool rootSearch(Board *board, int depth, int &alpha, int &beta, bool isMaximizin
 
 std::pair<int, int> getBestMove(Board *board, int depth, EvalFn evalFn) {
   int bestScore = std::numeric_limits<int>::min();
-  std::pair<int, int> bestMove = std::make_pair(-1, -1);
+  std::pair<int, int> bestMove = kInvalidMove;
 
   int alpha = std::numeric_limits<int>::min();  // Initial alpha = -infinity
   int beta = std::numeric_limits<int>::max();   // Initial beta = +infinity
@@ -509,7 +543,7 @@ std::pair<int, int> iterativeDeepening(Board *board, int maxDepth, double timeLi
 
   for (int d = 1; d <= maxDepth; ++d) {
     int bestScore;
-    std::pair<int, int> bestMove(-1, -1);
+    std::pair<int, int> bestMove(kInvalidMove);
     bool timedOut = false;
 
     // 1) First search with the *current* window
@@ -545,7 +579,7 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
         bool isMaximizing, EvalFn evalFn) {
   int alphaOrig = alpha;  // for TT flag
   uint64_t hash = board->getHash();
-  std::pair<int, int> ttMove(-1, -1);
+  std::pair<int, int> ttMove(kInvalidMove);
   int ttScore;
 
   // ---- 1.  TT probe ---------------------------------------
@@ -570,8 +604,8 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
   scoreAndSortMoves(board, moves, currentPlayer, depth, isMaximizing, scored, evalFn);
 
   bool firstChild = true;
-  std::pair<int, int> bestMove(-1, -1);
-  int bestEval = isMaximizing ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+  std::pair<int, int> bestMove(kInvalidMove);
+  int bestEval = initialExtreme(isMaximizing);
 
   for (size_t i = 0; i < scored.size(); ++i) {
     const std::pair<int, int> &mv = scored[i].move;
@@ -599,19 +633,7 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
     board->undoMove(ui);
 
     // ------- α/β update + best-move tracking -------------
-    if (isMaximizing) {
-      if (score > bestEval) {
-        bestEval = score;
-        bestMove = mv;
-      }
-      if (score > alpha) alpha = score;
-    } else {
-      if (score < bestEval) {
-        bestEval = score;
-        bestMove = mv;
-      }
-      if (score < beta) beta = score;
-    }
+    updateBestAndBounds(isMaximizing, score, mv, bestEval, bestMove, alpha, beta);
     if (alpha >= beta) {  // cut-off
       // killer-move table
       if (!isKillerMove(depth, mv)) {
@@ -644,7 +666,7 @@ std::pair<int, int> getBestMovePVS(Board *board, int depth,
 
   int alpha = std::numeric_limits<int>::min();
   int beta = std::numeric_limits<int>::max();
-  std::pair<int, int> bestMove(-1, -1);
+  std::pair<int, int> bestMove(kInvalidMove);
   int bestScore = std::numeric_limits<int>::min();
 
   for (size_t i = 0; i < ordered.size(); ++i) {
