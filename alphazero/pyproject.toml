@@ -1,12 +1,117 @@
+
+
+
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = [
+  "scikit-build-core>=0.10",
+  "cmake==4.2.0",
+  "ninja",
+  "pybind11==3.0.1",
+]
+build-backend = "scikit_build_core.build"
 
 [project]
-name = "alphazero"
+name = "gmk-refactor"
 version = "0.1.0"
-requires-python = ">=3.8"
-# Do not list requirements here if you're using requirements.txt
+description = "Gomoku AlphaZero refactor"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "numpy==2.3.3",
+  "pyyaml==6.0.2",
+  "tqdm==4.67.1",
+  "fsspec==2025.9.0",
+  "pyarrow==21.0.0",
+  "pydantic==2.12.5",
+  "google-api-python-client",
+  "ray",
+]
 
-[tool.setuptools.packages.find]
-where = ["."]
+[project.optional-dependencies]
+dev = [
+  "pytest==9.0.1",
+  "pytest-cov==7.0.0",
+  "coverage==7.12.0",
+  "ruff>=0.6",
+]
+torch-cpu = [
+  "torch==2.9.1+cpu",
+  "torchvision==0.24.1+cpu",
+]
+torch-cu121 = [
+  "torch==2.9.1+cu121",
+  "torchvision==0.24.1+cu121",
+]
+
+[tool.scikit-build]
+cmake.version = ">=4.2.0"
+cmake.source-dir = "cpp"
+ninja.make-fallback = true
+wheel.packages = ["gomoku"]
+
+[tool.scikit-build.sdist]
+include = [
+  "cpp/CMakeLists.txt",
+  "cpp/src/**",
+  "cpp/include/**",
+]
+
+[tool.ruff]
+# Black 기본값이 88이라 그대로 쓰거나, 본인 취향대로 100~120으로 올려도 됩니다.
+line-length = 88
+# 지금 쓰시는 버전에 맞춰서 (3.13 쓰시면 "py313")
+target-version = "py313"
+# CLI에서 ruff check 할 때 기본적으로 --fix 켜지게
+fix = true
+
+[tool.ruff.format]
+# 포매터(Black 대체) 설정
+quote-style = "double"          # "single" 좋아하시면 "single" 로 바꾸시면 됩니다.
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true    # docstring 안의 코드블럭도 포맷할지
+
+[tool.ruff.lint]
+# Flake8 + 플러그인 + isort + pyupgrade + pydocstyle 를 한방에
+select = [
+    "E",   # pycodestyle (PEP8 에러)
+    "W",   # pycodestyle (PEP8 워닝)
+    "F",   # pyflakes
+    "B",   # flake8-bugbear
+    "I",   # isort (import 정리)
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "D",   # pydocstyle (docstring)
+	"ANN", # flake8-annotations
+]
+ignore = [
+    "E203",   # Black/Ruff 포맷이랑 충돌 방지
+    "E266",   # 너무 빡센 # comment 들 관련
+    "D203",   # Google/Numpy 스타일과 충돌하는 docstring 룰
+    "D212",
+	"D100",
+	"D205",
+
+	"ANN101",
+	"ANN102",
+	"ANN002",
+	"ANN003",
+	"ANN204"
+]
+fixable = ["ALL"]
+unfixable = []
+
+# __init__.py에서 import만 하고 안 쓰는 건 허용
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*.py" = ["ANN201"]
+
+# isort 설정 (import 정렬)
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+# 여기에는 프로젝트의 1st-party 패키지 이름들을 넣어 주세요.
+known-first-party = ["gomoku"]
+
+# pydocstyle 설정 (docstring 스타일)
+[tool.ruff.lint.pydocstyle]

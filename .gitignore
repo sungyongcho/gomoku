@@ -60,3 +60,12 @@ Thumbs.db
 *.log
 log/
 logs/
+
+
+# alphazero
+
+alphazero/runs/**
+!alphazero/runs
+alphazero/cpp/build/
+alphazero/gomoku/cpp_ext/*
+!alphazero/gomoku/cpp_ext/.gitkeep

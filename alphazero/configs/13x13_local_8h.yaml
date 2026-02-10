@@ -1,0 +1,101 @@
+# ============================================================
+# 13x13 Local Training - 8시간 목표
+# CPU 전용 (AMD iGPU - CUDA 미지원)
+# Target: 일반인 수준 이상
+# ============================================================
+
+board:
+  num_lines: 13 # 13x13 보드
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5 # 메모리 절약
+
+model:
+  num_hidden: 64 # 작은 모델 (CPU 속도 위해)
+  num_resblocks: 6 # 6 blocks (빠른 추론)
+
+mcts:
+  C: 5.0
+  num_searches: 200 # CPU에서 적당한 속도
+  exploration_turns: 12 # 13x13는 짧은 게임
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.3
+  batch_infer_size: 16 # CPU 배치 크기
+  min_batch_size: 4
+  max_batch_wait_ms: 10
+  use_native: true
+
+  resign_threshold: 0.95
+  resign_enabled: false
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 50 # 8시간 내 50 iterations 목표
+  num_selfplay_iterations: 500 # 게임 수 줄임 (속도)
+  num_epochs: 3
+  batch_size: 256 # 작은 배치
+  learning_rate: 0.002
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 100000 # 버퍼 줄임
+  min_samples_to_train: 5000
+  priority_replay:
+    enabled: true
+    start_iteration: 10
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 8 # CPU 코어 활용
+  enable_tf32: false
+  use_channels_last: false
+  random_play_ratio: 0.0
+  opponent_rates:
+    random_bot_ratio: 0.1 # 랜덤 봇 비율 높임
+    prev_bot_ratio: 0.3
+
+evaluation:
+  num_eval_games: 20 # 평가 게임 줄임
+  eval_every_iters: 5 # 5 iteration마다 평가
+  promotion_win_rate: 0.55
+  eval_num_searches: 400
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  baseline_num_searches: 0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 64
+    games_per_actor: 20
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.0 # GPU 사용 안함
+    num_actors: 1
+    actor_num_cpus: 2.0
+    use_local_inference: true # 로컬 추론
+  evaluation:
+    num_workers: 8
+
+paths:
+  use_gcs: false # 로컬 저장
+  run_prefix: "runs"
+  run_id: 13x13-local-8h
+
+parallel:
+  ray_local_num_workers: 12 # 16 threads 중 12개 사용
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

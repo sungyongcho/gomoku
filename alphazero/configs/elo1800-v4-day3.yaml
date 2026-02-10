@@ -1,0 +1,113 @@
+# ============================================================
+# V4 Day 3 Configuration - 탐색 다양화 지속
+# Target: Elo 1800+ (일반인 압살 수준)
+# Iterations: 65-94
+# 핵심: dirichlet 0.30, temp 0.75 유지, num_searches 600
+# ============================================================
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 12
+
+mcts:
+  C: 2.0
+  num_searches:
+    - { until: 30, value: 200 }
+    - { until: 60, value: 400 }
+    - { until: 100, value: 600 } # Day 2.5~3: 탐색 다양화
+  exploration_turns: 20
+  dirichlet_epsilon: 0.30 # 0.25 → 0.30 (탐색 다양화 유지)
+  dirichlet_alpha: 0.15
+  batch_infer_size: 64
+  min_batch_size: 8
+  max_batch_wait_ms: 5
+  use_native: true
+
+  resign_threshold: 0.95
+  resign_enabled: false
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 100 # Day 3 목표
+  num_selfplay_iterations:
+    - { until: 30, value: 3000 }
+    - { until: 60, value: 2500 }
+    - { until: 100, value: 2000 } # 품질 중시
+  num_epochs: 2
+  batch_size: 512
+  learning_rate:
+    - { until: 30, value: 0.002 }
+    - { until: 100, value: 0.001 } # Day 3: LR 유지 (편향 교정)
+  weight_decay: 0.0001
+  temperature:
+    - { until: 30, value: 1.0 }
+    - { until: 100, value: 0.75 } # 탐색 다양화 전체 유지
+  replay_buffer_size: 500000
+  min_samples_to_train: 10000
+  priority_replay:
+    enabled: true
+    start_iteration: 15
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 4
+  enable_tf32: true
+  use_channels_last: true
+  random_play_ratio:
+    - { until: 100, value: 0.0 }
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 2
+  promotion_win_rate: 0.55
+  eval_num_searches: 600
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  baseline_num_searches: 0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 256
+    games_per_actor: 80
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.25
+    num_actors: 4
+    actor_num_cpus: 1.0
+    use_local_inference: false
+  evaluation:
+    num_workers: 40
+
+paths:
+  use_gcs: true
+  run_prefix: "gomoku-refactor-testing"
+  run_id: elo1800-gcp-v4
+
+parallel:
+  ray_local_num_workers: -1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

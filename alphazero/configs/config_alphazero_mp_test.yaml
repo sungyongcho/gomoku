@@ -1,0 +1,72 @@
+board:
+  num_lines: 5
+  enable_doublethree: false
+  enable_capture: false
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 1
+
+model:
+  num_hidden: 8
+  num_resblocks: 1
+
+training:
+  num_iterations: 1
+  num_selfplay_iterations: 1
+  num_epochs: 1
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 100
+  min_samples_to_train: 1
+  random_play_ratio: 0.0
+  dataloader_num_workers: 0
+  dataloader_prefetch_factor: 2
+  enable_tf32: false
+  use_channels_last: false
+
+mcts:
+  C: 1.5
+  num_searches: 4
+  exploration_turns: 2
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.3
+  batch_infer_size: 4
+  max_batch_wait_ms: 0
+  min_batch_size: 1
+
+parallel:
+  num_parallel_games: 2
+  mp_num_workers: 2
+  ray_local_num_workers: 0
+
+paths:
+  use_gcs: false
+  run_id: mp_test
+
+io: {}
+
+evaluation:
+  num_eval_games: 0
+  eval_every_iters: 1
+  promotion_win_rate: 0.55
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  random_play_ratio: 0.0
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  eval_num_searches: 0
+  baseline_num_searches: 0
+  use_sprt: false
+  fast_eval:
+    enabled: false
+    num_games: 0
+    num_searches: 0
+    promote_threshold: 0.0
+    reject_threshold: 0.0

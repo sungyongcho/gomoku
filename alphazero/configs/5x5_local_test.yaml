@@ -1,0 +1,94 @@
+board:
+  num_lines: 5
+  enable_doublethree: false
+  enable_capture: true
+  capture_goal: 2
+  gomoku_goal: 4
+
+model:
+  num_hidden: 64
+  num_resblocks: 5
+
+mcts:
+  C: 1.5
+  num_searches:
+    - { until: 10, value: 160 }
+    - { until: 20, value: 120 }
+    - { until: 30, value: 96 }
+    - { until: 50, value: 96 }
+  exploration_turns: 3
+  dirichlet_epsilon: 0.15
+  dirichlet_alpha: 0.3
+  batch_infer_size: 16
+  max_batch_wait_ms: 0
+  min_batch_size: 4
+
+training:
+  num_iterations: 50
+  num_selfplay_iterations: 150
+  num_epochs: 2
+  batch_size: 32
+  learning_rate:
+    - { until: 10, value: 0.0015 }
+    - { until: 20, value: 0.0008 }
+    - { until: 50, value: 0.0004 }
+  weight_decay: 0.0001
+  temperature:
+    - { until: 10, value: 0.8 }
+    - { until: 20, value: 0.6 }
+    - { until: 50, value: 0.4 }
+  replay_buffer_size: 50000
+  min_samples_to_train: 256
+  random_play_ratio:
+    - { until: 10, value: 0.05 }
+    - { until: 20, value: 0.03 }
+    - { until: 50, value: 0.02 }
+  priority_replay:
+    enabled: false
+  dataloader_num_workers: 1
+  dataloader_prefetch_factor: 1
+  enable_tf32: false
+  use_channels_last: false
+
+evaluation:
+  num_eval_games: 30
+  eval_every_iters: 1
+  promotion_win_rate: 0.55
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  random_play_ratio: 0.0
+  eval_opening_turns: 2
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  eval_num_searches: 160
+  baseline_num_searches: 0
+  use_sprt: false
+  fast_eval:
+    enabled: false
+    num_games: 0
+    num_searches: 0
+    promote_threshold: 0.0
+    reject_threshold: 0.0
+
+paths:
+  use_gcs: false
+  run_id: local_5x5_test
+
+parallel:
+  num_parallel_games: 8
+  mp_num_workers: 4
+  ray_local_num_workers: 4
+
+io:
+  checkpoint_interval_min: 5
+  initial_replay_shards: null
+  initial_replay_iters: null
+  max_replay_iters_kept: 5
+  max_samples_per_shard: 2000
+  local_replay_cache: /tmp/gmk_replay_cache
+
+runtime: null

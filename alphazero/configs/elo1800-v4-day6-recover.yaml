@@ -1,0 +1,131 @@
+# ============================================================
+# V4 Day 6 Recover Configuration - 커스텀 룰 복구(흑/백 더블쓰리)
+# Target: 규칙 정합화 이후 opening 다양성 회복 + 점진적 재수렴
+# Iterations: 138-164
+# ============================================================
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 12
+
+mcts:
+  C: 2.0
+  num_searches:
+    - { until: 30, value: 200 }
+    - { until: 60, value: 400 }
+    - { until: 100, value: 1000 }
+    - { until: 110, value: 1600 }
+    - { until: 135, value: 2400 }
+    - { until: 150, value: 1600 } # Recover phase: 고착 완화
+    - { until: 164, value: 2200 } # Recover phase: 재수렴
+  exploration_turns: 28
+  dirichlet_epsilon:
+    - { until: 30, value: 0.25 }
+    - { until: 60, value: 0.28 }
+    - { until: 100, value: 0.35 }
+    - { until: 110, value: 0.34 }
+    - { until: 135, value: 0.32 }
+    - { until: 150, value: 0.42 }
+    - { until: 164, value: 0.35 }
+  dirichlet_alpha: 0.15
+  batch_infer_size: 64
+  min_batch_size: 8
+  max_batch_wait_ms: 5
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 164
+  num_selfplay_iterations:
+    - { until: 30, value: 3000 }
+    - { until: 60, value: 2500 }
+    - { until: 100, value: 1800 }
+    - { until: 110, value: 1500 }
+    - { until: 135, value: 1200 }
+    - { until: 164, value: 1200 }
+  num_epochs: 2
+  batch_size: 512
+  learning_rate:
+    - { until: 30, value: 0.002 }
+    - { until: 110, value: 0.001 }
+    - { until: 135, value: 0.0008 }
+    - { until: 150, value: 0.001 }  # Recovery: faster policy adaptation
+    - { until: 164, value: 0.0007 } # Taper for convergence
+  weight_decay: 0.0001
+  temperature:
+    - { until: 30, value: 1.0 }
+    - { until: 110, value: 0.75 }
+    - { until: 135, value: 0.85 }
+    - { until: 150, value: 1.10 }
+    - { until: 164, value: 0.95 }
+  replay_buffer_size: 450000
+  min_samples_to_train: 10000
+  priority_replay:
+    enabled: false
+    start_iteration: 15
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 4
+  enable_tf32: true
+  use_channels_last: true
+  random_play_ratio:
+    - { until: 164, value: 0.0 }
+  opponent_rates:
+    random_bot_ratio: 0.08
+    prev_bot_ratio: 0.25
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 2
+  promotion_win_rate: 0.55
+  eval_num_searches: 1000
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 16
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 6
+  eval_temperature: 1.0
+  eval_dirichlet_epsilon: 0.2
+  baseline_num_searches: 600
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 192
+    games_per_actor: 80
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.08
+    num_actors: 12
+    actor_num_cpus: 1.0
+    use_local_inference: false
+  evaluation:
+    num_workers: 40
+
+paths:
+  use_gcs: true
+  run_prefix: "gmk-testing-refactoring"
+  run_id: elo1800-gcp-v4
+
+parallel:
+  ray_local_num_workers: -1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

@@ -1,0 +1,97 @@
+board:
+  num_lines: 9
+  enable_doublethree: false
+  enable_capture: true
+  capture_goal: 3
+  gomoku_goal: 5
+
+model:
+  num_hidden: 64
+  num_resblocks: 5
+
+mcts:
+  C: 2.0
+  # [Tuning] Ryzen 7 CPU has strong single-core performance.
+  # 200 searches is enough to beat average humans on 9x9 if trained well.
+  num_searches:
+    - { until: 40, value: 200 }
+  exploration_turns: 8  # Reduced to speed up games (decisive moves happen earlier)
+  dirichlet_epsilon: 0.25 # Slightly reduced noise for sharper play
+  dirichlet_alpha: 0.3
+  batch_infer_size: 8
+  min_batch_size: 4
+  max_batch_wait_ms: 5 # Reduced latency for faster CPU inference
+  use_native: true
+  # Adjudication (Early Resignation) - speeds up data collection 2x+
+  resign_threshold: 0.95  # Resign when value confidence exceeds this threshold
+  resign_enabled: true     # Enable early resignation
+  min_moves_before_resign: 10  # Minimum moves before allowing resignation
+
+training:
+  # [Tuning] 40 iters * 200 games = 8000 games. Fits in ~3.5 hours on 12 workers.
+  num_iterations: 40
+  num_selfplay_iterations: 200
+  num_epochs: 4 # Train a bit more per data batch since data is precious
+  batch_size: 128 # 48GB RAM is plenty. 128 is stable.
+  learning_rate:
+    - { until: 15, value: 0.002 }
+    - { until: 30, value: 0.001 } # Decay earlier
+    - { until: 40, value: 0.0005 }
+  weight_decay: 0.0001
+  temperature:
+    - { until: 10, value: 1.0 }
+    - { until: 20, value: 0.75 } # Cool down faster to exploit good moves
+    - { until: 40, value: 0.25 }
+  replay_buffer_size: 20000 # Keep fresh data dominant
+  min_samples_to_train: 500
+  priority_replay:
+    enabled: false
+  dataloader_num_workers: 2 # Slight increase for data loading
+  enable_tf32: false
+  use_channels_last: true # Often faster on modern CPUs (memory layout)
+  random_play_ratio:
+    - { until: 40, value: 0.0 } # Disable random play to focus on quality data
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 20 # Reduce eval games to save time (20 is enough for trend)
+  eval_every_iters: 2 # Eval every 2 iters to save time
+  promotion_win_rate: 0.55
+  eval_num_searches: 400
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 0 # Test pure strength
+  eval_temperature: 0.0 # Strict Argmax
+  eval_dirichlet_epsilon: 0.0
+  baseline_num_searches: 0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0           # 스키마에 있는 필드만 사용
+    inflight_per_actor: null
+  inference:
+    actor_num_gpus: 0             # 스키마에 있는 필드
+    use_local_inference: true
+
+paths:
+  use_gcs: false
+  run_id: 9x9_local_test
+
+parallel:
+  num_parallel_games: 10
+  mp_num_workers: 10
+  ray_local_num_workers: 8
+
+io:
+  max_samples_per_shard: 5000
+  local_replay_cache: /tmp/gmk_replay_cache
+
+

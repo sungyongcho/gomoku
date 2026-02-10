@@ -1,0 +1,93 @@
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 10
+
+mcts:
+  C: 2.0
+  num_searches: 200 # Fixed value for benchmark at iteration 1
+  exploration_turns: 16
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.3
+  batch_infer_size: 64
+  min_batch_size: 8
+  max_batch_wait_ms: 2
+  use_native: true
+
+  resign_threshold: 0.95
+  resign_enabled: true
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 1
+  num_selfplay_iterations: 1
+  num_epochs: 1
+  batch_size: 32
+  learning_rate: 0.002
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 200000
+  min_samples_to_train: 100000 # Set high to skip training
+  priority_replay:
+    enabled: true
+    start_iteration: 10
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 0
+  enable_tf32: false
+  use_channels_last: false
+  random_play_ratio: 0.0
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 0 # Disable evaluation
+  eval_every_iters: 100
+  promotion_win_rate: 0.55
+  eval_num_searches: 600
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  baseline_num_searches: 0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 32
+    games_per_actor: 4
+  inference:
+    actor_num_gpus: 0.0
+    num_actors: 0
+    actor_num_cpus: 1.0
+    use_local_inference: true
+
+paths:
+  use_gcs: false
+  run_prefix: "local-bench"
+  run_id: "bench-19x19-seq"
+
+parallel:
+  ray_local_num_workers: 1
+  mp_num_workers: 1
+  num_parallel_games: 1
+
+io:
+  max_samples_per_shard: 5000
+  local_replay_cache: /tmp/gmk_replay_cache

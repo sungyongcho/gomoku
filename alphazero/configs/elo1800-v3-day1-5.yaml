@@ -1,0 +1,101 @@
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 10
+
+mcts:
+  C: 2.0
+  num_searches:
+    - { until: 25, value: 100 }
+  exploration_turns: 20
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.3
+  batch_infer_size: 64
+  min_batch_size: 8
+  max_batch_wait_ms: 5
+  use_native: true
+
+  resign_threshold: 0.95
+  resign_enabled: true
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 25 # Target remains 25 (Day 1 goal)
+  num_selfplay_iterations:
+    - { until: 25, value: 2000 }
+  num_epochs: 5
+  batch_size: 512
+  learning_rate:
+    - { until: 25, value: 0.001 } # BOOSTED: 5x LR to fix underfitting
+  weight_decay: 0.0001
+  temperature:
+    - { until: 25, value: 1.0 }
+  replay_buffer_size: 1000000
+  min_samples_to_train: 10000
+  priority_replay:
+    enabled: true
+    start_iteration: 10
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 4
+  enable_tf32: true
+  use_channels_last: true
+  random_play_ratio:
+    - { until: 10, value: 0.05 }
+    - { until: 25, value: 0.02 }
+  opponent_rates:
+    random_bot_ratio: 0.05
+    prev_bot_ratio: 0.3
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 1
+  promotion_win_rate: 0.55
+  eval_num_searches: 600
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  baseline_num_searches: 0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 256
+    games_per_actor: 80
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.25
+    num_actors: 4
+    actor_num_cpus: 1.0
+    use_local_inference: false
+  evaluation:
+    num_workers: 40
+
+paths:
+  use_gcs: true
+  run_prefix: "gmk-refactor-v1"
+  run_id: elo1800-gcp-v3 # CONTINUATION: Same run ID
+
+parallel:
+  ray_local_num_workers: -1
+
+io:
+  max_samples_per_shard: 5000
+  local_replay_cache: /tmp/gmk_replay_cache

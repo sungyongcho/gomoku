@@ -1,0 +1,118 @@
+# ============================================================
+# V4 Day 5 Configuration - 고탐색 모드 (Opening 학습)
+# Target: 중앙 Opening 강제 탐색 + 저품질 데이터 제거
+# Iterations: 111-137 (72시간 기준, 약 27 iterations)
+# 핵심: Search 2400, Temp 0.85, Dirichlet 0.35, Explore 25, Buffer 400K
+# ============================================================
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 12
+
+mcts:
+  C: 2.0
+  num_searches:
+    - { until: 30, value: 200 }
+    - { until: 60, value: 400 }
+    - { until: 100, value: 1000 } # Day 3.5
+    - { until: 110, value: 1600 } # Day 4
+    - { until: 137, value: 2400 } # Day 5: 전술 완전 해독
+  exploration_turns: 25 # Day 5: 고탐색 (중앙 Opening 학습)
+  dirichlet_epsilon: 0.35 # Day 5: 높은 탐색 다양성
+  dirichlet_alpha: 0.15
+  batch_infer_size: 64
+  min_batch_size: 8
+  max_batch_wait_ms: 5
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 137 # Day 5 최종 목표 (72시간)
+  num_selfplay_iterations:
+    - { until: 30, value: 3000 }
+    - { until: 60, value: 2500 }
+    - { until: 100, value: 1800 } # Day 3.5
+    - { until: 110, value: 1500 } # Day 4
+    - { until: 137, value: 1200 } # Day 5: Depth 증가로 수량 조정
+  num_epochs: 2
+  batch_size: 512
+  learning_rate:
+    - { until: 30, value: 0.002 }
+    - { until: 110, value: 0.001 }
+    - { until: 135, value: 0.0008 } # Day 5: 적극적 학습
+  weight_decay: 0.0001
+  temperature:
+    - { until: 30, value: 1.0 }
+    - { until: 110, value: 0.75 }
+    - { until: 135, value: 0.85 } # Day 5: 고탐색 모드
+  replay_buffer_size: 400000 # Day 5: 저품질 데이터 제거 (500K→400K)
+  min_samples_to_train: 10000
+  priority_replay:
+    enabled: false # Pure AlphaZero 스타일 (Uniform Sampling)
+    start_iteration: 15
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 4
+  enable_tf32: true
+  use_channels_last: true
+  random_play_ratio:
+    - { until: 137, value: 0.0 }
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 2
+  promotion_win_rate: 0.55
+  eval_num_searches: 800 # 더 깊은 평가
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  baseline_num_searches: 0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 256
+    games_per_actor: 80
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.125
+    num_actors: 8
+    actor_num_cpus: 1.0
+    use_local_inference: false
+  evaluation:
+    num_workers: 40
+
+paths:
+  use_gcs: true
+  run_prefix: "gmk-testing-refactoring"
+  run_id: elo1800-gcp-v4
+
+parallel:
+  ray_local_num_workers: -1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

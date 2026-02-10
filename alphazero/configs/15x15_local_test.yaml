@@ -1,0 +1,88 @@
+board:
+  num_lines: 15
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  # 9x9에서 사용한 경량 뇌를 유지해 CPU에서도 감당 가능하게 설정
+  num_hidden: 64
+  num_resblocks: 5
+
+mcts:
+  C: 2.0
+  # 초반에는 탐색을 줄여 데이터 확보, 후반엔 400회로 강화
+  num_searches:
+    - { until: 50, value: 200 }
+    - { until: 200, value: 400 }
+  exploration_turns: 8
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.2
+  batch_infer_size: 8
+  min_batch_size: 4
+  max_batch_wait_ms: 5
+
+training:
+  num_iterations: 200
+  num_selfplay_iterations:
+    - { until: 200, value: 200 }
+  num_epochs: 4
+  batch_size: 128
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+  learning_rate:
+    - { until: 50, value: 0.002 }
+    - { until: 100, value: 0.001 }
+    - { until: 150, value: 0.0005 }
+    - { until: 200, value: 0.00025 }
+  weight_decay: 0.0001
+  temperature:
+    - { until: 50, value: 1.0 }
+    - { until: 120, value: 0.75 }
+    - { until: 200, value: 0.5 }
+  replay_buffer_size: 50000
+  min_samples_to_train: 1000
+  priority_replay:
+    enabled: false
+  dataloader_num_workers: 2
+  dataloader_prefetch_factor: 2
+  enable_tf32: false
+  use_channels_last: true
+  random_play_ratio:
+    - { until: 200, value: 0.0 }
+
+evaluation:
+  num_eval_games: 10
+  eval_every_iters: 2
+  promotion_win_rate: 0.6
+  eval_num_searches: 400
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  baseline_num_searches: 0
+  use_sprt: false
+
+paths:
+  use_gcs: false
+  run_id: 15x15_local_test
+
+parallel:
+  num_parallel_games: 10
+  mp_num_workers: 10
+  ray_local_num_workers: 10
+
+io:
+  checkpoint_interval_min: 10
+  max_replay_iters_kept: 5
+  max_samples_per_shard: 5000
+  local_replay_cache: /tmp/gmk_replay_cache

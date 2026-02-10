@@ -1,0 +1,113 @@
+# ============================================================
+# V4 Day 7 - Opening 고착 탈출 연장 (Aggressive Exploration)
+# Target: center-region prior 강화 지속
+# Iterations: 168-216
+#
+# recover2 (150-168) 이후 연속. 동일한 공격적 파라미터 유지.
+# 800 searches + 1200 games → ~0.5h/iter → 48 iters ≈ 24h (~$200)
+#
+# Decision point (iter 210):
+#   center prior >= 0.05 → day8 taper 진행
+#   center prior 0.01-0.05 → day8 초반 공격적 유지 고려
+#   center prior < 0.01 → 접근법 재검토
+# 24시간 야간 무인 실행 (23시~다음날 23시)
+# ============================================================
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 12
+
+mcts:
+  C: 2.0
+  num_searches: 800
+  exploration_turns: 30
+  dirichlet_epsilon: 0.50
+  dirichlet_alpha: 0.03
+  batch_infer_size: 64
+  min_batch_size: 8
+  max_batch_wait_ms: 5
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 216
+  num_selfplay_iterations: 1200
+  num_epochs: 2
+  batch_size: 512
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  temperature: 1.30
+  replay_buffer_size: 250000
+  min_samples_to_train: 10000
+  priority_replay:
+    enabled: false
+    start_iteration: 15
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 4
+  enable_tf32: true
+  use_channels_last: true
+  random_play_ratio: 0.02
+  random_opening_turns:
+    - { until: 200, value: 6 }     # recover2 수준 유지 (center signal 아직 부족)
+    - { until: 210, value: 4 }     # 점진적 축소
+    - { until: 216, value: 2 }     # 후반 taper
+  opponent_rates:
+    random_bot_ratio: 0.08
+    prev_bot_ratio: 0.25
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 2
+  promotion_win_rate: 0.55
+  eval_num_searches: 1000
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 16
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 6
+  eval_temperature: 1.0
+  eval_dirichlet_epsilon: 0.2
+  baseline_num_searches: 600
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 192
+    games_per_actor: 80
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.08
+    num_actors: 12
+    actor_num_cpus: 1.0
+    use_local_inference: false
+  evaluation:
+    num_workers: 40
+
+paths:
+  use_gcs: true
+  run_prefix: "gmk-testing-refactoring"
+  run_id: elo1800-gcp-v4
+
+parallel:
+  ray_local_num_workers: -1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

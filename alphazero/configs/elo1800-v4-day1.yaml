@@ -1,0 +1,106 @@
+# ============================================================
+# V4 Day 1 Configuration - AlphaZero Standard Style
+# Target: Elo 1800+ (일반인 압살 수준)
+# Iterations: 11-30 (Day 0.5 이후 이어서 진행)
+# ============================================================
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 12 # V1(10)보다 약간 증가, 더 강한 표현력
+
+mcts:
+  C: 2.0
+  num_searches:
+    - { until: 30, value: 200 } # Day 1: 빠른 데이터 수집
+  exploration_turns: 20 # Gomoku 특성에 맞춤
+  dirichlet_epsilon: 0.25 # AlphaZero 표준
+  dirichlet_alpha: 0.15 # 19x19 최적화 (10/avg_moves ≈ 0.15)
+  batch_infer_size: 64
+  min_batch_size: 8
+  max_batch_wait_ms: 5
+  use_native: true
+
+  resign_threshold: 0.95
+  resign_enabled: false
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 30 # Day 1 목표
+  num_selfplay_iterations:
+    - { until: 30, value: 3000 } # 빠른 초기 데이터 수집
+  num_epochs: 2 # AlphaZero 표준 (overfitting 방지)
+  batch_size: 512
+  learning_rate:
+    - { until: 30, value: 0.002 } # 빠른 초기 학습
+  weight_decay: 0.0001
+  temperature:
+    - { until: 30, value: 1.0 } # 최대 탐색
+  replay_buffer_size: 500000 # 500K - 적절한 크기
+  min_samples_to_train: 10000
+  priority_replay:
+    enabled: true
+    start_iteration: 15 # 충분한 데이터 후 시작
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 4
+  enable_tf32: true
+  use_channels_last: true
+  random_play_ratio:
+    - { until: 30, value: 0.0 } # 랜덤 플레이 비활성화 (품질 유지)
+  opponent_rates:
+    random_bot_ratio: 0.05
+    prev_bot_ratio: 0.3
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 2 # 2 iteration마다 평가
+  promotion_win_rate: 0.55
+  eval_num_searches: 600
+  elo_k_factor: 2.0 # 표준 (뻥튀기 방지)
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 0
+  eval_temperature: 0.0 # 평가시 결정적 플레이
+  eval_dirichlet_epsilon: 0.0
+  baseline_num_searches: 0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 256
+    games_per_actor: 80
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.25
+    num_actors: 4
+    actor_num_cpus: 1.0
+    use_local_inference: false
+  evaluation:
+    num_workers: 40
+
+paths:
+  use_gcs: true
+  run_prefix: "gomoku-refactor-test"
+  run_id: elo1800-gcp-v4
+
+parallel:
+  ray_local_num_workers: -1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

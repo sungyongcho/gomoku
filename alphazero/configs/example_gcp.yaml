@@ -1,0 +1,122 @@
+board:
+  num_lines: 19
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  enable_doublethree: true
+
+model:
+  num_hidden: 192
+  num_resblocks: 10
+
+parallel:
+  ray_local_num_workers: 8
+
+mcts:
+  C: 1.96
+  batch_infer_size: 112
+  max_batch_wait_ms: 12
+  min_batch_size: 20
+  num_searches:
+    - { until: 50, value: 1200 }
+    - { until: 60, value: 1500 }
+  exploration_turns: 11
+  dirichlet_epsilon:
+    - { until: 50, value: 0.045 }
+    - { until: 60, value: 0.030 }
+  dirichlet_alpha: 0.20
+
+training:
+  num_iterations: 60
+  num_selfplay_iterations:
+    - { until: 50, value: 6400 }
+    - { until: 60, value: 7000 }
+  num_epochs: 3
+  batch_size: 256
+  learning_rate:
+    - { until: 50, value: 0.000045 }
+    - { until: 60, value: 0.000032 }
+  weight_decay: 0.0001
+  temperature:
+    - { until: 50, value: 0.38 }
+    - { until: 60, value: 0.30 }
+  random_play_ratio:
+    - { until: 50, value: 0.0018 }
+    - { until: 60, value: 0.0010 }
+  priority_replay:
+    enabled: true
+    start_iteration: 32
+    alpha: 0.76
+    beta: 0.70
+    epsilon: 0.0007
+    trigger_no_promotion_iters: 2
+  replay_buffer_size: 1200000
+  min_samples_to_train: 230000
+
+evaluation:
+  eval_every_iters: 1
+  num_eval_games: 220
+  promotion_win_rate:
+    - { until: 50, value: 0.58 }
+    - { until: 60, value: 0.60 }
+  num_baseline_games: 150
+  blunder_threshold: 0.15
+  blunder_increase_limit: 0.10
+  baseline_wr_min: 0.505
+  initial_blunder_rate: 1.0
+  initial_baseline_win_rate: 0.5
+  random_play_ratio:
+    - { until: 60, value: 0.0010 }
+  eval_opening_turns: 4
+  eval_temperature: 0.16
+  eval_dirichlet_epsilon: 0.0065
+  eval_num_searches:
+    - { until: 50, value: 2400 }
+    - { until: 60, value: 2800 }
+  fast_eval:
+    enabled: true
+    num_games: 110
+    num_searches: 340
+    promote_threshold: 0.62
+    reject_threshold: 0.53
+  adjudication_win_prob: 0.95
+  adjudication_min_turns: 6
+  baseline_num_searches:
+    - { until: 60, value: 820 }
+  use_sprt: false
+
+paths:
+  use_gcs: true
+  run_prefix: "gomoku-v4"
+  run_id: "v3-elo1800"
+
+io:
+  checkpoint_interval_min: 12
+  initial_replay_iters: 6
+  max_replay_iters_kept: 10
+  local_replay_cache: "/tmp/gmk_replay_cache"
+
+runtime:
+  selfplay:
+    min_floor: 52
+    timeout_s: 600
+    util_factor: 0.95
+    actor_num_cpus: 1.0
+    games_per_actor: 16
+    inflight_per_actor: 16
+    random_num_searches: 64
+    max_chunk_size: 12
+    random_max_chunk_size: 2
+  inference:
+    keep_on_gpu: true
+    warmup_batches: 5
+    actor_num_gpus: 1
+    use_local_inference: false
+  evaluation:
+    num_workers: 12
+    max_games_per_worker: 1
+    scheduling_strategy: "SPREAD"
+    actor_num_cpus: 2
+    wait_timeout_s: 210
+    stall_timeout_s: 600
+    debug_eval_events: true

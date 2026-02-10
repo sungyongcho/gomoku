@@ -1,0 +1,158 @@
+# ============================================================
+# V4 Day 6 Recover2 - Opening 고착 탈출 (Spiky Dirichlet)
+# Target: star-point(dist=6) 고착 타파, center-region opening 탐색
+# Iterations: 150-168
+#
+# 핵심 변경 (recover1 대비):
+#   dirichlet_alpha: 0.15 → 0.03  (가장 중요! spiky noise로 random 위치 강제 탐색)
+#   dirichlet_epsilon: 0.42 → 0.50  (noise 비중 50%)
+#   num_searches: 1600 → 800  (prior/noise의 PUCT 영향력 극대화)
+#   temperature: 1.10 → 1.30  (visit 분포 평탄화)
+#   replay_buffer: 450K → 250K  (star-point 데이터 빠르게 flush)
+#   random_play_ratio: 0.0 → 0.02  (2% uniform random move 추가)
+#
+# 원리:
+#   Dir(0.03) with 361 actions → 1-3개 action에 30-50% noise 집중
+#   noise spike가 center에 도달 시:
+#     center prior ≈ 0.5*0.0003 + 0.5*0.3 ≈ 0.15
+#     star   prior ≈ 0.5*0.22   + 0.5*0.001 ≈ 0.11
+#   → center가 prior에서 승리 → MCTS 탐색 → visit 축적 → 선택
+#
+# Phase 1 (150-168): 공격적 탐색 유지 - 고착 해소 (taper 제거, 23시 종료)
+# ============================================================
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 12
+
+mcts:
+  C: 2.0
+  num_searches:
+    - { until: 30, value: 200 }
+    - { until: 60, value: 400 }
+    - { until: 100, value: 1000 }
+    - { until: 110, value: 1600 }
+    - { until: 135, value: 2400 }
+    - { until: 150, value: 1600 }
+    - { until: 168, value: 800 }   # 공격적 탐색 유지 (23시 종료)
+  exploration_turns:
+    - { until: 150, value: 30 }
+    - { until: 168, value: 30 }    # 공격적 탐색 유지
+  dirichlet_epsilon:
+    - { until: 30, value: 0.25 }
+    - { until: 60, value: 0.28 }
+    - { until: 100, value: 0.35 }
+    - { until: 110, value: 0.34 }
+    - { until: 135, value: 0.32 }
+    - { until: 150, value: 0.42 }
+    - { until: 168, value: 0.50 }  # 50% noise 유지
+  dirichlet_alpha:
+    - { until: 150, value: 0.15 }
+    - { until: 168, value: 0.03 }   # spiky noise 유지
+  batch_infer_size: 64
+  min_batch_size: 8
+  max_batch_wait_ms: 5
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 168
+  num_selfplay_iterations:
+    - { until: 30, value: 3000 }
+    - { until: 60, value: 2500 }
+    - { until: 100, value: 1800 }
+    - { until: 110, value: 1500 }
+    - { until: 135, value: 1200 }
+    - { until: 168, value: 1200 }
+  num_epochs: 2
+  batch_size: 512
+  learning_rate:
+    - { until: 30, value: 0.002 }
+    - { until: 110, value: 0.001 }
+    - { until: 135, value: 0.0008 }
+    - { until: 150, value: 0.001 }
+    - { until: 168, value: 0.001 }   # 빠른 policy 적응 유지
+  weight_decay: 0.0001
+  temperature:
+    - { until: 30, value: 1.0 }
+    - { until: 110, value: 0.75 }
+    - { until: 135, value: 0.85 }
+    - { until: 150, value: 1.10 }
+    - { until: 168, value: 1.30 }   # 높은 temperature 유지
+  replay_buffer_size: 250000  # 450K→250K: star-point 데이터 ~17 iter 내 flush
+  min_samples_to_train: 10000
+  priority_replay:
+    enabled: false
+    start_iteration: 15
+    alpha: 0.6
+    beta: 0.4
+    epsilon: 0.001
+  dataloader_num_workers: 4
+  enable_tf32: true
+  use_channels_last: true
+  # random_play_ratio: 매 턴 확률 p로 uniform random 수를 둠 (게임 전체에 적용)
+  random_play_ratio:
+    - { until: 150, value: 0.0 }
+    - { until: 168, value: 0.02 }  # 2% uniform random moves 유지
+  # random_opening_turns: 처음 N수만 uniform random으로 강제 (이후 정상 MCTS)
+  random_opening_turns:
+    - { until: 150, value: 0 }
+    - { until: 168, value: 6 }     # 처음 6수를 uniform random으로 강제 (4→6 증가)
+  opponent_rates:
+    random_bot_ratio: 0.08
+    prev_bot_ratio: 0.25
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 2
+  promotion_win_rate: 0.55
+  eval_num_searches: 1000
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 16
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  eval_opening_turns: 6
+  eval_temperature: 1.0
+  eval_dirichlet_epsilon: 0.2
+  baseline_num_searches: 600
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 192
+    games_per_actor: 80
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.08
+    num_actors: 12
+    actor_num_cpus: 1.0
+    use_local_inference: false
+  evaluation:
+    num_workers: 40
+
+paths:
+  use_gcs: true
+  run_prefix: "gmk-testing-refactoring"
+  run_id: elo1800-gcp-v4
+
+parallel:
+  ray_local_num_workers: -1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache
