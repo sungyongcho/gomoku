@@ -1,0 +1,16 @@
+# buildkitd.toml
+[worker.oci]
+  max-parallelism = 1
+  gc = true
+  gckeepstorage = 20000 # 20GB keep storage
+
+# GC policies to aggressive cleanup
+[[worker.oci.gcpolicy]]
+  keepBytes = 64424509440 # 60GB
+  keepDuration = 3600 # 1h
+  filters = ["type==source.local", "type==exec.cachemount", "type==source.git.checkout"]
+
+[[worker.oci.gcpolicy]]
+  all = true
+  keepBytes = 85899345920 # 80GB
+

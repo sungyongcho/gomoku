@@ -1,0 +1,146 @@
+cluster_name: ${GCP_CLUSTER_NAME}
+
+provider:
+  type: gcp
+  region: ${GCP_REGION}
+  availability_zone: ${GCP_ZONE}
+  project_id: ${GCP_PROJECT}
+
+auth:
+  ssh_user: ${GCP_SSH_USER}
+  ssh_private_key: ${GCP_SSH_PRIVATE_KEY}
+
+docker:
+  container_name: ${GCP_CONTAINER_NAME}
+  pull_before_run: true
+
+  head_image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPO}/gmk-ray:${GCP_GPU_TAG}
+  worker_image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPO}/gmk-ray:${GCP_CPU_TAG}
+
+  run_options:
+    - --ipc=host
+    - --ulimit nofile=65536:65536
+    - --shm-size=2g
+    - -e OMP_NUM_THREADS=1
+    - -e MKL_NUM_THREADS=1
+    - -e OPENBLAS_NUM_THREADS=1
+    - -e NUMEXPR_NUM_THREADS=1
+    - -e TORCH_NUM_THREADS=1
+
+  head_run_options:
+    - --ipc=host
+    - --gpus all
+    - --ulimit nofile=65536:65536
+    - --shm-size=4g
+    - -e OMP_NUM_THREADS=1
+    - -e MKL_NUM_THREADS=1
+    - -e OPENBLAS_NUM_THREADS=1
+    - -e NUMEXPR_NUM_THREADS=1
+    - -e TORCH_NUM_THREADS=1
+
+head_node_type: head_gpu
+
+max_workers: 11
+upscaling_speed: 1.0
+idle_timeout_minutes: 10
+
+initialization_commands:
+  # Wait for apt lock to be released (handle unattended-upgrades)
+  - sudo bash -lc "while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do echo 'Waiting for apt lock...'; sleep 1; done"
+  - sudo bash -lc "export DEBIAN_FRONTEND=noninteractive; apt-get -yq update && apt-get -yq install -y unattended-upgrades"
+  - sudo bash -lc "mkdir -p /etc/needrestart/conf.d && echo '\\$nrconf{restart} = \"a\";' > /etc/needrestart/conf.d/99-non-interactive.conf"
+
+  - curl -fsSL https://get.docker.com -o get-docker.sh
+  - sudo sh get-docker.sh
+  - sudo usermod -aG docker $(whoami) || true
+  - sudo systemctl enable docker
+  - sudo systemctl restart docker
+  - sleep 2
+
+  - sudo apt-get update -y
+  - sudo apt-get install -y ca-certificates gnupg
+  - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+  - curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/cloud.google.gpg
+  - sudo apt-get update -y
+  - sudo apt-get install -y google-cloud-cli
+
+  - gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev --quiet
+  - sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev --quiet
+
+available_node_types:
+  head_gpu:
+    node_config:
+      machineType: g2-standard-16
+      tags:
+        items: ["ray-head", "ray-node"]
+      networkInterfaces:
+        - network: projects/${GCP_PROJECT}/global/networks/default
+          subnetwork: regions/${GCP_REGION}/subnetworks/default
+          accessConfigs:
+            - name: External NAT
+              type: ONE_TO_ONE_NAT
+              networkTier: PREMIUM
+      reservationAffinity:
+        consumeReservationType: SPECIFIC_RESERVATION
+        key: compute.googleapis.com/reservation-name
+        values:
+          - projects/${GCP_PROJECT}/reservations/${GCP_HEAD_RESERVATION}
+      scheduling:
+        onHostMaintenance: TERMINATE
+        automaticRestart: true
+      disks:
+        - boot: true
+          autoDelete: true
+          initializeParams:
+            diskSizeGb: 100
+            sourceImage: projects/deeplearning-platform-release/global/images/family/common-cu128-ubuntu-2204-nvidia-570
+
+      serviceAccounts:
+        - email: ${GCP_SA_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com
+          scopes: [https://www.googleapis.com/auth/cloud-platform]
+    resources: { "CPU": 16, "GPU": 1, "head": 1 }
+    min_workers: 0
+    max_workers: 0
+
+  cpu_worker:
+    node_config:
+      machineType: c4-standard-8
+      tags:
+        items: ["ray-worker", "ray-node"]
+      scheduling:
+        onHostMaintenance: MIGRATE
+        automaticRestart: true
+      networkInterfaces:
+        - network: projects/${GCP_PROJECT}/global/networks/default
+          subnetwork: regions/${GCP_REGION}/subnetworks/default
+          # No accessConfigs -> private worker (egress via Cloud NAT)
+      disks:
+        - boot: true
+          autoDelete: true
+          initializeParams:
+            diskSizeGb: 30
+            sourceImage: projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts
+      serviceAccounts:
+        - email: ${GCP_SA_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com
+          scopes: [https://www.googleapis.com/auth/cloud-platform]
+    resources: { "CPU": 8, "selfplay": 8 }
+    min_workers: 10
+    max_workers: 10
+
+head_start_ray_commands:
+  - ray stop
+  - >-
+    ulimit -n 65536;
+    ray start
+    --head
+    --port=6379
+    --dashboard-host=0.0.0.0
+    --autoscaling-config=$HOME/ray_bootstrap_config.yaml
+
+worker_start_ray_commands:
+  - ray stop
+  - >-
+    ulimit -n 65536;
+    ray start --address=$RAY_HEAD_IP:6379
+
+setup_commands: []

@@ -16,7 +16,6 @@ Integrate the `gmk-refactor` AlphaZero training/inference system into `gomoku/al
 
 All gmk-refactor source files have been copied into `gomoku/alphazero/`:
 
-```
 gomoku/alphazero/
 ├── gomoku/                    # gmk-refactor Python package (copied)
 │   ├── core/                  # Game engine, rules, coordinate system
@@ -47,7 +46,6 @@ gomoku/alphazero/
 ├── requirements.313.txt       # OLD — to be deleted
 ├── Dockerfile                 # OLD — references deleted `adapters.api_fastapi`
 └── pytest.toml                # Test config
-```
 
 ### What still references deleted code
 
@@ -65,20 +63,17 @@ These were verified by reading the actual gmk-refactor source code.
 
 ### Config loading
 
-```python
 from gomoku.utils.config import load_and_parse_config
 
 config: RootConfig = load_and_parse_config("configs/local_play.yaml")
 # config.board  -> BoardConfig (num_lines=19, enable_doublethree=True, enable_capture=True, ...)
 # config.model  -> ModelConfig (num_hidden=128, num_resblocks=12)
 # config.mcts   -> MCTSConfig  (num_searches=2400, use_native=True, ...)
-```
 
 `local_play.yaml` is the serving config: 19x19 board, doublethree + capture enabled, 2400 searches, `use_native=true`.
 
 ### Model loading
 
-```python
 from gomoku.model.policy_value_net import PolicyValueNet
 from gomoku.utils.model import align_state_dict_to_model
 
@@ -88,11 +83,9 @@ state_dict = torch.load("runs/elo1800-gcp-v4/ckpt/champion.pt", map_location=dev
 aligned = align_state_dict_to_model(state_dict, model.state_dict())
 model.load_state_dict(aligned, strict=False)
 model.eval()
-```
 
 ### MCTS inference
 
-```python
 from gomoku.pvmcts import PVMCTS
 
 pvmcts = PVMCTS(game, model, mcts_config, inference_client, device)
@@ -102,7 +95,6 @@ results = pvmcts.run_search([root], add_noise=False)
 # policy_vector: np.ndarray shape (361,) — probability for each board position
 # Best move: action = int(np.argmax(policy_vector))
 # Convert to (x, y): x = action % 19, y = action // 19
-```
 
 ### Score semantics — NO conversion needed
 
@@ -120,7 +112,6 @@ After calling `game.get_next_state(state, action)`:
 
 ### GameState dataclass
 
-```python
 @dataclass
 class GameState:
     board: np.ndarray      # shape (19,19), dtype int8: 0=empty, 1=P1(X), 2=P2(O)
@@ -130,7 +121,6 @@ class GameState:
     last_move_idx: np.int16  # flat index (x + y*19), or -1 if no last move
     empty_count: np.int16
     history: tuple[int, ...]
-```
 
 ---
 
@@ -142,7 +132,6 @@ The existing `server/` files are broken (import deleted modules). All three file
 
 #### 2.1 `server/__init__.py` — FastAPI App Factory
 
-```python
 from fastapi import FastAPI
 
 def create_app() -> FastAPI:
@@ -167,11 +156,9 @@ def create_app() -> FastAPI:
         return {"status": "ok", "model": "alphazero"}
 
     return app
-```
 
 #### 2.2 `server/engine.py` — Model Loading & MCTS Wrapper
 
-```python
 class AlphaZeroEngine:
     def __init__(self, config_path: str, checkpoint_path: str, device: str = "cpu"):
         config = load_and_parse_config(config_path)
@@ -196,17 +183,16 @@ class AlphaZeroEngine:
         """Apply action, return (new_state, captured_flat_indices)."""
         new_state = self.game.get_next_state(state, action)
         return new_state, list(self.game.last_captures)
-```
 
 Configuration via environment variables:
 - `ALPHAZERO_CONFIG`: path to YAML config (default: `configs/local_play.yaml`)
 - `ALPHAZERO_CHECKPOINT`: path to `.pt` checkpoint file (default: `runs/elo1800-gcp-v4/ckpt/champion.pt`)
 - `ALPHAZERO_DEVICE`: `cpu` or `cuda` (default: `cpu`)
+- `ALPHAZERO_MCTS_NUM_SEARCHS`: fixed MCTS search count for AlphaZero serving (`none` means use `config.mcts.num_searches`)
 
-Difficulty → MCTS search count mapping:
-- `easy`: 100 searches
-- `medium`: 400 searches
-- `hard`: uses config value (2400 from `local_play.yaml`)
+AlphaZero serving policy:
+- Frontend difficulty mapping is removed.
+- Search count is controlled only by `ALPHAZERO_MCTS_NUM_SEARCHS`.
 
 #### 2.3 `server/protocol.py` — Format Conversion
 
@@ -214,7 +200,6 @@ Converts between frontend WebSocket JSON and gmk-refactor's internal types.
 
 **Frontend → GameState:**
 
-```python
 def frontend_to_gamestate(data: dict) -> GameState:
     """
     Frontend JSON → GameState.
@@ -226,11 +211,9 @@ def frontend_to_gamestate(data: dict) -> GameState:
       nextPlayer "X"/"O"       →  next_player 1/2
       lastPlay.coordinate       →  last_move_idx = x + y * 19
     """
-```
 
 **GameState → Frontend response:**
 
-```python
 def build_move_response(
     action: int,
     stone: str,
@@ -251,7 +234,6 @@ def build_move_response(
         executionTime: {s, ms, ns}
     }
     """
-```
 
 Key type mappings:
 
@@ -268,7 +250,6 @@ Key type mappings:
 
 Full rewrite. The current file imports from deleted `core.board` / `core.gomoku`.
 
-```python
 @router.websocket("/ws")
 async def game_endpoint(websocket: WebSocket):
     """Main game endpoint — handles AI moves."""
@@ -280,8 +261,8 @@ async def game_endpoint(websocket: WebSocket):
             if data["type"] == "move":
                 # 1. Convert frontend board → GameState
                 state = frontend_to_gamestate(data)
-                # 2. Map difficulty → num_searches
-                num_searches = DIFFICULTY_MAP.get(data.get("difficulty", "hard"))
+                # 2. Use fixed search budget from ALPHAZERO_MCTS_NUM_SEARCHS
+                num_searches = NUM_SEARCHES
                 # 3. Run MCTS to find AI's best move
                 action = engine.get_best_move(state, num_searches)
                 # 4. Apply AI's move, get captures
@@ -296,7 +277,6 @@ async def game_endpoint(websocket: WebSocket):
 async def debug_endpoint(websocket: WebSocket):
     """Debug endpoint — rule validation without AI."""
     # Minimal: validate moves using Gomoku game engine directly
-```
 
 ---
 
@@ -306,9 +286,7 @@ async def debug_endpoint(websocket: WebSocket):
 
 `pyproject.toml` is the single source of truth. Both requirements files are stale and redundant.
 
-```bash
 rm requirements.txt requirements.313.txt
-```
 
 #### 3.2 Update `pyproject.toml`
 
@@ -316,7 +294,6 @@ Add a `serve` extra for FastAPI/uvicorn/websockets. Separate heavy training deps
 
 Changes needed:
 
-```toml
 [project]
 dependencies = [
   "numpy==2.3.3",
@@ -338,7 +315,6 @@ ray = [
   "google-api-python-client",
 ]
 # keep existing: dev, torch-cpu, torch-cu121
-```
 
 This means:
 - `pip install ".[serve,torch-cpu]"` — serving with CPU inference
@@ -349,7 +325,6 @@ This means:
 
 Replace the current Dockerfile which references deleted `adapters.api_fastapi`.
 
-```dockerfile
 FROM python:3.13-slim
 
 # Build deps for C++ extensions (pybind11)
@@ -374,7 +349,6 @@ ENV ALPHAZERO_DEVICE=cpu
 
 EXPOSE 8080
 CMD ["uvicorn", "server:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080"]
-```
 
 ---
 
@@ -384,7 +358,6 @@ CMD ["uvicorn", "server:create_app", "--factory", "--host", "0.0.0.0", "--port",
 
 The alphazero service needs updated build and volume config:
 
-```yaml
 alphazero:
   build:
     context: ./alphazero
@@ -400,15 +373,12 @@ alphazero:
     - ALPHAZERO_CONFIG=configs/local_play.yaml
     - ALPHAZERO_CHECKPOINT=runs/elo1800-gcp-v4/ckpt/champion.pt
     - ALPHAZERO_DEVICE=cpu
-```
 
 #### 4.2 Update `.env`
 
-```
 ALPHAZERO_CONFIG=configs/local_play.yaml
 ALPHAZERO_CHECKPOINT=runs/elo1800-gcp-v4/ckpt/champion.pt
 ALPHAZERO_DEVICE=cpu
-```
 
 ---
 
@@ -427,18 +397,23 @@ No additional provisioning work needed for local dev since the checkpoint was co
 
 ### Phase 6: Cloud Infrastructure (Optional)
 
-The following cloud/training infra files from gmk-refactor root were NOT copied during Phase 1. Copy them if cloud training is needed:
+Cloud/training infra files are now copied into `alphazero/infra`:
 
 | File | Purpose |
 |------|---------|
-| `cluster_elo1800.yaml` | Ray cluster config for GCP training |
-| `restart_cluster.sh` | Script to restart Ray cluster |
-| `reserver_vm.sh` | GCP VM reservation script |
-| `buildkitd.toml` | BuildKit config for Docker builds |
-| `Dockerfile.py313-cpu` | Training container (CPU) — already uses `pip install ".[ray]"` pattern |
-| `Dockerfile.py313-cu124` | Training container (CUDA 12.4) |
+| `alphazero/infra/cluster_elo1800.yaml` | Ray cluster config for GCP training |
+| `alphazero/infra/restart_cluster.sh` | Script to rebuild/push images and restart Ray cluster |
+| `alphazero/infra/reserver_vm.sh` | GCP VM reservation script |
+| `alphazero/infra/buildkitd.toml` | BuildKit config for Docker builds |
+| `alphazero/infra/Dockerfile.py313-cpu` | Training container (CPU) |
+| `alphazero/infra/Dockerfile.py313-cu124` | Training container (CUDA 12.4) |
 
 These are only relevant for running distributed training on GCP, not for serving.
+
+Operational notes:
+- `restart_cluster.sh` now resolves paths relative to its own location and works from any current directory.
+- `restart_cluster.sh` renders a runtime cluster YAML (`.cluster_elo1800.resolved.yaml`) using env overrides for project/region/zone/user/image tags.
+- `reserver_vm.sh` supports optional `PROJECT` override and applies it to gcloud commands.
 
 ---
 
@@ -468,15 +443,10 @@ The alphazero `/ws` endpoint MUST return the exact same shape as minimax. Key fi
 
 #### 7.3 Difficulty settings
 
-Frontend sends `difficulty: "easy" | "medium" | "hard"`. Map to MCTS search count:
-
-```python
-DIFFICULTY_MAP = {
-    "easy": 100,
-    "medium": 400,
-    "hard": None,  # Use config value (2400 from local_play.yaml)
-}
-```
+AlphaZero backend does not use frontend difficulty settings.
+MCTS search count is controlled by one variable only:
+- `ALPHAZERO_MCTS_NUM_SEARCHS`
+- `none` means fallback to `configs/local_play.yaml` (`config.mcts.num_searches`)
 
 ---
 
@@ -486,9 +456,7 @@ DIFFICULTY_MAP = {
 
 Ensure gmk-refactor's test suite passes in the new location:
 
-```bash
 cd alphazero && pytest
-```
 
 #### 8.2 New tests for server/
 
@@ -498,24 +466,22 @@ cd alphazero && pytest
 
 #### 8.3 End-to-end smoke test
 
-```bash
 docker compose up front minimax alphazero
 # Open http://localhost:3000
 # Select AlphaZero in settings
 # Play a game — verify: stones placed, captures work, game ends correctly
-```
 
 ---
 
 ## Checklist
 
 - [x] **Phase 1**: File migration — gmk-refactor copied into `gomoku/alphazero/`
-- [ ] **Phase 2**: Rewrite `server/` — `__init__.py`, `engine.py`, `protocol.py`, `websocket.py`
-- [ ] **Phase 3**: Delete requirements*.txt, add `serve` extra to pyproject.toml, update Dockerfile
-- [ ] **Phase 4**: Update docker-compose.yml and .env
-- [ ] **Phase 5**: Verify checkpoint is accessible (already present)
-- [ ] **Phase 6**: Copy cloud infra files (optional, only if training on GCP)
-- [ ] **Phase 7**: Verify frontend compatibility
+- [x] **Phase 2**: Rewrite `server/` — `__init__.py`, `engine.py`, `protocol.py`, `websocket.py`
+- [x] **Phase 3**: Delete requirements*.txt, add `serve` extra to pyproject.toml, update Dockerfile
+- [x] **Phase 4**: Update docker-compose.yml and .env
+- [x] **Phase 5**: Verify checkpoint is accessible (already present)
+- [x] **Phase 6**: Copy cloud infra files (optional, only if training on GCP)
+- [x] **Phase 7**: Verify frontend compatibility
 - [ ] **Phase 8**: Run tests, end-to-end smoke test
 
 ---
@@ -524,8 +490,9 @@ docker compose up front minimax alphazero
 
 1. **C++ extension build**: pybind11 extensions need cmake + g++ in Docker. Build step is cached by Docker layers but adds ~2 min on first build.
 
-2. **Inference latency**: MCTS with 2400 searches on CPU takes 5–30 seconds per move on 19x19. Mitigations:
-   - `easy`/`medium` difficulty uses fewer searches (100/400)
+2. **Inference latency**: MCTS search count directly affects response time on CPU. Mitigations:
+   - Tune `ALPHAZERO_MCTS_NUM_SEARCHS` down for faster responses
+   - Use `ALPHAZERO_MCTS_NUM_SEARCHS=none` only when you intentionally want config-level search count
    - `use_native: true` in config enables the C++ MCTS engine (much faster than Python)
    - GPU inference via `ALPHAZERO_DEVICE=cuda` if available
 
@@ -534,8 +501,6 @@ docker compose up front minimax alphazero
 4. **Package namespace**: `gomoku/alphazero/gomoku/` nesting is intentional (same pattern as `django/django/`). Inside Docker at `/app`, imports resolve as `from gomoku.core...` via `PYTHONPATH=/app`. No namespace conflict with the outer `gomoku/` project directory.
 
 5. **Training still works**: After integration, training runs unchanged:
-   ```bash
    cd alphazero
    pip install -e ".[ray,torch-cpu]"
    python -m gomoku.scripts.train --config configs/local_play.yaml --mode sequential
-   ```

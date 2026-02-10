@@ -453,15 +453,24 @@ def run_ray(
 
     log(f"[Main] Self-play events log: {debug_log_path}")
     log(f"[Main] Evaluation events log: {eval_log_path}")
-    if os.path.exists("cluster_elo1800.yaml"):
-        log("[Cluster] Config template detected: cluster_elo1800.yaml")
+    cluster_yaml_candidates = [
+        "cluster_elo1800.yaml",
+        os.path.join("infra", "cluster_elo1800.yaml"),
+        os.path.join("infra", "cluster", "cluster_elo1800.yaml"),
+    ]
+    cluster_yaml_path = next(
+        (path for path in cluster_yaml_candidates if os.path.exists(path)),
+        None,
+    )
+    if cluster_yaml_path:
+        log(f"[Cluster] Config template detected: {cluster_yaml_path}")
     _log_cluster_state(debug_logger)
 
     # Autoscaling logic
     current_workers_conf = params.parallel.ray_local_num_workers
     if current_workers_conf is not None and int(current_workers_conf) == -1:
         # Detect target from cluster YAML if available, otherwise fallback to cluster_resources
-        yaml_path = "cluster_elo1800.yaml"
+        yaml_path = cluster_yaml_path or "cluster_elo1800.yaml"
         num_workers = None
         if os.path.exists(yaml_path):
             try:

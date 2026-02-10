@@ -1,0 +1,122 @@
+# syntax=docker/dockerfile:1.7
+# ========= Base: CUDA 12.4 + Python 3.13 공통 베이스 =========
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS pybase
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Paris
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && \
+	apt-get update && \
+	apt-get install -y --no-install-recommends tzdata software-properties-common ca-certificates curl && \
+	add-apt-repository -y ppa:deadsnakes/ppa && \
+	dpkg-reconfigure --frontend noninteractive tzdata && \
+	rm -rf /var/lib/apt/lists/*
+
+# --- 수정 --- (주석만)
+# Python 3.13 런타임 (최신 3.13 버전 사용)
+RUN apt-get update && \
+	PY313_VER="$(apt-cache madison python3.13 | awk '$3 ~ /^3\.13\./{print $3; exit}')" && \
+	PY313_VENV_VER="$(apt-cache madison python3.13-venv | awk '$3 ~ /^3\.13\./{print $3; exit}')" && \
+	test -n "$PY313_VER" && test -n "$PY313_VENV_VER" || (echo 'ERROR: python3.13(venv) not found in deadsnakes.' >&2; exit 1) && \
+	apt-get install -y --no-install-recommends \
+	"python3.13=${PY313_VER}" \
+	"python3.13-venv=${PY313_VENV_VER}" && \
+	apt-mark hold python3.13 python3.13-venv && \
+	rm -rf /var/lib/apt/lists/*
+
+# pip 부트스트랩 및 심볼릭 링크
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.13 && \
+	ln -sf /usr/bin/python3.13 /usr/local/bin/python && \
+	ln -sf /usr/bin/python3.13 /usr/local/bin/python3 && \
+	python -m pip install --upgrade pip && \
+	python -V && python -m pip --version
+
+ENV PATH=/usr/local/bin:$PATH \
+	PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
+WORKDIR /app
+
+# --- 수정 ---
+# SHELL에서 -l (login) 플래그를 제거합니다.
+# -l 플래그는 /etc/profile 등을 다시 로드하여 ENV로 설정한 PATH를 덮어쓸 수 있습니다.
+# 이것이 'ModuleNotFoundError: no module named ray'의 원인이었습니다.
+SHELL ["/bin/bash", "-c"]
+
+
+# ========= Stage 1: Builder (모든 설치/컴파일은 여기서) =========
+FROM pybase AS builder
+# --- 수정 --- (주석만)
+# 빌드툴 & 헤더 (최종 런타임에는 미포함)
+# - python3.13-dev도 최신 3.13 버전 사용
+RUN apt-get update && \
+	PY313_DEV_VER="$(apt-cache madison python3.13-dev | awk '$3 ~ /^3\.13\./{print $3; exit}')" && \
+	test -n "$PY313_DEV_VER" || (echo 'ERROR: python3.13-dev not found in deadsnakes.' >&2; exit 1) && \
+	apt-get install -y --no-install-recommends \
+	build-essential git pkg-config libffi-dev libssl-dev \
+	"python3.13-dev=${PY313_DEV_VER}" && \
+	apt-mark hold python3.13-dev && \
+	rm -rf /var/lib/apt/lists/*
+
+# 전용 venv 생성 (이 디렉토리를 런타임으로 복사)
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH" VIRTUAL_ENV="/opt/venv"
+
+# 기본 업그레이드
+RUN python -m pip install --upgrade pip wheel setuptools
+
+# Ray + GCP 의존성 (바이너리만 사용해 빌드시간 단축)
+ENV CMAKE_BUILD_PARALLEL_LEVEL=1
+RUN --mount=type=cache,target=/root/.cache/pip \
+	python -m pip install --prefer-binary --only-binary=:all: \
+	"ray[default]==2.49.2" fsspec gcsfs pyarrow tqdm PyYAML \
+	google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib cryptography
+
+# PyTorch CUDA 12.4
+RUN --mount=type=cache,target=/root/.cache/pip \
+	python -m pip install --extra-index-url https://download.pytorch.org/whl/cu124 \
+	"torch==2.9.1" "torchvision==0.24.1" "torchaudio==2.9.1"
+
+# 나머지 파이썬 의존성 (pyproject.toml 기반)
+COPY . /app
+RUN --mount=type=cache,target=/root/.cache/pip \
+	python -m pip install ".[ray]"
+
+# --- 수정 ---
+# 불필요 캐시/바이트코드 정리
+# builder 스테이지는 버려지므로 /root/.cache/pip 정리는 불필요. venv 내부만 정리합니다.
+RUN find /opt/venv -type d -name '__pycache__' -prune -exec rm -rf {} +
+
+
+# ========= Stage 2: Runtime (슬림) =========
+FROM pybase AS runtime
+
+# --- 수정 ---
+# 런타임 유틸만 설치 (빌드용 'git' 제거)
+RUN apt-get update && \
+	apt-get install -y --no-install-recommends \
+	rsync openssh-client iproute2 curl procps vim \
+	build-essential git tzdata && \
+	rm -rf /var/lib/apt/lists/*
+
+# 빌더의 완성된 venv 복사
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:/usr/local/bin:$PATH" VIRTUAL_ENV="/opt/venv"
+
+WORKDIR /app
+
+# --- 수정 ---
+# wheel로 앱 코드는 venv에 설치되었습니다.
+# ./scripts/train.py 같은 실행 스크립트만 builder에서 복사합니다.
+COPY . /app
+
+# 빌드타임 검증 (이제 SHELL 수정으로 인해 정상 동작합니다)
+RUN echo "import sys, ssl, sqlite3, zlib, bz2, lzma, torch, ray, pyarrow, fsspec" > check_env.py \
+	&& echo "print('python:', sys.version)" >> check_env.py \
+	&& echo "print('ssl:', ssl.OPENSSL_VERSION)" >> check_env.py \
+	&& echo "print('ray:', ray.__version__)" >> check_env.py \
+	&& echo "print('cuda?', torch.cuda.is_available())" >> check_env.py \
+	&& echo "print('torch:', torch.__version__)" >> check_env.py \
+	&& echo "if torch.cuda.is_available(): print('device:', torch.cuda.get_device_name(0))" >> check_env.py \
+	&& python check_env.py \
+	&& rm check_env.py
+
+# --- 수정 ---
+# 컨테이너 기본 실행 명령을 스크립트 실행으로 변경
+CMD ["python", "gomoku/scripts/train.py"]

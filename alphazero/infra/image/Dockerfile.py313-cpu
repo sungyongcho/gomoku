@@ -1,0 +1,39 @@
+# 헤드 노드와 동일한 Python 패치 버전(현재 3.13.11)로 고정
+FROM python:3.13.11-slim
+
+# 1) 런타임 유틸 설치 (필수: rsync, openssh-client)
+#    권장: iproute2, curl, procps, tzdata
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	rsync openssh-client git ca-certificates \
+	iproute2 curl procps tzdata build-essential \
+	&& rm -rf /var/lib/apt/lists/*
+
+ENV PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
+WORKDIR /app
+SHELL ["/bin/bash", "-lc"]
+
+# 2) pip 최신화 및 Ray/기본 파이썬 의존 설치
+#    - 운영 안정성을 위해 Ray 버전을 로그에 맞춰 고정 권장 (예: 2.49.2)
+RUN python -m pip install -U pip \
+	&& python -m pip install --prefer-binary --only-binary=:all: \
+	"ray[default]==2.49.2" fsspec gcsfs pyarrow tqdm PyYAML \
+	google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib cryptography
+
+# 3) (선택) 추가 의존성
+# 3) (선택) 추가 의존성
+# Torch CPU 버전 먼저 설치 (인덱스 URL 우선순위 문제 방지)
+RUN python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu \
+	"torch==2.9.1+cpu" "torchvision==0.24.1+cpu" "torchaudio==2.9.1+cpu"
+
+ENV CMAKE_BUILD_PARALLEL_LEVEL=1
+
+# 4) 소스 복사 및 패키지 설치 (pyproject.toml 기반)
+COPY . /app
+RUN python -m pip install ".[ray]"
+
+
+
+# 5) 빌드타임 검증 (rsync/pyarrow/fsspec/Ray)
+RUN rsync --version | head -n 1 \
+	&& python -c "import ray, pyarrow, fsspec; print('py313_env_ok')"
+# touch to invalidate cache
