@@ -334,6 +334,59 @@ gcloud storage buckets create "gs://${GCP_BUCKET_NAME}" \
   --project="${GCP_PROJECT}"
 ```
 
+### 6.5) Bucket and Cluster File Sync
+
+Use `gcloud storage rsync` for local <-> GCS bucket synchronization.
+
+Sync local runs to bucket (`local -> bucket`):
+
+```bash
+gcloud storage rsync --recursive \
+  "alphazero/runs" \
+  "gs://${GCP_BUCKET_NAME}/runs"
+```
+
+Sync runs from bucket back to local (`bucket -> local`):
+
+```bash
+gcloud storage rsync --recursive \
+  "gs://${GCP_BUCKET_NAME}/runs" \
+  "alphazero/runs"
+```
+
+Use `ray rsync-up` / `ray rsync-down` for local <-> cluster file transfer.
+By default, these commands target the head node.
+
+Set cluster config path:
+
+```bash
+CLUSTER_CFG="alphazero/infra/cluster/.cluster_elo1800.resolved.yaml"
+```
+
+Upload a local config file to the head node (`local -> head`):
+
+```bash
+ray rsync-up "${CLUSTER_CFG}" \
+  "alphazero/configs/local_play.yaml" \
+  "~/gomoku/alphazero/configs/local_play.yaml"
+```
+
+Download a file/directory from the head node (`head -> local`):
+
+```bash
+ray rsync-down "${CLUSTER_CFG}" \
+  "~/gomoku/alphazero/runs" \
+  "alphazero/runs_from_head"
+```
+
+Upload to all nodes (head + workers):
+
+```bash
+ray rsync-up -A "${CLUSTER_CFG}" \
+  "alphazero/configs/local_play.yaml" \
+  "~/gomoku/alphazero/configs/local_play.yaml"
+```
+
 ### 7) Build and Push Images
 
 Create and bootstrap a buildx builder:

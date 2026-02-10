@@ -23,9 +23,8 @@ gcloud services enable \
 
 
 echo "Step 2: SSH Key Setup..."
-if [ ! -f ~/.ssh/id_rsa_gcp ]; then
-    ssh-keygen -t rsa -f ~/.ssh/id_rsa_gcp -C "$USER_EMAIL" -N ""
-fi
+rm -f ~/.ssh/id_rsa_gcp ~/.ssh/id_rsa_gcp.pub
+ssh-keygen -t rsa -f ~/.ssh/id_rsa_gcp -C "$USER_EMAIL" -N ""
 # Only add if not already added (to avoid errors or duplicates if run multiple times)
 # But `os-login ssh-keys add` is generally idempotent or safe to re-run
 gcloud compute os-login ssh-keys add --key-file ~/.ssh/id_rsa_gcp.pub --project="$PROJECT_ID" || true

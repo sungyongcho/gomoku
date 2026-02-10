@@ -23,7 +23,7 @@ url.txt
 .venv/
 venv/
 
-# Byte-compiled / cache
+ Byte-compiled / cache
 __pycache__/
 *.py[cod]
 *.pyo
@@ -69,3 +69,4 @@ alphazero/runs/**
 alphazero/cpp/build/
 alphazero/gomoku/cpp_ext/*
 !alphazero/gomoku/cpp_ext/.gitkeep
+alphazero/infra/cluster/.cluster_elo1800.resolved.yaml
