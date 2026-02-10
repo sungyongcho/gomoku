@@ -1,26 +1,25 @@
-# Use the official Python image
 FROM python:3.13-slim
 
-# Prevent stdout/stderr buffering
-ENV PYTHONUNBUFFERED=1
+# Build dependencies for C++ extensions (pybind11/scikit-build-core).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    g++ \
+    ninja-build \
+ && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-# Copy dependencies and install them
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Copy source before install because scikit-build needs `cpp/` at build time.
+COPY . /app
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -e ".[serve,torch-cpu]" \
+      --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Copy the application code
-COPY . .
-
-# Add PYTHONPATH to ensure imports work
 ENV PYTHONPATH=/app
+ENV ALPHAZERO_CONFIG=configs/local_play.yaml
+ENV ALPHAZERO_CHECKPOINT=models/champion.pt
+ENV ALPHAZERO_DEVICE=cpu
 
-# Expose any port; actual port is controlled by env var
-# default FastAPI port (can be overridden)
-ENV LOCAL_ALPHAZERO=8000
-EXPOSE ${LOCAL_ALPHAZERO}
-
-# Use a shell command to use the env var
-CMD ["sh", "-c", "uvicorn adapters.api_fastapi:create_app --factory --host 0.0.0.0 --port ${LOCAL_ALPHAZERO} --reload"]
+EXPOSE 8080
+CMD ["uvicorn", "server:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080"]

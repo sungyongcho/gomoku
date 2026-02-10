@@ -5,7 +5,6 @@ from gomoku.core.gomoku import GameState, Gomoku
 from gomoku.inference.base import InferenceClient
 from gomoku.pvmcts.search.engine import SearchEngine
 from gomoku.pvmcts.search.mp import MultiprocessEngine
-from gomoku.pvmcts.search.ray.ray_async import RayAsyncEngine
 from gomoku.pvmcts.search.sequential import SequentialEngine
 from gomoku.pvmcts.search.vectorize import VectorizeEngine
 from gomoku.pvmcts.treenode import TreeNode
@@ -102,6 +101,13 @@ class PVMCTS:
                     self.inference,
                     use_native=True,
                 )
+            try:
+                from gomoku.pvmcts.search.ray.ray_async import RayAsyncEngine
+            except ModuleNotFoundError as exc:
+                raise RuntimeError(
+                    "Ray mode requested, but Ray dependencies are not installed. "
+                    "Install with extras: pip install -e \".[ray]\""
+                ) from exc
             return RayAsyncEngine(
                 self.game,
                 self.params,

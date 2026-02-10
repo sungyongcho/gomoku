@@ -78,8 +78,11 @@ int handleMoveRequest(struct lws* wsi, const rapidjson::Document& doc, psd_debug
     return -1;
   }
 
+  char ai_stone = pBoard->getNextPlayer() == 1 ? 'X' : 'O';
   std::clock_t end = std::clock();
   applyMoveAndCapture(pBoard, predict.first, predict.second);
+  std::cout << "AI played: (" << predict.first << ", " << predict.second << ") by " << ai_stone
+            << std::endl;
 
   double executionTime = computeExecutionTimeSeconds(start, end);
   double elapsed_ms = executionTime * 1000.0;
@@ -141,7 +144,9 @@ int handleTestRequest(struct lws* wsi, const rapidjson::Document& doc) {
       Minimax::getBestMovePVS(pBoard, MAX_DEPTH, &Evaluation::evaluatePositionHard);
   std::clock_t end = std::clock();
 
+  char ai_stone = pBoard->getNextPlayer() == 1 ? 'X' : 'O';
   applyMoveAndCapture(pBoard, a.first, a.second);
+  std::cout << "AI played: (" << a.first << ", " << a.second << ") by " << ai_stone << std::endl;
 
   double executionTime = computeExecutionTimeSeconds(start, end);
   double elapsed_ms = executionTime * 1000.0;

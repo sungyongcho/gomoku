@@ -116,6 +116,14 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
-  "python.analysis.extraPaths": ["alphazero"],
-  "python.defaultInterpreterPath": "alphazero/.venv/bin/python"
+  "python.testing.pytestArgs": ["alphazero"],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
+  // "python.analysis.extraPaths": ["alphazero"],
+  // "python.defaultInterpreterPath": "${workspaceFolder}/alphazero/.venv/bin/python",
+  // "python.testing.cwd": "${workspaceFolder}/alphazero",
+  // "python.testing.pytestPath": "${workspaceFolder}/alphazero/.venv/bin/pytest",
+  // "python.testing.pytestArgs": ["tests"],
+  // "python.testing.unittestEnabled": false,
+  // "python.testing.pytestEnabled": true
 }

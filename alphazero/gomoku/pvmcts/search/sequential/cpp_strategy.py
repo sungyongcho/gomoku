@@ -6,7 +6,6 @@ import queue
 import time
 from typing import TYPE_CHECKING, List, Tuple
 from abc import ABC, abstractmethod
-import ray
 
 if TYPE_CHECKING:
     from gomoku.pvmcts.search.sequential.engine import SequentialEngine
@@ -55,6 +54,8 @@ class CppSearchStrategy(SearchStrategy):
             self._run_encoded_mcts(engine, root, root_native_state, sims, noise_pending)
 
     def _run_async_mcts(self, engine: 'SequentialEngine', root, root_native_state, sims, batch_size, noise_pending):
+        import ray
+
         inflight_refs = {}  # handle -> ray.ObjectRef
         next_handle = 0
 
