@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from typing import Any
 
@@ -24,43 +23,9 @@ logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
 
-def _parse_num_searches_env(name: str, default: int | None) -> int | None:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-
-    value = raw.strip().lower()
-    if value in {"", "none", "default"}:
-        return None
-
-    try:
-        parsed = int(value)
-        if parsed <= 0:
-            raise ValueError
-        return parsed
-    except ValueError:
-        logger.warning(
-            "Invalid %s=%r; using %s.",
-            name,
-            raw,
-            "default config" if default is None else str(default),
-        )
-        return default
-
-
-DIFFICULTY_MAP: dict[str, int | None] = {
-    "easy": _parse_num_searches_env("ALPHAZERO_SEARCH_EASY", 100),
-    "medium": _parse_num_searches_env("ALPHAZERO_SEARCH_MEDIUM", 400),
-    "hard": _parse_num_searches_env("ALPHAZERO_SEARCH_HARD", 600),
-}
-
-DEFAULT_DIFFICULTY = os.getenv("ALPHAZERO_DEFAULT_DIFFICULTY", "hard").strip().lower()
-if DEFAULT_DIFFICULTY not in DIFFICULTY_MAP:
-    logger.warning(
-        "Invalid ALPHAZERO_DEFAULT_DIFFICULTY=%r; falling back to 'hard'.",
-        DEFAULT_DIFFICULTY,
-    )
-    DEFAULT_DIFFICULTY = "hard"
+# AlphaZero server uses a fixed search budget (difficulty control disabled).
+# Set to None to use config.mcts.num_searches from local_play.yaml.
+NUM_SEARCHES: int | None = 200
 
 
 def _stone_for_player(player: int) -> str:
@@ -73,15 +38,6 @@ def _stone_for_player(player: int) -> str:
 
 def _clamp_percentage(value: float) -> float:
     return max(0.0, min(100.0, value))
-
-
-def _resolve_difficulty(raw_value: Any) -> str:
-    difficulty = (
-        str(raw_value).strip().lower() if raw_value is not None else DEFAULT_DIFFICULTY
-    )
-    if difficulty not in DIFFICULTY_MAP:
-        raise ValueError("Game Difficulty Error")
-    return difficulty
 
 
 async def _safe_send_json(websocket: WebSocket, payload: dict[str, Any]) -> bool:
@@ -133,7 +89,7 @@ def _format_request_board(board: Any) -> list[str]:
     return lines
 
 
-def _log_move_request(data: dict[str, Any], resolved_difficulty: str) -> None:
+def _log_move_request(data: dict[str, Any]) -> None:
     last_play = data.get("lastPlay")
     next_player = str(data.get("nextPlayer", ""))
     if isinstance(last_play, dict):
@@ -150,7 +106,6 @@ def _log_move_request(data: dict[str, Any], resolved_difficulty: str) -> None:
     logger.info("  Last Play: (%s, %s) by %s", last_x, last_y, last_player)
     logger.info("  Next Player: %s", next_player)
     logger.info("  Goal: %s", data.get("goal"))
-    logger.info("  Difficulty: %s", resolved_difficulty)
     logger.info("  Enable Capture: %s", int(bool(data.get("enableCapture"))))
     logger.info(
         "  Enable Double Three Restriction: %s",
@@ -165,14 +120,11 @@ async def _handle_move(
     engine: AlphaZeroEngine,
     data: dict[str, Any],
 ) -> bool:
-    difficulty = _resolve_difficulty(data.get("difficulty"))
-
     state = frontend_to_gamestate(data)
-    num_searches = DIFFICULTY_MAP[difficulty]
     stone = _stone_for_player(int(state.next_player))
 
     start_ns = time.perf_counter_ns()
-    action = engine.get_best_move(state, num_searches)
+    action = engine.get_best_move(state, NUM_SEARCHES)
     new_state, captures = engine.apply_move(state, action)
     elapsed_ns = time.perf_counter_ns() - start_ns
     elapsed_s = elapsed_ns / 1_000_000_000.0
@@ -253,7 +205,6 @@ async def _serve(websocket: WebSocket) -> None:
     engine: AlphaZeroEngine = websocket.app.state.engine
     path = websocket.url.path
     logger.info("WebSocket `%s` connected!", path)
-    prev_difficulty: str | None = None
     while True:
         try:
             data = await websocket.receive_json()
@@ -268,20 +219,7 @@ async def _serve(websocket: WebSocket) -> None:
             logger.info("Received: %s", json.dumps(data, separators=(",", ":")))
             message_type = data.get("type")
             if message_type in {"move", "test"}:
-                difficulty = _resolve_difficulty(data.get("difficulty"))
-                _log_move_request(data, difficulty)
-                if prev_difficulty != difficulty:
-                    if prev_difficulty is None:
-                        logger.info("initial difficulty: %s", difficulty)
-                    else:
-                        logger.info(
-                            "difficulty changed from %s to %s",
-                            prev_difficulty,
-                            difficulty,
-                        )
-                    prev_difficulty = difficulty
-            if message_type == "reset":
-                prev_difficulty = None
+                _log_move_request(data)
             sent = await _handle_payload(websocket, engine, data)
             if not sent:
                 break
