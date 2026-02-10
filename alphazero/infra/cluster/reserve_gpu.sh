@@ -6,9 +6,6 @@ ALPHAZERO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 REPO_ROOT="$(cd "${ALPHAZERO_ROOT}/.." && pwd)"
 
 DOTENV_PATH="${DOTENV_PATH:-${REPO_ROOT}/.env}"
-if [ ! -f "${DOTENV_PATH}" ] && [ -f "${ALPHAZERO_ROOT}/.env" ]; then
-  DOTENV_PATH="${ALPHAZERO_ROOT}/.env"
-fi
 if [ -f "${DOTENV_PATH}" ]; then
   set -a
   # shellcheck disable=SC1090

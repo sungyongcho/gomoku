@@ -9,9 +9,6 @@ CLUSTER_TEMPLATE="${CLUSTER_DIR}/cluster_elo1800.yaml"
 CLUSTER_RESOLVED="${CLUSTER_DIR}/.cluster_elo1800.resolved.yaml"
 
 DOTENV_PATH="${DOTENV_PATH:-${REPO_ROOT}/.env}"
-if [ ! -f "${DOTENV_PATH}" ] && [ -f "${ALPHAZERO_ROOT}/.env" ]; then
-  DOTENV_PATH="${ALPHAZERO_ROOT}/.env"
-fi
 if [ -f "${DOTENV_PATH}" ]; then
   set -a
   # shellcheck disable=SC1090

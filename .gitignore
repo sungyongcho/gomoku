@@ -15,6 +15,7 @@ a.out
 # === Environment Files ===
 .env
 .env.*
+!.env.example
 url.txt
 
 # === Python ===

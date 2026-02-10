@@ -13,6 +13,20 @@ gomoku/
 ├── front/       # Nuxt 3 frontend (Vue 3 + TypeScript + Pinia + PrimeVue + Tailwind)
 ├── minimax/     # C++ minimax AI backend (libwebsockets + RapidJSON)
 ├── alphazero/   # Python AlphaZero AI backend (PyTorch + MCTS + FastAPI)
+│   ├── gomoku/          # Core Python package
+│   │   ├── core/        # Game engine & rules
+│   │   ├── model/       # ResNet policy/value network
+│   │   ├── pvmcts/      # MCTS facade & search engines
+│   │   ├── alphazero/   # Agent, trainer, dataset, evaluation, self-play runners
+│   │   ├── inference/   # Inference abstraction (local, multiprocess, Ray)
+│   │   ├── scripts/     # Training & eval CLI entry points
+│   │   └── utils/       # Config loader, paths, serialization
+│   ├── cpp/             # C++ pybind11 extensions (rules + native MCTS)
+│   ├── server/          # FastAPI serving layer (WebSocket)
+│   ├── configs/         # YAML training & serving configs
+│   ├── tests/           # Test suite
+│   ├── infra/           # Cloud cluster scripts (Ray on GCP)
+│   └── models/          # Trained checkpoints
 ```
 
 All three services communicate via WebSocket. The frontend connects to either minimax (`ws://localhost:8005/ws`) or alphazero (`ws://localhost:8080/ws`) based on the user's AI selection in game settings.
@@ -36,6 +50,20 @@ dev-up
 - Frontend: http://localhost:3000
 - Minimax WS: ws://localhost:8005/ws
 - AlphaZero WS: ws://localhost:8080/ws
+
+### Aliases (alias.sh)
+```bash
+dev-up          # Start front + minimax + alphazero
+dev-down        # Stop all services
+dev-up-valgrind # Start with valgrind minimax
+dev-up-debug    # Start with gdb minimax
+
+# AlphaZero Ray cluster management
+alphazero-ray-attach        # Attach to Ray cluster
+alphazero-restart-cluster   # Restart cluster
+alphazero-reserve-gpu       # Reserve GPU instance
+alphazero-purge-gcp         # Purge GCP resources
+```
 
 ## Frontend (front/)
 
@@ -68,13 +96,14 @@ cd minimax && make re        # Clean rebuild
 
 ## AlphaZero Backend (alphazero/)
 
-Python AlphaZero reinforcement learning system integrated from the gmk-refactor repository. Contains the full training pipeline and a FastAPI serving layer.
+Full AlphaZero reinforcement learning system with training pipeline and FastAPI serving layer. Python 3.13+, hybrid Python-C++ architecture.
 
 - **ML Framework**: PyTorch 2.9 with ResNet policy-value network (128 channels, 12 residual blocks)
 - **Search**: PUCT-based MCTS with multiple backends (sequential, vectorize, multiprocess, Ray)
 - **Serving**: FastAPI + WebSocket on port 8080, loads a trained checkpoint
 - **C++ Extensions**: pybind11 modules for rules (`renju_cpp`) and native MCTS (`gomoku_cpp`)
 - **Config**: YAML configs loaded into Pydantic models, supports scheduled parameters
+- **Build**: scikit-build-core + CMake for C++ extensions (C++14, pybind11 3.0.1)
 
 ### AlphaZero commands
 ```bash
@@ -83,21 +112,59 @@ cd alphazero && pip install -e ".[ray,torch-cpu,dev]"    # Install for training
 cd alphazero && pytest                                    # Run tests
 cd alphazero && ruff check . && ruff format .             # Lint & format
 
-# Training
+# Training (modes: sequential, vectorize, mp, ray)
 python -m gomoku.scripts.train --config configs/config_alphazero_test.yaml --mode sequential
 
 # C++ extension rebuild
 cd alphazero && pip install -e . -v --force-reinstall --no-cache-dir --no-deps
+# Verify: python -c "from gomoku.cpp_ext import renju_cpp, gomoku_cpp; print('ok')"
 ```
 
+### Python-C++ hybrid architecture
+- **Python** (`gomoku/`): Game logic, MCTS tree management, training loops, inference
+- **C++** (`cpp/`): Performance-critical rule validation (double-three, captures) and optional native MCTS engine
+- Two pybind11 modules: `renju_cpp` (low-level rules) and `gomoku_cpp` (high-level game state + MCTS)
+- C++ is optional; pure Python fallback is the default. Enable with `use_native: true` in config.
+
+### Search engine modes (strategy pattern)
+Four interchangeable MCTS backends in `gomoku/pvmcts/search/`, all implementing the `SearchEngine` interface:
+- **sequential**: Single-threaded, for dev/debugging
+- **vectorize**: Interleaved batched search, GPU-friendly
+- **mp**: Multiprocess via process pool
+- **ray**: Distributed across Ray cluster
+
+### Configuration system
+YAML configs are loaded into Pydantic `BaseConfig` subclasses defined in `gomoku/utils/config/loader.py`. Supports **scheduled parameters** (values that change by training iteration):
+```yaml
+learning_rate:
+  - { until: 30, value: 0.002 }
+  - { until: 137, value: 0.0008 }
+```
+
+Key config classes: `BoardConfig`, `ModelConfig`, `TrainingConfig`, `MctsConfig`, `EvaluationConfig`, `ParallelConfig`.
+
+### Training pipeline
+`gomoku/scripts/train.py` dispatches to pipeline runners in `gomoku/scripts/pipelines/` based on `--mode`. The pipeline orchestrates: self-play game generation -> replay buffer (Parquet shards with 8x symmetry augmentation) -> trainer (AMP-enabled backprop, optional PER) -> evaluation (arena/SPRT) -> model promotion. Each run is tracked via `manifest.json` in `runs/{run_id}/`.
+
 ### AlphaZero key modules
-- `gomoku/core/`: Game engine, rules (double-three, capture, termination)
-- `gomoku/model/`: ResNet policy/value network (`policy_value_net.py`)
-- `gomoku/pvmcts/`: MCTS facade, tree nodes, PUCT selection, search engines
-- `gomoku/alphazero/`: Agent, trainer, dataset, evaluation (arena, SPRT, Elo), self-play
-- `gomoku/inference/`: Inference abstraction (local, multiprocess, Ray)
+- `gomoku/core/`: Game engine (`Gomoku` class, `GameState` dataclass), rules (double-three, capture, termination)
+- `gomoku/model/`: ResNet policy/value network (`policy_value_net.py`) — 128 channels, 12 residual blocks
+- `gomoku/pvmcts/`: MCTS facade (`pvmcts.py`), tree nodes, PUCT selection, search engines
+- `gomoku/alphazero/`: Agent, trainer, dataset (replay + PER), evaluation (arena, SPRT, Elo), self-play runners
+- `gomoku/inference/`: Inference abstraction (local, multiprocess server, Ray batch client)
 - `gomoku/utils/config/`: Pydantic config models with scheduled parameter support
+- `gomoku/scripts/pipelines/`: Pipeline orchestrators per mode (sequential, vectorize, mp, ray)
 - `server/`: FastAPI serving layer (WebSocket endpoints, protocol conversion, engine wrapper)
+- `cpp/`: C++ sources — `ForbiddenPointFinder` (double-three), `GomokuCore` (game state), `MctsEngine` (native MCTS)
+- `configs/`: YAML configs for training (`elo1800-v*.yaml`, test configs) and serving (`local_play.yaml`)
+- `infra/`: GCP cluster management scripts (Ray cluster bootstrap, GPU reservation)
+
+### AlphaZero code style
+- Python 3.13+, line length 88 (Black-compatible)
+- Ruff for linting and formatting (rules: E, W, F, B, I, UP, N, D, ANN)
+- Type hints throughout, PEP 604 union syntax (`X | None`)
+- Dataclasses with `slots=True` for state objects (`GameState`, `TreeNode`)
+- `known-first-party = ["gomoku"]` for import sorting
 
 ## WebSocket Protocol
 
@@ -135,9 +202,9 @@ Both minimax and alphazero backends use the same WebSocket JSON protocol.
 ## Docker Services
 
 Defined in `docker-compose.yml`:
-- **front**: Nuxt dev server (port 3000)
+- **front**: Nuxt dev server (port 3000), depends on minimax + alphazero
 - **minimax**: C++ WebSocket server (port 8005)
-- **alphazero**: Python FastAPI server (port 8080)
+- **alphazero**: Python FastAPI server (port 8080), mounts `runs/elo1800-gcp-v4/ckpt/champion.pt` as model checkpoint, runs uvicorn with hot-reload on `server/`, `gomoku/`, `configs/`
 - **minimax_valgrind**: Memory profiling variant
 - **minimax_debug**: GDB debugging variant (port 8006)
 
@@ -145,12 +212,15 @@ Defined in `docker-compose.yml`:
 
 See `.env` / `.env.example`:
 - `LOCAL_FRONT=3000` - Frontend port
+- `LOCAL_FRONT_NUXT_CONTENT_WS=4000` - Nuxt Content WebSocket port
 - `LOCAL_MINIMAX=8005` - Minimax port
+- `LOCAL_MINIMAX_GDB=8006` - Minimax GDB port
 - `LOCAL_ALPHAZERO=8080` - AlphaZero port
 - `FRONT_WHERE=local` - "local" or "prod"
-- `ALPHAZERO_CHECKPOINT` - Path to model checkpoint (.pt file)
-- `ALPHAZERO_DEVICE` - "cpu" or "cuda"
-- `ALPHAZERO_NUM_SEARCHES` - MCTS simulations per move
+- `ALPHAZERO_CONFIG=configs/local_play.yaml` - Serving config path
+- `ALPHAZERO_CHECKPOINT=models/champion.pt` - Path to model checkpoint (.pt file)
+- `ALPHAZERO_DEVICE=cpu` - "cpu" or "cuda"
+- `ALPHAZERO_MCTS_NUM_SEARCHS=200` - MCTS simulations per move
 
 ## Game Rules
 
@@ -167,7 +237,8 @@ Frontend types are in `front/types/game.ts`:
 - `Settings`: game config (capture, doublethree, difficulty, ai engine selection)
 - `SocketMoveRequest` / `SocketMoveResponse`: WebSocket message shapes
 
-AlphaZero types:
-- `GameState`: dataclass with numpy board, capture scores, next player, move history
-- `BoardConfig`: Pydantic model for game rules configuration
+AlphaZero types (in `alphazero/gomoku/`):
+- `GameState`: dataclass (`slots=True`) with numpy board, capture scores, next player, move history, optional native state
+- `BoardConfig`: Pydantic model for game rules (board size, goals, double-three, capture)
 - `PLAYER_1=1` (X/Black), `PLAYER_2=2` (O/White), `EMPTY_SPACE=0`
+- `PolicyValueNet`: ResNet CNN — policy head outputs 361 logits, value head outputs scalar in [-1, 1]
