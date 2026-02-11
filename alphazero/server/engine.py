@@ -49,8 +49,8 @@ class AlphaZeroEngine:
                 self.inference_client = OnnxInference(
                     model=self.model,
                     num_planes=config.model.num_planes,  # Correct attribute from ModelConfig
-                    board_h=config.board.size,
-                    board_w=config.board.size,
+                    board_h=config.board.num_lines,
+                    board_w=config.board.num_lines,
                     quantize=quantize,
                     onnx_cache_dir=onnx_cache,
                 )
