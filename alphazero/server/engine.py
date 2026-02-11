@@ -12,6 +12,10 @@ import torch
 from gomoku.alphazero.types import action_to_xy
 from gomoku.core.gomoku import GameState, Gomoku
 from gomoku.inference.local import LocalInference
+try:
+    from gomoku.inference.onnx_inference import OnnxInference
+except ImportError:
+    OnnxInference = None
 from gomoku.model.policy_value_net import PolicyValueNet
 from gomoku.pvmcts.pvmcts import PVMCTS
 from gomoku.utils.config.loader import MctsConfig, load_and_parse_config
@@ -30,7 +34,28 @@ class AlphaZeroEngine:
         self.model = PolicyValueNet(self.game, config.model, self.device)
         self._load_checkpoint(checkpoint_path)
         self.model.eval()
-        self.inference_client = LocalInference(self.model, self.device)
+        self.model.eval()
+
+        infer_backend = os.getenv("ALPHAZERO_INFER_BACKEND", "local")
+        if infer_backend.startswith("onnx"):
+            if OnnxInference is None:
+                logger.warning("ONNX Runtime not available, falling back to LocalInference")
+                self.inference_client = LocalInference(self.model, self.device)
+            else:
+                logger.info("Initializing ONNX Runtime inference backend...")
+                quantize = "int8" in infer_backend
+                # Cache directory for ONNX models
+                onnx_cache = os.getenv("ONNX_CACHE_DIR", "/tmp/onnx_cache")
+                self.inference_client = OnnxInference(
+                    model=self.model,
+                    num_planes=config.model.dim,  # Assuming dim is correct
+                    board_h=config.board.size,
+                    board_w=config.board.size,
+                    quantize=quantize,
+                    onnx_cache_dir=onnx_cache,
+                )
+        else:
+            self.inference_client = LocalInference(self.model, self.device)
 
         native_enabled = bool(
             requested_native

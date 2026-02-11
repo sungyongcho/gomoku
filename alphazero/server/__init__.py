@@ -24,4 +24,8 @@ def create_app() -> FastAPI:
     async def health():
         return {"status": "ok", "model": "alphazero"}
 
+    @app.get("/health")
+    async def health_check():
+        return {"status": "ok"}
+
     return app
