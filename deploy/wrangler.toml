@@ -14,7 +14,6 @@ routes = [
 
 [vars]
 # ALPHAZERO_ORIGIN and MINIMAX_ORIGIN are injected at deploy time
-# via --var flags in 05_deploy_cloudflare.sh (read from .env).
+# via --var flags in 03_deploy_cloudflare.sh (read from .env).
 # Do NOT hardcode IPs here.
-
 
