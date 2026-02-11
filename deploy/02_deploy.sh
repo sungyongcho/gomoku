@@ -161,13 +161,49 @@ if [ "${DO_UPDATE}" = true ]; then
   # Use DEPLOY_ALPHAZERO_* to avoid conflicts with training env vars.
   ALPHAZERO_CONFIG_VALUE="${DEPLOY_ALPHAZERO_CONFIG:-configs/deploy.yaml}"
   ALPHAZERO_DEVICE_VALUE="${DEPLOY_ALPHAZERO_DEVICE:-cpu}"
+  ALPHAZERO_THREADS_VALUE="${DEPLOY_ALPHAZERO_THREADS:-}"
+  ALPHAZERO_OMP_THREADS_VALUE="${DEPLOY_ALPHAZERO_OMP_THREADS:-${ALPHAZERO_THREADS_VALUE}}"
+  ALPHAZERO_MKL_THREADS_VALUE="${DEPLOY_ALPHAZERO_MKL_THREADS:-${ALPHAZERO_THREADS_VALUE}}"
+  ALPHAZERO_TORCH_THREADS_VALUE="${DEPLOY_ALPHAZERO_TORCH_THREADS:-${ALPHAZERO_THREADS_VALUE}}"
+  ALPHAZERO_CPUS_VALUE="${DEPLOY_ALPHAZERO_CPUS:-}"
+  ALPHAZERO_CPUSET_VALUE="${DEPLOY_ALPHAZERO_CPUSET:-}"
   AZ_ENV="ALPHAZERO_CONFIG=${ALPHAZERO_CONFIG_VALUE},ALPHAZERO_DEVICE=${ALPHAZERO_DEVICE_VALUE}"
+  if [ -n "${ALPHAZERO_OMP_THREADS_VALUE}" ]; then
+    AZ_ENV="${AZ_ENV},OMP_NUM_THREADS=${ALPHAZERO_OMP_THREADS_VALUE}"
+  fi
+  if [ -n "${ALPHAZERO_MKL_THREADS_VALUE}" ]; then
+    AZ_ENV="${AZ_ENV},MKL_NUM_THREADS=${ALPHAZERO_MKL_THREADS_VALUE}"
+  fi
+  if [ -n "${ALPHAZERO_TORCH_THREADS_VALUE}" ]; then
+    AZ_ENV="${AZ_ENV},TORCH_NUM_THREADS=${ALPHAZERO_TORCH_THREADS_VALUE}"
+  fi
+  AZ_META="container-image=${IMAGE_ALPHAZERO},container-port=8080,container-name=${ALPHAZERO_VM}"
+  if [ -n "${ALPHAZERO_CPUS_VALUE}" ]; then
+    AZ_META="${AZ_META},container-cpus=${ALPHAZERO_CPUS_VALUE}"
+  fi
+  if [ -n "${ALPHAZERO_CPUSET_VALUE}" ]; then
+    AZ_META="${AZ_META},container-cpuset=${ALPHAZERO_CPUSET_VALUE}"
+  fi
 
   log " -> alphazero: ${ALPHAZERO_VM}"
   gcloud compute instances add-metadata "${ALPHAZERO_VM}" \
     --project="${PROJECT_ID}" \
     --zone="${ZONE}" \
-    --metadata=container-image="${IMAGE_ALPHAZERO}",container-port=8080,container-name="${ALPHAZERO_VM}"
+    --metadata="${AZ_META}"
+  REMOVE_AZ_KEYS=()
+  if [ -z "${ALPHAZERO_CPUS_VALUE}" ]; then
+    REMOVE_AZ_KEYS+=("container-cpus")
+  fi
+  if [ -z "${ALPHAZERO_CPUSET_VALUE}" ]; then
+    REMOVE_AZ_KEYS+=("container-cpuset")
+  fi
+  if [ "${#REMOVE_AZ_KEYS[@]}" -gt 0 ]; then
+    AZ_REMOVE_KEYS_CSV="$(IFS=,; echo "${REMOVE_AZ_KEYS[*]}")"
+    gcloud compute instances remove-metadata "${ALPHAZERO_VM}" \
+      --project="${PROJECT_ID}" \
+      --zone="${ZONE}" \
+      --keys="${AZ_REMOVE_KEYS_CSV}" >/dev/null 2>&1 || true
+  fi
   # container-env contains commas which conflict with gcloud's --metadata delimiter.
   # Pass it via --metadata-from-file to avoid the issue.
   AZ_ENV_FILE="$(mktemp)"

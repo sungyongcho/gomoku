@@ -22,11 +22,14 @@ gomoku/
 │   │   ├── scripts/     # Training & eval CLI entry points
 │   │   └── utils/       # Config loader, paths, serialization
 │   ├── cpp/             # C++ pybind11 extensions (rules + native MCTS)
-│   ├── server/          # FastAPI serving layer (WebSocket)
-│   ├── configs/         # YAML training & serving configs
+│   ├── server/          # FastAPI serving layer (WebSocket + engine wrapper)
+│   ├── configs/         # YAML training, serving & deploy configs
 │   ├── tests/           # Test suite
-│   ├── infra/           # Cloud cluster scripts (Ray on GCP)
+│   ├── infra/           # Cloud infra (Ray cluster scripts, production Docker images)
+│   │   ├── image/       # Dockerfiles (prod, dev CPU, dev CUDA) + BuildKit config
+│   │   └── deploy/      # Deployment-specific configs
 │   └── models/          # Trained checkpoints
+├── deploy/      # GCP + Cloudflare production deployment scripts
 ```
 
 All three services communicate via WebSocket. The frontend connects to either minimax (`ws://localhost:8005/ws`) or alphazero (`ws://localhost:8080/ws`) based on the user's AI selection in game settings.
@@ -63,6 +66,11 @@ alphazero-ray-attach        # Attach to Ray cluster
 alphazero-restart-cluster   # Restart cluster
 alphazero-reserve-gpu       # Reserve GPU instance
 alphazero-purge-gcp         # Purge GCP resources
+
+# Deployment logs
+deploy-logs-minimax         # SSH to minimax VM and tail container logs
+deploy-logs-alphazero       # SSH to alphazero VM and tail container logs
+deploy-logs-worker          # Tail Cloudflare Worker logs
 ```
 
 ## Frontend (front/)
@@ -154,9 +162,10 @@ Key config classes: `BoardConfig`, `ModelConfig`, `TrainingConfig`, `MctsConfig`
 - `gomoku/inference/`: Inference abstraction (local, multiprocess server, Ray batch client)
 - `gomoku/utils/config/`: Pydantic config models with scheduled parameter support
 - `gomoku/scripts/pipelines/`: Pipeline orchestrators per mode (sequential, vectorize, mp, ray)
-- `server/`: FastAPI serving layer (WebSocket endpoints, protocol conversion, engine wrapper)
+- `server/`: FastAPI serving layer — `create_app()` factory, WebSocket endpoints, `AlphaZeroEngine` wrapper with native MCTS support and automatic CPU thread management (cgroup-aware)
 - `cpp/`: C++ sources — `ForbiddenPointFinder` (double-three), `GomokuCore` (game state), `MctsEngine` (native MCTS)
-- `configs/`: YAML configs for training (`elo1800-v*.yaml`, test configs) and serving (`local_play.yaml`)
+- `configs/`: YAML configs for training (`elo1800-v*.yaml`, test configs), serving (`local_play.yaml`), and production deployment (`deploy.yaml`)
+- `infra/image/`: Production and dev Docker images (`Dockerfile.prod`, CPU/CUDA dev images)
 - `infra/`: GCP cluster management scripts (Ray cluster bootstrap, GPU reservation)
 
 ### AlphaZero code style
@@ -208,9 +217,35 @@ Defined in `docker-compose.yml`:
 - **minimax_valgrind**: Memory profiling variant
 - **minimax_debug**: GDB debugging variant (port 8006)
 
+## Production Deployment (deploy/)
+
+GCP + Cloudflare infrastructure-as-scripts deployment. No Terraform — uses gcloud CLI and Wrangler directly.
+
+### Deployment workflow
+1. **`01_setup.sh`** — One-time GCP project setup (Artifact Registry, IAM, networking, storage, quota checks)
+2. **`02_deploy.sh`** — Build & push production Docker images to Artifact Registry, update VM metadata, trigger startup scripts, verify containers via SSH
+3. **`03_deploy_cloudflare.sh`** — Configure Cloudflare DNS A records and deploy Worker for path-based routing
+
+### Key components
+- **`docker_container_startup_script.sh`** — GCP COS VM startup script that pulls images from Artifact Registry and runs containers
+- **`cloudflare-worker.js`** + **`wrangler.toml`** — Cloudflare Worker that routes `/alphazero/*` and `/minimax/*` to their respective backend VMs
+- **`deploy_env_config.sh`** — Loads deployment env vars from `.env`
+- **`teardown.sh`** — Removes VMs, networks, service accounts
+- **`verify_connection.sh`** — Connection verification utility
+
+### Production architecture
+- GCP Artifact Registry holds Docker images (minimax + alphazero)
+- GCP COS VMs run startup scripts that pull images and run containers
+- Cloudflare Worker routes WebSocket/HTTP traffic to backend VMs by path
+- AlphaZero production image (`infra/image/Dockerfile.prod`) uses Python 3.13-slim, builds C++ extensions, torch-cpu
+- Native C++ MCTS enabled in production (`deploy.yaml`: `use_native: true`, 20 MCTS searches for fast responses)
+- Server reconstructs native C++ state from frontend payloads per request (no persistent native state)
+
 ## Environment Variables
 
 See `.env` / `.env.example`:
+
+### Local development
 - `LOCAL_FRONT=3000` - Frontend port
 - `LOCAL_FRONT_NUXT_CONTENT_WS=4000` - Nuxt Content WebSocket port
 - `LOCAL_MINIMAX=8005` - Minimax port
@@ -221,6 +256,14 @@ See `.env` / `.env.example`:
 - `ALPHAZERO_CHECKPOINT=models/champion.pt` - Path to model checkpoint (.pt file)
 - `ALPHAZERO_DEVICE=cpu` - "cpu" or "cuda"
 - `ALPHAZERO_MCTS_NUM_SEARCHS=200` - MCTS simulations per move
+
+### Deployment (GCP + Cloudflare)
+- `DEPLOY_GCP_PROJECT`, `DEPLOY_GCP_REGION`, `DEPLOY_GCP_ZONE`, `DEPLOY_GCP_REPO` - GCP project/location
+- `DEPLOY_MINIMAX_VM`, `DEPLOY_ALPHAZERO_VM` - VM instance names
+- `DEPLOY_MINIMAX_IP`, `DEPLOY_ALPHAZERO_IP` - Static IP addresses
+- `DEPLOY_DOMAIN` - Production domain
+- `DEPLOY_SA_NAME`, `DEPLOY_USER_EMAIL` - Service account and user
+- `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` - Cloudflare credentials
 
 ## Game Rules
 

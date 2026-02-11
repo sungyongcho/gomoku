@@ -28,10 +28,10 @@ services:
   alphazero:
     build:
       context: ./alphazero
-      dockerfile: Dockerfile # Normal build
+      dockerfile: infra/image/Dockerfile.prod # Normal build
     volumes:
       - ./alphazero:/app
-      - ./alphazero/runs/elo1800-gcp-v4/ckpt/champion.pt:/app/models/champion.pt:ro
+      - ./alphazero/models/champion.pt:/app/models/champion.pt:ro
     ports:
       - "${LOCAL_ALPHAZERO}:8080"
     env_file:

@@ -1,23 +1,21 @@
-
-import sys
-import os
-import re
-import json
 import glob
-import torch
-import numpy as np
+import json
+import os
 from pathlib import Path
+import re
+import sys
+
+import torch
 
 # Add alphazero root to sys.path so this script runs from any cwd.
 ALPHAZERO_ROOT = Path(__file__).resolve().parent
 sys.path.append(str(ALPHAZERO_ROOT))
 
 from gomoku.core.gomoku import Gomoku
+from gomoku.model.model_helpers import calc_num_planes
 from gomoku.model.policy_value_net import PolicyValueNet
 from gomoku.pvmcts.pvmcts import PVMCTS
-from gomoku.utils.config.loader import MctsConfig, ModelConfig, BoardConfig
-from gomoku.model.model_helpers import calc_num_planes
-
+from gomoku.utils.config.loader import BoardConfig, MctsConfig, ModelConfig
 
 # ── Auto-detect run directory ────────────────────────────────────────
 
@@ -65,7 +63,8 @@ def find_ckpt_dir(run_dir: str) -> str:
 
 
 def discover_checkpoints(run_dir: str) -> list[tuple[str, str]]:
-    """Auto-discover checkpoints from manifest + filesystem.
+    """
+    Auto-discover checkpoints from manifest + filesystem.
 
     Returns list of (label, path) sorted by iteration number.
     Always includes:
@@ -134,6 +133,7 @@ def discover_checkpoints(run_dir: str) -> list[tuple[str, str]]:
 
 # ── Core logic (unchanged) ───────────────────────────────────────────
 
+
 def load_checkpoint(model, ckpt_path, device):
     checkpoint = torch.load(ckpt_path, map_location=device, weights_only=True)
     if "model_state_dict" in checkpoint:
@@ -157,9 +157,12 @@ def distance_from_center(x, y, center):
     return abs(x - center) + abs(y - center)
 
 
-def run_opening_test(model, board_cfg, mcts_cfg, device, use_native_mcts, use_native_core):
+def run_opening_test(
+    model, board_cfg, mcts_cfg, device, use_native_mcts, use_native_core
+):
     """Run MCTS on empty board, return list of (action, x, y, visits, prior)."""
     from gomoku.inference.local import LocalInference
+
     inference = LocalInference(model)
 
     game = Gomoku(board_cfg, use_native=use_native_core)
@@ -220,18 +223,14 @@ def compare_checkpoints():
     center = board_size // 2
     center_idx = center * board_size + center
 
-    model_cfg = ModelConfig(
-        num_hidden=128,
-        num_resblocks=12,
-        num_planes=num_planes
-    )
+    model_cfg = ModelConfig(num_hidden=128, num_resblocks=12, num_planes=num_planes)
     board_cfg = BoardConfig(
         num_lines=board_size,
         enable_doublethree=True,
         enable_capture=True,
         capture_goal=5,
         gomoku_goal=5,
-        history_length=5
+        history_length=5,
     )
 
     mcts_cfg = MctsConfig(
@@ -243,12 +242,14 @@ def compare_checkpoints():
         use_native=False,
         batch_infer_size=1,
         min_batch_size=1,
-        max_batch_wait_ms=0
+        max_batch_wait_ms=0,
     )
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
-    print(f"Board: {board_size}x{board_size}, Center: ({center},{center}) idx={center_idx}")
+    print(
+        f"Board: {board_size}x{board_size}, Center: ({center},{center}) idx={center_idx}"
+    )
     print(f"MCTS: {int(mcts_cfg.num_searches)} searches, no noise, deterministic\n")
 
     # Auto-detect run directory and checkpoints
@@ -295,8 +296,12 @@ def compare_checkpoints():
         load_checkpoint(model, ckpt_path, device)
 
         results, total_visits = run_opening_test(
-            model, board_cfg, mcts_cfg, device,
-            use_native_mcts=False, use_native_core=False
+            model,
+            board_cfg,
+            mcts_cfg,
+            device,
+            use_native_mcts=False,
+            use_native_core=False,
         )
         all_results[label] = (results, total_visits)
 
@@ -309,9 +314,11 @@ def compare_checkpoints():
         for i, (action, x, y, visits, prior) in enumerate(results[:5]):
             prob = visits / max(1, total_visits)
             dist = distance_from_center(x, y, center)
-            is_center = (x == center and y == center)
+            is_center = x == center and y == center
             marker = " ** CENTER **" if is_center else ""
-            print(f"    {i+1}. ({x:>2},{y:>2})  visits={visits:>5} ({prob:>6.1%})  prior={prior:.4f}  dist={dist}{marker}")
+            print(
+                f"    {i + 1}. ({x:>2},{y:>2})  visits={visits:>5} ({prob:>6.1%})  prior={prior:.4f}  dist={dist}{marker}"
+            )
 
         # Center stats
         center_visits = 0
@@ -328,7 +335,9 @@ def compare_checkpoints():
         center_pct = center_visits / max(1, total_visits) * 100
         near_pct = near_center_visits / max(1, total_visits) * 100
 
-        print(f"\n  Center ({center},{center}): {center_visits} visits ({center_pct:.1f}%), prior={center_prior:.4f}")
+        print(
+            f"\n  Center ({center},{center}): {center_visits} visits ({center_pct:.1f}%), prior={center_prior:.4f}"
+        )
         print(f"  Near-center (dist<=2): {near_center_visits} visits ({near_pct:.1f}%)")
 
         # Top move distance from center
@@ -337,7 +346,7 @@ def compare_checkpoints():
         print(f"  Top move distance from center: {top_dist}")
 
         # Heatmap
-        print(f"\n  Visit heatmap (central 11x11, % of max):")
+        print("\n  Visit heatmap (central 11x11, % of max):")
         print_board_heatmap(results, board_size)
         print()
 
@@ -346,8 +355,10 @@ def compare_checkpoints():
         print(f"\n{'=' * 70}")
         print("  COMPARISON SUMMARY")
         print(f"{'=' * 70}")
-        print(f"  {'Checkpoint':<40} {'Center%':>8} {'Near%':>8} {'Top Move':>10} {'TopDist':>8}")
-        print(f"  {'-'*40} {'-'*8} {'-'*8} {'-'*10} {'-'*8}")
+        print(
+            f"  {'Checkpoint':<40} {'Center%':>8} {'Near%':>8} {'Top Move':>10} {'TopDist':>8}"
+        )
+        print(f"  {'-' * 40} {'-' * 8} {'-' * 8} {'-' * 10} {'-' * 8}")
 
         for label, (results, total_visits) in all_results.items():
             if not results:
@@ -365,7 +376,9 @@ def compare_checkpoints():
             top_x, top_y = results[0][1], results[0][2]
             top_dist = distance_from_center(top_x, top_y, center)
             short_label = label[:40]
-            print(f"  {short_label:<40} {center_pct:>7.1f}% {near_pct:>7.1f}% ({top_x:>2},{top_y:>2})  {top_dist:>6}")
+            print(
+                f"  {short_label:<40} {center_pct:>7.1f}% {near_pct:>7.1f}% ({top_x:>2},{top_y:>2})  {top_dist:>6}"
+            )
 
         # Verdict
         labels = list(all_results.keys())
@@ -384,13 +397,21 @@ def compare_checkpoints():
 
         print()
         if last_pct > first_pct + 5:
-            print(f"  VERDICT: Center opening IMPROVED ({first_pct:.1f}% -> {last_pct:.1f}%)")
+            print(
+                f"  VERDICT: Center opening IMPROVED ({first_pct:.1f}% -> {last_pct:.1f}%)"
+            )
         elif last_pct < first_pct - 5:
-            print(f"  VERDICT: Center opening REGRESSED ({first_pct:.1f}% -> {last_pct:.1f}%)")
+            print(
+                f"  VERDICT: Center opening REGRESSED ({first_pct:.1f}% -> {last_pct:.1f}%)"
+            )
         else:
-            print(f"  VERDICT: Center opening roughly UNCHANGED ({first_pct:.1f}% -> {last_pct:.1f}%)")
+            print(
+                f"  VERDICT: Center opening roughly UNCHANGED ({first_pct:.1f}% -> {last_pct:.1f}%)"
+            )
             if last_pct < 30:
-                print(f"  WARNING: Center visit share is low (<30%). Model may still prefer off-center openings.")
+                print(
+                    "  WARNING: Center visit share is low (<30%). Model may still prefer off-center openings."
+                )
 
 
 if __name__ == "__main__":

@@ -14,12 +14,8 @@ metadata() {
 CONTAINER_IMAGE="$(metadata container-image)"
 CONTAINER_PORT="$(metadata container-port)"
 CONTAINER_ENV_JSON="$(metadata container-env)"
-CONTAINER_NAME="$(metadata container-name)"
-CONTAINER_CPUS="$(metadata container-cpus)"
-CONTAINER_CPUSET="$(metadata container-cpuset)"
 
 CONTAINER_PORT="${CONTAINER_PORT:-8080}"
-CONTAINER_NAME="${CONTAINER_NAME:-gomoku-app}"
 
 if [ -z "${CONTAINER_IMAGE}" ]; then
   echo "ERROR: 'container-image' metadata not set. Nothing to run." >&2
@@ -29,27 +25,26 @@ fi
 echo "=== Startup script ==="
 echo "  Image: ${CONTAINER_IMAGE}"
 echo "  Port:  ${CONTAINER_PORT}"
-echo "  Name:  ${CONTAINER_NAME}"
-echo "  CPUs:  ${CONTAINER_CPUS:-default}"
-echo "  CPUSet:${CONTAINER_CPUSET:-default}"
 
-# ---- Configure Docker to use writable directory ----
-# COS has read-only /root/.docker, so use /tmp
-export DOCKER_CONFIG=/tmp/.docker
-mkdir -p "${DOCKER_CONFIG}"
-
-# ---- Authenticate to Artifact Registry ----
-# Get access token from metadata service (gcloud is not in PATH during startup)
+# ---- Authenticate Docker to Artifact Registry ----
+# COS ships with Docker pre-installed.  Authenticate via the instance SA.
 ACCESS_TOKEN="$(curl -fsSL -H 'Metadata-Flavor: Google' \
   'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' \
-  | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"//')"
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])' 2>/dev/null || true)"
+
+if [ -z "${ACCESS_TOKEN}" ]; then
+  # COS might not have python3; fallback to grep/sed
+  ACCESS_TOKEN="$(curl -fsSL -H 'Metadata-Flavor: Google' \
+    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' \
+    | grep -o '"access_token":"[^"]*"' | sed 's/"access_token":"//;s/"//')"
+fi
 
 REGISTRY_HOST="$(echo "${CONTAINER_IMAGE}" | cut -d/ -f1)"
 echo "${ACCESS_TOKEN}" | docker login -u oauth2accesstoken --password-stdin "https://${REGISTRY_HOST}"
 
 # ---- Stop & remove any previous container ----
-docker stop "${CONTAINER_NAME}" 2>/dev/null || true
-docker rm   "${CONTAINER_NAME}" 2>/dev/null || true
+docker stop gomoku-app 2>/dev/null || true
+docker rm   gomoku-app 2>/dev/null || true
 
 # ---- Pull latest image ----
 docker pull "${CONTAINER_IMAGE}"
@@ -64,23 +59,14 @@ if [ -n "${CONTAINER_ENV_JSON}" ]; then
   done
 fi
 
-CPU_FLAGS=""
-if [ -n "${CONTAINER_CPUS}" ]; then
-  CPU_FLAGS="${CPU_FLAGS} --cpus ${CONTAINER_CPUS}"
-fi
-if [ -n "${CONTAINER_CPUSET}" ]; then
-  CPU_FLAGS="${CPU_FLAGS} --cpuset-cpus ${CONTAINER_CPUSET}"
-fi
-
 # ---- Run ----
 # shellcheck disable=SC2086
 docker run -d \
-  --name "${CONTAINER_NAME}" \
+  --name gomoku-app \
   --restart unless-stopped \
   -p "${CONTAINER_PORT}:${CONTAINER_PORT}" \
-  ${CPU_FLAGS} \
   ${ENV_FLAGS} \
   "${CONTAINER_IMAGE}"
 
 echo "=== Container started ==="
-docker ps --filter name="${CONTAINER_NAME}" --format '{{.Image}} | {{.Status}}'
+docker ps --filter name=gomoku-app --format '{{.Image}} | {{.Status}}'

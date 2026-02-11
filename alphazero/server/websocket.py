@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from typing import Any
 
@@ -17,8 +18,6 @@ from server.protocol import (
     frontend_to_gamestate,
 )
 
-import os
-
 router = APIRouter()
 # Reuse uvicorn's configured logger so app logs always appear in container stdout.
 logger = logging.getLogger("uvicorn.error")
@@ -29,7 +28,8 @@ logger.setLevel(logging.INFO)
 # If ALPHAZERO_MCTS_NUM_SEARCHS env var is set, use that value.
 # Otherwise, use None so config file's mcts.num_searches is used (deploy.yaml → 100).
 _raw = os.environ.get("ALPHAZERO_MCTS_NUM_SEARCHS")
-NUM_SEARCHES: int | None = int(_raw) if _raw else None
+# 기존 env 파싱 제거하고
+NUM_SEARCHES: int | None = 100
 
 
 def _stone_for_player(player: int) -> str:

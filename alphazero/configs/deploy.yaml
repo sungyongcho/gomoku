@@ -25,7 +25,7 @@ mcts:
   batch_infer_size: 1
   min_batch_size: 1
   max_batch_wait_ms: 0
-  use_native: true # Python MCTS for serving (no native build in prod image)
+  use_native: true # Use native C++ MCTS; server reconstructs native_state from frontend payload.
   resign_threshold: 0.95
   resign_enabled: true
   min_moves_before_resign: 20
