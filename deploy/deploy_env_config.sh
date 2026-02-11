@@ -31,7 +31,7 @@ export DEPLOY_DOMAIN="${DEPLOY_DOMAIN:?DEPLOY_DOMAIN is required}"
 export SA_NAME="${DEPLOY_SA_NAME:?DEPLOY_SA_NAME is required}"
 export USER_EMAIL="${DEPLOY_USER_EMAIL:?DEPLOY_USER_EMAIL is required}"
 
-# ===== Cloudflare Worker config (optional – required only for 04_deploy_cloudflare.sh) =====
+# ===== Cloudflare Worker config (optional – required only for 03_deploy_cloudflare.sh) =====
 export DEPLOY_MINIMAX_IP="${DEPLOY_MINIMAX_IP:-}"
 export DEPLOY_ALPHAZERO_IP="${DEPLOY_ALPHAZERO_IP:-}"
 
@@ -67,4 +67,3 @@ echo "  User: ${USER_EMAIL}"
 echo "  Service Account: ${SA_EMAIL}"
 echo "  Cloudflare: account_id=$(_mask_len "${CLOUDFLARE_ACCOUNT_ID:-}"), api_token=$(_mask_len "${CLOUDFLARE_API_TOKEN:-}")"
 echo "-------------------------------------"
-

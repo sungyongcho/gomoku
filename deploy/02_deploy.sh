@@ -122,24 +122,25 @@ if [ "${DO_UPDATE}" = true ]; then
   log "Step 6: Update container metadata on VMs and restart..."
 
   if [ "${DO_PRUNE}" = true ]; then
-    log " -> Pruning old docker images/artifacts on VMs (best-effort)..."
+    log " -> Removing existing containers and images on VMs..."
     for vm in "${MINIMAX_VM}" "${ALPHAZERO_VM}"; do
       set +e
+      # Explicitly remove the container (using VM name as container name) and ALL images.
       gcloud compute ssh "${vm}" \
         --project="${PROJECT_ID}" \
         --zone="${ZONE}" \
-        --command "sudo docker container prune -f >/dev/null 2>&1 || true; sudo docker image prune -af >/dev/null 2>&1 || true; sudo docker builder prune -af >/dev/null 2>&1 || true; sudo docker system df || true" \
+        --command "sudo docker rm -f ${vm} >/dev/null 2>&1 || true; sudo docker rmi -f \$(sudo docker images -aq) >/dev/null 2>&1 || true" \
         >/dev/null 2>&1
       rc=$?
       set -e
       if [ "${rc}" -ne 0 ]; then
-        log "   -> ${vm}: prune skipped (ssh unavailable or docker not ready)"
+        log "   -> ${vm}: cleanup skipped (ssh unavailable or docker not ready)"
       else
-        log "   -> ${vm}: prune completed"
+        log "   -> ${vm}: cleanup completed (container & images deleted)"
       fi
     done
   else
-    log " -> Skipping VM docker prune"
+    log " -> Skipping VM docker cleanup"
   fi
 
   STARTUP_SCRIPT="${SCRIPT_DIR}/docker_container_startup_script.sh"
@@ -252,17 +253,5 @@ if [ "${DO_VERIFY}" = true ]; then
 else
   log "Step 7: Skipping verification"
 fi
-
-log "Step 8: Cleanup old images (best-effort)..."
-for vm in "${MINIMAX_VM}" "${ALPHAZERO_VM}"; do
-  set +e
-  gcloud compute ssh "${vm}" \
-    --project="${PROJECT_ID}" \
-    --zone="${ZONE}" \
-    --command "sudo docker system prune -af --volumes >/dev/null 2>&1 || true; sudo docker system df || true" \
-    >/dev/null 2>&1
-  set -e
-  log "   -> ${vm}: cleanup triggered"
-done
 
 log "Deploy complete."

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 # ============================================================
-# 04_deploy_cloudflare.sh
+# 03_deploy_cloudflare.sh
 #
 # 1. Updates Cloudflare DNS A records for the backend subdomains
 # 2. Deploys the Cloudflare Worker that routes WebSocket traffic
@@ -21,6 +21,83 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/deploy_env_config.sh"
 
 log(){ echo -e "[\e[36m$(date +'%F %T')\e[0m] $*"; }
+require_cmd() {
+  if ! command -v "$1" &>/dev/null; then
+    echo "Missing required command: $1" >&2
+    exit 1
+  fi
+}
+
+cf_request() {
+  local method="$1"
+  local url="$2"
+  local payload="${3:-}"
+  local response
+
+  if [ -n "${payload}" ]; then
+    if ! response="$(curl -fsSL --connect-timeout 10 --max-time 30 "${CF_AUTH[@]}" -X "${method}" "${url}" -d "${payload}" 2>&1)"; then
+      echo "Cloudflare API request failed (${method} ${url})." >&2
+      echo "${response}" >&2
+      echo "Hint: check DNS/network egress and CLOUDFLARE_API_TOKEN permissions." >&2
+      exit 1
+    fi
+  else
+    if ! response="$(curl -fsSL --connect-timeout 10 --max-time 30 "${CF_AUTH[@]}" -X "${method}" "${url}" 2>&1)"; then
+      echo "Cloudflare API request failed (${method} ${url})." >&2
+      echo "${response}" >&2
+      echo "Hint: check DNS/network egress and CLOUDFLARE_API_TOKEN permissions." >&2
+      exit 1
+    fi
+  fi
+
+  printf '%s' "${response}"
+}
+
+cf_success() {
+  local response="$1"
+  if command -v jq &>/dev/null; then
+    [ "$(printf '%s' "${response}" | jq -r '.success // false')" = "true" ]
+  else
+    printf '%s' "${response}" | grep -Eq '"success"[[:space:]]*:[[:space:]]*true'
+  fi
+}
+
+cf_first_result_id() {
+  local response="$1"
+  if command -v jq &>/dev/null; then
+    printf '%s' "${response}" | jq -r '.result[0].id // empty'
+  else
+    printf '%s' "${response}" \
+      | grep -Eo '"id"[[:space:]]*:[[:space:]]*"[^"]+"' \
+      | head -1 \
+      | cut -d'"' -f4
+  fi
+}
+
+cf_error_summary() {
+  local response="$1"
+  if command -v jq &>/dev/null; then
+    printf '%s' "${response}" | jq -r '[.errors[]? | (.message // ("code=" + (.code|tostring)))] | join("; ")'
+  fi
+}
+
+ensure_cf_success() {
+  local response="$1"
+  local action="$2"
+  if cf_success "${response}"; then
+    return 0
+  fi
+
+  local errors
+  errors="$(cf_error_summary "${response}")"
+  if [ -n "${errors}" ]; then
+    echo "Cloudflare API error during ${action}: ${errors}" >&2
+  else
+    echo "Cloudflare API error during ${action}." >&2
+    echo "Response: ${response}" >&2
+  fi
+  exit 1
+}
 
 # ---- Validate ----
 : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required in .env}"
@@ -45,10 +122,8 @@ log "  Minimax origin:     ${MINIMAX_ORIGIN}"
 log "  AlphaZero origin:   ${ALPHAZERO_ORIGIN}"
 
 # ---- Check tools ----
-if ! command -v npx &>/dev/null; then
-  echo "npx not found. Install Node.js first." >&2
-  exit 1
-fi
+require_cmd curl
+require_cmd npx
 
 # ===========================================================
 # Step 1: Update DNS A records via Cloudflare API
@@ -58,12 +133,13 @@ CF_AUTH=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: ap
 
 # Get zone ID for the domain
 log "Step 1: Fetching zone ID for ${DEPLOY_DOMAIN}..."
-ZONE_ID="$(curl -fsSL "${CF_AUTH[@]}" \
-  "${CF_API}/zones?name=${DEPLOY_DOMAIN}&status=active" \
-  | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)"
+ZONE_RESPONSE="$(cf_request GET "${CF_API}/zones?name=${DEPLOY_DOMAIN}&status=active")"
+ensure_cf_success "${ZONE_RESPONSE}" "zone lookup for ${DEPLOY_DOMAIN}"
+ZONE_ID="$(cf_first_result_id "${ZONE_RESPONSE}")"
 
 if [ -z "${ZONE_ID}" ]; then
   echo "Could not find zone ID for ${DEPLOY_DOMAIN}" >&2
+  echo "Response: ${ZONE_RESPONSE}" >&2
   exit 1
 fi
 log "  Zone ID: ${ZONE_ID}"
@@ -75,25 +151,25 @@ upsert_dns_record() {
 
   # Check if record already exists
   local existing
-  existing="$(curl -fsSL "${CF_AUTH[@]}" \
-    "${CF_API}/zones/${ZONE_ID}/dns_records?type=A&name=${name}" 2>/dev/null)"
+  existing="$(cf_request GET "${CF_API}/zones/${ZONE_ID}/dns_records?type=A&name=${name}")"
+  ensure_cf_success "${existing}" "DNS lookup for ${name}"
 
   local record_id
-  record_id="$(echo "${existing}" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4 || true)"
+  record_id="$(cf_first_result_id "${existing}")"
 
   local payload="{\"type\":\"A\",\"name\":\"${name}\",\"content\":\"${ip}\",\"ttl\":1,\"proxied\":false}"
 
   if [ -n "${record_id}" ]; then
     # Update existing record
-    curl -fsSL "${CF_AUTH[@]}" -X PUT \
-      "${CF_API}/zones/${ZONE_ID}/dns_records/${record_id}" \
-      -d "${payload}" >/dev/null
+    local update_response
+    update_response="$(cf_request PUT "${CF_API}/zones/${ZONE_ID}/dns_records/${record_id}" "${payload}")"
+    ensure_cf_success "${update_response}" "DNS update for ${name}"
     log "  Updated: ${name} -> ${ip}"
   else
     # Create new record
-    curl -fsSL "${CF_AUTH[@]}" -X POST \
-      "${CF_API}/zones/${ZONE_ID}/dns_records" \
-      -d "${payload}" >/dev/null
+    local create_response
+    create_response="$(cf_request POST "${CF_API}/zones/${ZONE_ID}/dns_records" "${payload}")"
+    ensure_cf_success "${create_response}" "DNS create for ${name}"
     log "  Created: ${name} -> ${ip}"
   fi
 }

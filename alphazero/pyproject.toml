@@ -31,6 +31,7 @@ serve = [
   "websockets==14.1",
   "onnxruntime>=1.19.0",
   "onnx>=1.16.0",
+  "onnxscript>=0.1.0",
 ]
 ray = [
   "ray==2.49.2",
