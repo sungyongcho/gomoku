@@ -177,6 +177,9 @@ if [ "${DO_UPDATE}" = true ]; then
   if [ -n "${ALPHAZERO_TORCH_THREADS_VALUE}" ]; then
     AZ_ENV="${AZ_ENV},TORCH_NUM_THREADS=${ALPHAZERO_TORCH_THREADS_VALUE}"
   fi
+  if [ -n "${ALPHAZERO_INFER_BACKEND}" ]; then
+    AZ_ENV="${AZ_ENV},ALPHAZERO_INFER_BACKEND=${ALPHAZERO_INFER_BACKEND}"
+  fi
   AZ_META="container-image=${IMAGE_ALPHAZERO},container-port=8080,container-name=${ALPHAZERO_VM}"
   if [ -n "${ALPHAZERO_CPUS_VALUE}" ]; then
     AZ_META="${AZ_META},container-cpus=${ALPHAZERO_CPUS_VALUE}"
