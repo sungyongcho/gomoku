@@ -48,7 +48,7 @@ class AlphaZeroEngine:
                 onnx_cache = os.getenv("ONNX_CACHE_DIR", "/tmp/onnx_cache")
                 self.inference_client = OnnxInference(
                     model=self.model,
-                    num_planes=config.model.dim,  # Assuming dim is correct
+                    num_planes=config.model.num_planes,  # Correct attribute from ModelConfig
                     board_h=config.board.size,
                     board_w=config.board.size,
                     quantize=quantize,
