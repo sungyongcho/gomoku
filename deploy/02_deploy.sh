@@ -28,6 +28,7 @@ require_cmd docker
 # Flags (match training infra style)
 DO_DELETE="${DO_DELETE:-false}"   # Purge images in Artifact Registry (dangerous)
 DO_BUILD="${DO_BUILD:-true}"      # Build & push images
+DO_PRUNE="${DO_PRUNE:-true}"      # Prune old docker artifacts on VMs before update (best-effort)
 DO_UPDATE="${DO_UPDATE:-true}"    # Update VM containers
 DO_VERIFY="${DO_VERIFY:-true}"    # SSH in and verify docker status (best-effort)
 
@@ -57,13 +58,9 @@ if [ -n "${ALPHAZERO_DOCKERFILE:-}" ]; then
   :
 elif [ -f "${REPO_ROOT}/alphazero/infra/image/Dockerfile.prod" ]; then
   ALPHAZERO_DOCKERFILE="${REPO_ROOT}/alphazero/infra/image/Dockerfile.prod"
-elif [ -f "${REPO_ROOT}/alphazero/infra/Dockerfile.prod" ]; then
-  # Fallback (some repo layouts keep this at alphazero/infra/Dockerfile.prod).
-  ALPHAZERO_DOCKERFILE="${REPO_ROOT}/alphazero/infra/Dockerfile.prod"
 else
-  echo "alphazero prod Dockerfile not found. Expected one of:" >&2
+  echo "alphazero prod Dockerfile not found. Expected:" >&2
   echo "  - alphazero/infra/image/Dockerfile.prod" >&2
-  echo "  - alphazero/infra/Dockerfile.prod" >&2
   exit 1
 fi
 
@@ -73,7 +70,7 @@ log "Config: Project=${PROJECT_ID}, Region=${REGION}, Zone=${ZONE}"
 log "Images:"
 log "  minimax:   ${IMAGE_MINIMAX}"
 log "  alphazero: ${IMAGE_ALPHAZERO}"
-log "Flags: DO_DELETE=${DO_DELETE}, DO_BUILD=${DO_BUILD}, DO_UPDATE=${DO_UPDATE}, DO_VERIFY=${DO_VERIFY}"
+log "Flags: DO_DELETE=${DO_DELETE}, DO_BUILD=${DO_BUILD}, DO_PRUNE=${DO_PRUNE}, DO_UPDATE=${DO_UPDATE}, DO_VERIFY=${DO_VERIFY}"
 
 log "Step 1: Authenticate Docker to Artifact Registry..."
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
@@ -123,9 +120,30 @@ fi
 if [ "${DO_UPDATE}" = true ]; then
   log "Step 6: Update container metadata on VMs and restart..."
 
-  STARTUP_SCRIPT="${SCRIPT_DIR}/02_startup_script.sh"
+  if [ "${DO_PRUNE}" = true ]; then
+    log " -> Pruning old docker images/artifacts on VMs (best-effort)..."
+    for vm in "${MINIMAX_VM}" "${ALPHAZERO_VM}"; do
+      set +e
+      gcloud compute ssh "${vm}" \
+        --project="${PROJECT_ID}" \
+        --zone="${ZONE}" \
+        --command "sudo docker container prune -f >/dev/null 2>&1 || true; sudo docker image prune -af >/dev/null 2>&1 || true; sudo docker builder prune -af >/dev/null 2>&1 || true; sudo docker system df || true" \
+        >/dev/null 2>&1
+      rc=$?
+      set -e
+      if [ "${rc}" -ne 0 ]; then
+        log "   -> ${vm}: prune skipped (ssh unavailable or docker not ready)"
+      else
+        log "   -> ${vm}: prune completed"
+      fi
+    done
+  else
+    log " -> Skipping VM docker prune"
+  fi
+
+  STARTUP_SCRIPT="${SCRIPT_DIR}/docker_container_startup_script.sh"
   if [ ! -f "${STARTUP_SCRIPT}" ]; then
-    echo "02_startup_script.sh not found: ${STARTUP_SCRIPT}" >&2
+    echo "docker_container_startup_script.sh not found: ${STARTUP_SCRIPT}" >&2
     exit 1
   fi
 
@@ -133,24 +151,32 @@ if [ "${DO_UPDATE}" = true ]; then
   gcloud compute instances add-metadata "${MINIMAX_VM}" \
     --project="${PROJECT_ID}" \
     --zone="${ZONE}" \
-    --metadata=container-image="${IMAGE_MINIMAX}",container-port=8080,container-env="MINIMAX_PORT=8080"
+    --metadata=container-image="${IMAGE_MINIMAX}",container-port=8080,container-name="${MINIMAX_VM}",container-env="MINIMAX_PORT=8080"
   gcloud compute instances add-metadata "${MINIMAX_VM}" \
     --project="${PROJECT_ID}" \
     --zone="${ZONE}" \
     --metadata-from-file=startup-script="${STARTUP_SCRIPT}"
 
   # Defaults match the Dockerfile; env overrides are optional.
-  ALPHAZERO_CONFIG_VALUE="${ALPHAZERO_CONFIG:-configs/local_play.yaml}"
-  ALPHAZERO_CHECKPOINT_VALUE="${ALPHAZERO_CHECKPOINT:-models/champion.pt}"
-  ALPHAZERO_DEVICE_VALUE="${ALPHAZERO_DEVICE:-cpu}"
-  ALPHAZERO_SEARCH_VALUE="${ALPHAZERO_MCTS_NUM_SEARCHS:-200}"
-  AZ_ENV="ALPHAZERO_CONFIG=${ALPHAZERO_CONFIG_VALUE},ALPHAZERO_CHECKPOINT=${ALPHAZERO_CHECKPOINT_VALUE},ALPHAZERO_DEVICE=${ALPHAZERO_DEVICE_VALUE},ALPHAZERO_MCTS_NUM_SEARCHS=${ALPHAZERO_SEARCH_VALUE}"
+  # Use DEPLOY_ALPHAZERO_* to avoid conflicts with training env vars.
+  ALPHAZERO_CONFIG_VALUE="${DEPLOY_ALPHAZERO_CONFIG:-configs/deploy.yaml}"
+  ALPHAZERO_DEVICE_VALUE="${DEPLOY_ALPHAZERO_DEVICE:-cpu}"
+  AZ_ENV="ALPHAZERO_CONFIG=${ALPHAZERO_CONFIG_VALUE},ALPHAZERO_DEVICE=${ALPHAZERO_DEVICE_VALUE}"
 
   log " -> alphazero: ${ALPHAZERO_VM}"
   gcloud compute instances add-metadata "${ALPHAZERO_VM}" \
     --project="${PROJECT_ID}" \
     --zone="${ZONE}" \
-    --metadata=container-image="${IMAGE_ALPHAZERO}",container-port=8080,container-env="${AZ_ENV}"
+    --metadata=container-image="${IMAGE_ALPHAZERO}",container-port=8080,container-name="${ALPHAZERO_VM}"
+  # container-env contains commas which conflict with gcloud's --metadata delimiter.
+  # Pass it via --metadata-from-file to avoid the issue.
+  AZ_ENV_FILE="$(mktemp)"
+  echo "${AZ_ENV}" > "${AZ_ENV_FILE}"
+  gcloud compute instances add-metadata "${ALPHAZERO_VM}" \
+    --project="${PROJECT_ID}" \
+    --zone="${ZONE}" \
+    --metadata-from-file=container-env="${AZ_ENV_FILE}"
+  rm -f "${AZ_ENV_FILE}"
   gcloud compute instances add-metadata "${ALPHAZERO_VM}" \
     --project="${PROJECT_ID}" \
     --zone="${ZONE}" \
@@ -188,4 +214,3 @@ else
 fi
 
 log "Deploy complete."
-

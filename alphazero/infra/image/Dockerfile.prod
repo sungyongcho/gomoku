@@ -2,11 +2,11 @@ FROM python:3.13-slim
 
 # Build dependencies for C++ extensions (pybind11/scikit-build-core) + curl for healthcheck.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    cmake \
-    g++ \
-    ninja-build \
-    curl \
- && rm -rf /var/lib/apt/lists/*
+	cmake \
+	g++ \
+	ninja-build \
+	curl \
+	&& rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
@@ -14,8 +14,8 @@ WORKDIR /app
 # Copy source before install because scikit-build needs `cpp/` at build time.
 COPY . /app
 RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir ".[serve,torch-cpu]" \
-      --extra-index-url https://download.pytorch.org/whl/cpu
+	&& pip install --no-cache-dir ".[serve,torch-cpu]" \
+	--extra-index-url https://download.pytorch.org/whl/cpu
 
 ENV PYTHONPATH=/app
 ENV ALPHAZERO_CONFIG=configs/local_play.yaml
@@ -28,7 +28,7 @@ ENV MKL_NUM_THREADS=1
 ENV TORCH_NUM_THREADS=1
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
-  CMD curl -fsS http://localhost:8080/ || exit 1
+	CMD curl -fsS http://localhost:8080/ || exit 1
 
 EXPOSE 8080
 CMD ["uvicorn", "server:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080"]

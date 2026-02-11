@@ -17,6 +17,6 @@ alias alphazero-restart-cluster=". alphazero/.venv/bin/activate && bash alphazer
 alias alphazero-purge-gcp=". alphazero/.venv/bin/activate && bash alphazero/infra/cluster/purge_gcp.sh"
 
 ## deployment logs
-alias deploy-logs-minimax='[ -f .env ] && set -a && source .env && set +a && gcloud compute ssh ${DEPLOY_MINIMAX_VM} --zone=${DEPLOY_GCP_ZONE} --command "sudo docker logs -f \$(sudo docker ps -q)"'
-alias deploy-logs-alphazero='[ -f .env ] && set -a && source .env && set +a && gcloud compute ssh ${DEPLOY_ALPHAZERO_VM} --zone=${DEPLOY_GCP_ZONE} --command "sudo docker logs -f \$(sudo docker ps -q)"'
+alias deploy-logs-minimax='[ -f .env ] && set -a && source .env && set +a && gcloud compute ssh ${DEPLOY_MINIMAX_VM} --zone=${DEPLOY_GCP_ZONE} --command "sudo docker logs -f ${DEPLOY_MINIMAX_VM}"'
+alias deploy-logs-alphazero='[ -f .env ] && set -a && source .env && set +a && gcloud compute ssh ${DEPLOY_ALPHAZERO_VM} --zone=${DEPLOY_GCP_ZONE} --command "sudo docker logs -f ${DEPLOY_ALPHAZERO_VM}"'
 alias deploy-logs-worker='npx wrangler tail --config deploy/wrangler.toml'

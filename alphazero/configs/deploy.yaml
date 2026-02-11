@@ -1,0 +1,71 @@
+# ============================================================
+# AlphaZero – Deploy / Serving configuration
+# ============================================================
+# Lightweight config for production serving on CPU VMs.
+# Only board, model, and mcts sections are needed by the server.
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 128
+  num_resblocks: 12
+
+mcts:
+  C: 2.0
+  num_searches: 20 # Lower than training (2400) for fast response on CPU
+  exploration_turns: 0
+  dirichlet_epsilon: 0.0
+  dirichlet_alpha: 0
+  batch_infer_size: 1
+  min_batch_size: 1
+  max_batch_wait_ms: 0
+  use_native: true # Python MCTS for serving (no native build in prod image)
+  resign_threshold: 0.95
+  resign_enabled: true
+  min_moves_before_resign: 20
+
+# Valid dummy values to satisfy RootConfig validation
+training:
+  num_iterations: 1
+  num_selfplay_iterations: 1
+  num_epochs: 1
+  batch_size: 1
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 10
+  min_samples_to_train: 1
+
+evaluation:
+  num_eval_games: 0
+  eval_every_iters: 1
+  promotion_win_rate: 0.55
+  num_baseline_games: 0
+  blunder_threshold: 0.1
+  initial_blunder_rate: 0
+  initial_baseline_win_rate: 0
+  blunder_increase_limit: 0
+  baseline_wr_min: 0
+  random_play_ratio: 0.0
+
+parallel:
+  num_parallel_games: 1
+  mp_num_workers: 1
+  ray_local_num_workers: 1
+
+paths:
+  use_gcs: false
+  run_prefix: "deploy"
+  run_id: "deploy-v1"
+
+io:
+  initial_replay_shards: 1
+  initial_replay_iters: 1
+  max_samples_per_shard: 1
+  local_replay_cache: "/tmp/replay"

@@ -37,9 +37,8 @@ services:
     env_file:
       - .env
     environment:
-      - ALPHAZERO_CONFIG=${ALPHAZERO_CONFIG}
-      - ALPHAZERO_CHECKPOINT=${ALPHAZERO_CHECKPOINT}
-      - ALPHAZERO_DEVICE=${ALPHAZERO_DEVICE}
+      - ALPHAZERO_CONFIG=${DEPLOY_ALPHAZERO_CONFIG}
+      - ALPHAZERO_DEVICE=${DEPLOY_ALPHAZERO_DEVICE}
     command: >
       uvicorn server:create_app --factory --host 0.0.0.0 --port 8080
       --reload --reload-dir /app/server --reload-dir /app/gomoku --reload-dir /app/configs

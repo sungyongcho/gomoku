@@ -155,10 +155,10 @@ ALPHAZERO_IP="$(gcloud compute addresses describe "${ALPHAZERO_IP_NAME}" \
 
 log "Step 6: Creating VMs (Container-Optimized OS + startup script)..."
 PLACEHOLDER_IMAGE="docker.io/library/nginx:stable-alpine"
-STARTUP_SCRIPT="${SCRIPT_DIR}/02_startup_script.sh"
+STARTUP_SCRIPT="${SCRIPT_DIR}/docker_container_startup_script.sh"
 
 if [ ! -f "${STARTUP_SCRIPT}" ]; then
-  echo "02_startup_script.sh not found: ${STARTUP_SCRIPT}" >&2
+  echo "docker_container_startup_script.sh not found: ${STARTUP_SCRIPT}" >&2
   exit 1
 fi
 
@@ -174,7 +174,7 @@ if ! gcloud compute instances describe "${MINIMAX_VM}" \
     --address="${MINIMAX_IP_NAME}" \
     --service-account="${SA_EMAIL}" \
     --scopes="https://www.googleapis.com/auth/cloud-platform" \
-    --metadata=enable-oslogin=TRUE,container-image="${PLACEHOLDER_IMAGE}",container-port=8080,container-env="MINIMAX_PORT=8080" \
+    --metadata=enable-oslogin=TRUE,container-image="${PLACEHOLDER_IMAGE}",container-port=8080,container-name="${MINIMAX_VM}",container-env="MINIMAX_PORT=8080" \
     --metadata-from-file=startup-script="${STARTUP_SCRIPT}"
 else
   log " -> Instance exists: ${MINIMAX_VM}"
@@ -192,7 +192,7 @@ if ! gcloud compute instances describe "${ALPHAZERO_VM}" \
     --address="${ALPHAZERO_IP_NAME}" \
     --service-account="${SA_EMAIL}" \
     --scopes="https://www.googleapis.com/auth/cloud-platform" \
-    --metadata=enable-oslogin=TRUE,container-image="${PLACEHOLDER_IMAGE}",container-port=8080,container-env="" \
+    --metadata=enable-oslogin=TRUE,container-image="${PLACEHOLDER_IMAGE}",container-port=8080,container-name="${ALPHAZERO_VM}",container-env="" \
     --metadata-from-file=startup-script="${STARTUP_SCRIPT}"
 else
   log " -> Instance exists: ${ALPHAZERO_VM}"

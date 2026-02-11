@@ -16,9 +16,7 @@ def create_app() -> FastAPI:
     async def load_model():
         app.state.engine = AlphaZeroEngine(
             config_path=os.getenv("ALPHAZERO_CONFIG", "configs/local_play.yaml"),
-            checkpoint_path=os.getenv(
-                "ALPHAZERO_CHECKPOINT", "runs/elo1800-gcp-v4/ckpt/champion.pt"
-            ),
+            checkpoint_path=os.getenv("ALPHAZERO_CHECKPOINT", "models/champion.pt"),
             device=os.getenv("ALPHAZERO_DEVICE", "cpu"),
         )
 

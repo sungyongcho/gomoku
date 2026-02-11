@@ -17,15 +17,19 @@ from server.protocol import (
     frontend_to_gamestate,
 )
 
+import os
+
 router = APIRouter()
 # Reuse uvicorn's configured logger so app logs always appear in container stdout.
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
 
-# AlphaZero server uses a fixed search budget (difficulty control disabled).
-# Set to None to use config.mcts.num_searches from local_play.yaml.
-NUM_SEARCHES: int | None = 200
+# AlphaZero server search budget.
+# If ALPHAZERO_MCTS_NUM_SEARCHS env var is set, use that value.
+# Otherwise, use None so config file's mcts.num_searches is used (deploy.yaml → 100).
+_raw = os.environ.get("ALPHAZERO_MCTS_NUM_SEARCHS")
+NUM_SEARCHES: int | None = int(_raw) if _raw else None
 
 
 def _stone_for_player(player: int) -> str:

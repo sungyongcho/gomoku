@@ -118,7 +118,8 @@
   },
   "python.testing.pytestArgs": ["alphazero"],
   "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "python.languageServer": "None"
   // "python.analysis.extraPaths": ["alphazero"],
   // "python.defaultInterpreterPath": "${workspaceFolder}/alphazero/.venv/bin/python",
   // "python.testing.cwd": "${workspaceFolder}/alphazero",
