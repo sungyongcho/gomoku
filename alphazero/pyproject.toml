@@ -29,6 +29,8 @@ serve = [
   "fastapi==0.115.6",
   "uvicorn==0.34.0",
   "websockets==14.1",
+  "onnxruntime>=1.19.0",
+  "onnx>=1.16.0",
 ]
 ray = [
   "ray==2.49.2",

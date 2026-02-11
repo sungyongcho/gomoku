@@ -26,10 +26,9 @@ logger.setLevel(logging.INFO)
 
 # AlphaZero server search budget.
 # If ALPHAZERO_MCTS_NUM_SEARCHS env var is set, use that value.
-# Otherwise, use None so config file's mcts.num_searches is used (deploy.yaml → 100).
+# Otherwise, use None so config file's mcts.num_searches is used.
 _raw = os.environ.get("ALPHAZERO_MCTS_NUM_SEARCHS")
-# 기존 env 파싱 제거하고
-NUM_SEARCHES: int | None = 100
+NUM_SEARCHES: int | None = int(_raw) if _raw and _raw.strip().isdigit() else None
 
 
 def _stone_for_player(player: int) -> str:
