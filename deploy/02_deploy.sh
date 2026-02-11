@@ -253,4 +253,16 @@ else
   log "Step 7: Skipping verification"
 fi
 
+log "Step 8: Cleanup old images (best-effort)..."
+for vm in "${MINIMAX_VM}" "${ALPHAZERO_VM}"; do
+  set +e
+  gcloud compute ssh "${vm}" \
+    --project="${PROJECT_ID}" \
+    --zone="${ZONE}" \
+    --command "sudo docker system prune -af --volumes >/dev/null 2>&1 || true; sudo docker system df || true" \
+    >/dev/null 2>&1
+  set -e
+  log "   -> ${vm}: cleanup triggered"
+done
+
 log "Deploy complete."
