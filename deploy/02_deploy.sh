@@ -109,6 +109,7 @@ if [ "${DO_BUILD}" = true ]; then
   log "Step 5: Build & push alphazero..."
   docker buildx build \
     --platform linux/amd64 \
+    --no-cache \
     --output "type=image,compression=zstd,force-compression=true,push=true" \
     -t "${IMAGE_ALPHAZERO}" \
     -f "${ALPHAZERO_DOCKERFILE}" \
