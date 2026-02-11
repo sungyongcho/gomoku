@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from typing import Any
 
@@ -23,12 +22,10 @@ router = APIRouter()
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
-
-# AlphaZero server search budget.
-# If ALPHAZERO_MCTS_NUM_SEARCHS env var is set, use that value.
-# Otherwise, use None so config file's mcts.num_searches is used.
-_raw = os.environ.get("ALPHAZERO_MCTS_NUM_SEARCHS")
-NUM_SEARCHES: int | None = int(_raw) if _raw and _raw.strip().isdigit() else None
+# Optional code-level override for server-side MCTS search budget.
+# Set an integer to force that value.
+# Set to None to use `mcts.num_searches` from the loaded config (e.g. deploy.yaml).
+NUM_SEARCHES_OVERRIDE: int | None = None
 
 
 def _stone_for_player(player: int) -> str:
@@ -127,7 +124,7 @@ async def _handle_move(
     stone = _stone_for_player(int(state.next_player))
 
     start_ns = time.perf_counter_ns()
-    action = engine.get_best_move(state, NUM_SEARCHES)
+    action = engine.get_best_move(state, num_searches_override=NUM_SEARCHES_OVERRIDE)
     new_state, captures = engine.apply_move(state, action)
     elapsed_ns = time.perf_counter_ns() - start_ns
     elapsed_s = elapsed_ns / 1_000_000_000.0
