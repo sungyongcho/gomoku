@@ -1,0 +1,20 @@
+name = "gomoku-ws-router"
+main = "cloudflare-worker.js"
+compatibility_date = "2026-02-11"
+
+# Optional: set this if wrangler can't infer it from your login/session.
+# account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+# Route only the backend paths. Everything else keeps going to your existing origin(s).
+routes = [
+  { pattern = "sungyongcho.com/alphazero/*", zone_name = "sungyongcho.com" },
+  { pattern = "sungyongcho.com/minimax/*", zone_name = "sungyongcho.com" },
+]
+
+
+[vars]
+# ALPHAZERO_ORIGIN and MINIMAX_ORIGIN are injected at deploy time
+# via --var flags in 05_deploy_cloudflare.sh (read from .env).
+# Do NOT hardcode IPs here.
+
+

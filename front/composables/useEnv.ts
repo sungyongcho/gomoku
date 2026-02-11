@@ -10,8 +10,8 @@ export const useEnv = () => {
       return `ws://localhost:${port}/ws`;
     }
     return settings.value.ai === "minimax"
-      ? `wss://minimax.sungyongcho.com/ws`
-      : `wss://alphazero.sungyongcho.com/ws`;
+      ? `wss://sungyongcho.com/minimax/ws`
+      : `wss://sungyongcho.com/alphazero/ws`;
   };
 
   const getDebugSocketUrl = () => {
@@ -22,8 +22,8 @@ export const useEnv = () => {
     }
 
     return settings.value.ai === "minimax"
-      ? `wss://minimax.sungyongcho.com/ws/debug`
-      : `wss://alphazero.sungyongcho.com/ws/debug`;
+      ? `wss://sungyongcho.com/minimax/ws/debug`
+      : `wss://sungyongcho.com/alphazero/ws/debug`;
   };
 
   const isLocal = FRONT_WHERE === "local";

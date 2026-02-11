@@ -177,13 +177,14 @@ response_error.json (backend 착수 에러)
 - 부탁드림 #2: 옆 메뉴 바는 옆 위치에 고정되어 있도록 처리 할 수 있는지?
 
 # 2026.02.10
+
 - 연결 테스트 완료
   - doublethree 프론트엔드/백엔드 로직이 매치가 되지 않아 frontend쪽 doublethree 패치가 필요한 상황
   - evaluaton test 는 minimax 만 적용 하는것으로 명시 가능한지? 현재 alphazero 백엔드 에서도 동작은 하도록 설계 되어 있으나, 모델이 evaluation 케이스에 대응하도록 학습 되어있는지 알 수 없음
 - alphazero, minimax 공통 (헷갈려서 질문)
   - undo a move를 하면 ai와 player의 착수 돌의 색깔이 갑자기 뒤바뀌게 됨
   - 게임 플레이는 문제가 없으나 우측 상태바에 player, ai의 착수turn, 점수가 제대로 렌더링 되지 않고 있음
-- alphazero 옵션 (고민중 -  아래 부분은 option을 살려 두는게 맞을지, 아니면 option을 살려두고 documentation에서 설명을 하는게 맞을지 의견을 한번 여쭈어 보고 싶습니다)
+- alphazero 옵션 (고민중 - 아래 부분은 option을 살려 두는게 맞을지, 아니면 option을 살려두고 documentation에서 설명을 하는게 맞을지 의견을 한번 여쭈어 보고 싶습니다)
   - enable capture 삭제: 모델 설계 자체가 capture를 가정하고 학습 된 모델이기 때문에 capture가 꺼진 경우 capture가 없음을 인지하지 못하고 capture수를 둠
   - total captured paire stones 제거: 모델 트레이닝 기본 설정값인 capture: 5를 제공 한 상태에서 학습 하였기 때문에 예상하지 못한 판세에서 모델이 매우 약해짐
   - player advantage 삭제 혹은 매우 낮은 숫자: 모델이 상대방의 score가 높은 경우를 의식 하지 못한 상태에서의 상황에 대해 (특히 점수가 매우 높을 경우) 의 상황이 학습되지 않음
@@ -192,3 +193,15 @@ response_error.json (backend 착수 에러)
   - 모델은 따로 catch로 만들어진 오목을 끊어 냈을 경우에 대한 트레이닝을 따로 하지 않았는데 간단하게 게임플레이를 했을때는 잘 막아내고 있음
   - mcts 트리 num_searchs 값 수정은 alphazero/server/websocket.py 28번줄 num_searches 의 숫자 값으로 조절 가능 (느리면 100 아래 값 권장)
 
+# 2026.02.11
+
+- alphazero, minimax gcp deploy 기능 완성
+- uri 접속 변경 (자세한 내용은 모르지만 cloudflare dns로 설정이 가능했음)
+  - 기존 alphazero.sungyongcho.com -> sungyongcho.com/alphazero
+  - 기존 minimax.sungyongcho.com -> sungyongcho.com/minimax
+- deploy된 alphazero, minimax 의 상태 확인 (docker logs) 은 alias.sh 파일로 컨테이너로 직접 접속하여 확인 가능
+- 옵션 토글에서 minimax, alphazero 변경이 제대로 안 일어나는 경우가 있음
+  - 토글을 진행하면 connection이 전환되지 않고 유지되고 있음
+  - 백엔드 서버에 문제일 수도 있어 확인 필요함
+- TODO:@sucho sungyongcho.com/gomoku 로 프론트엔드 페이지 리다이렉트 기능
+  - 프론트엔드 배포가 어디서 되어있는지 확인 필요
