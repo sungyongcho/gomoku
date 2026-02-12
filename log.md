@@ -229,24 +229,21 @@ response_error.json (backend 착수 에러)
 ---------------------------------------
 
 # 부탁 & 의논사항 정리 (위 내용과 중복됨, 정리본)
-- 부탁드림: doublethree 프론트엔드/백엔드 로직이 매치가 되지 않아 에러가 발생하는데 frontend쪽 doublethree 패치가 필요한 상황 (이미지 확인 부탁드립니다)
+- 부탁드림: doublethree 프론트엔드/백엔드 로직이 매치가 되지 않아 frontend쪽 doublethree 패치가 필요한 상황
+- doublethree 무조건 다 금지
+  ```c++
+  bool CForbiddenPointFinder::IsDoubleThree(int x, int y)
+  ```
 - 부탁드림: docs 에서 아이콘을 눌렀을 때 예시 항목을 누른것 펼치도록 아코디언 처리 가능한지?
 - 부탁드림: 옆 메뉴 바는 옆 위치에 고정되어 있도록 처리 할 수 있는지?
-- 부탁드림: doublethree 프론트엔드/백엔드 로직이 매치가 되지 않아 frontend쪽 doublethree 패치가 필요한 상황
 - 부탁드림: evaluaton test 는 minimax 만 적용 하는것으로 명시 가능한지? 현재 alphazero 백엔드 에서도 동작은 하도록 설계 되어 있으나, 모델이 evaluation 케이스에 대응하도록 학습 되어있는지 알 수 없음
 - alphazero, minimax 공통
-  - undo a move를 하면 ai와 player의 착수 돌의 색깔이 갑자기 뒤바뀌게 됨
-  - 게임 플레이는 문제가 없으나 우측 상태바에 player, ai의 착수turn, 점수가 제대로 렌더링 되지 않고 있음
+  - ai와 player 가 둘때는, undo a move를 하면 player 의 차례의 이전수로 돌아가야한다. undo a move -> undo a turn 으로 바꾸자.
 
 의견을 부탁드림:
-- alphazero 옵션 (고민중 - 아래 부분은 option을 살려 두는게 맞을지, 아니면 option을 살려두고 documentation에서 설명을 하는게 맞을지 의견을 한번 여쭈어 보고 싶습니다)
-  - enable capture 삭제: 모델 설계 자체가 capture를 가정하고 학습 된 모델이기 때문에 capture가 꺼진 경우 capture가 없음을 인지하지 못하고 capture수를 둠
-  - total captured paire stones 제거: 모델 트레이닝 기본 설정값인 capture: 5를 제공 한 상태에서 학습 하였기 때문에 예상하지 못한 판세에서 모델이 매우 약해짐
-  - player advantage 삭제 혹은 매우 낮은 숫자: 모델이 상대방의 score가 높은 경우를 의식 하지 못한 상태에서의 상황에 대해 (특히 점수가 매우 높을 경우) 의 상황이 학습되지 않음
+- alphazero 옵션 option을 살려 두되, default 설정으로 돌아가서 disalbed.
+- alphazero 가 선택되면, 난이도 대신 작은 infobox 추가.
 -  sungyongcho.com/gomoku 로 프론트엔드 페이지 리다이렉트 기능 (구현 아직 X)
   - 프론트엔드 배포가 어디서 되어있는지 확인 필요
-
-- 옵션 토글에서 minimax, alphazero 변경 프론트엔드 코드 수정 했는데 잘 되어있는지..
-  -> frontend 코드에서 바뀌도록 수정 처리함 (확인 부탁드립니다)
-
 - 부탁드림: 프론트 페이지에  랜딩을 하기 전에 sungyongcho.com/minimax, sungyongcho.com/alphazero 의 연결 상태를 확인 하고, 응답이 없을 경우 팝업 모달을 띄워서 (maintanance 중) 이라는 메세지를 띄울 수 있을지?
+- localhost:4000/ws 에 계속 시도하는 버그
