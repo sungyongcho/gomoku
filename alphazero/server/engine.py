@@ -12,6 +12,11 @@ import torch
 from gomoku.alphazero.types import action_to_xy
 from gomoku.core.gomoku import GameState, Gomoku
 from gomoku.inference.local import LocalInference
+
+try:
+    from gomoku.inference.onnx_inference import OnnxInference
+except ImportError:
+    OnnxInference = None
 from gomoku.model.policy_value_net import PolicyValueNet
 from gomoku.pvmcts.pvmcts import PVMCTS
 from gomoku.utils.config.loader import MctsConfig, load_and_parse_config
@@ -30,7 +35,30 @@ class AlphaZeroEngine:
         self.model = PolicyValueNet(self.game, config.model, self.device)
         self._load_checkpoint(checkpoint_path)
         self.model.eval()
-        self.inference_client = LocalInference(self.model, self.device)
+        self.model.eval()
+
+        infer_backend = os.getenv("ALPHAZERO_INFER_BACKEND", "local")
+        if infer_backend.startswith("onnx"):
+            if OnnxInference is None:
+                logger.warning(
+                    "ONNX Runtime not available, falling back to LocalInference"
+                )
+                self.inference_client = LocalInference(self.model, self.device)
+            else:
+                logger.info("Initializing ONNX Runtime inference backend...")
+                quantize = "int8" in infer_backend
+                # Cache directory for ONNX models
+                onnx_cache = os.getenv("ONNX_CACHE_DIR", "/tmp/onnx_cache")
+                self.inference_client = OnnxInference(
+                    model=self.model,
+                    num_planes=config.model.num_planes,  # Correct attribute from ModelConfig
+                    board_h=config.board.num_lines,
+                    board_w=config.board.num_lines,
+                    quantize=quantize,
+                    onnx_cache_dir=onnx_cache,
+                )
+        else:
+            self.inference_client = LocalInference(self.model, self.device)
 
         native_enabled = bool(
             requested_native
@@ -45,11 +73,13 @@ class AlphaZeroEngine:
             update={"use_native": native_enabled}
         )
 
-    def get_best_move(self, state: GameState, num_searches: int | None = None) -> int:
+    def get_best_move(
+        self, state: GameState, num_searches_override: int | None = None
+    ) -> int:
         """Run MCTS and return a flat action index."""
         cfg = self.mcts_config
-        if num_searches is not None:
-            cfg = cfg.model_copy(update={"num_searches": float(num_searches)})
+        if num_searches_override is not None:
+            cfg = cfg.model_copy(update={"num_searches": float(num_searches_override)})
 
         if bool(getattr(cfg, "use_native", False)):
             state = self._ensure_native_state(state)
@@ -80,7 +110,8 @@ class AlphaZeroEngine:
             captures = [
                 int(idx)
                 for idx in np.flatnonzero(
-                    (source_state.board != 0).reshape(-1) & (new_state.board == 0).reshape(-1)
+                    (source_state.board != 0).reshape(-1)
+                    & (new_state.board == 0).reshape(-1)
                 )
             ]
         else:
@@ -96,7 +127,9 @@ class AlphaZeroEngine:
             return state
 
         native_state = native_core.initial_state()
-        native_state.board = state.board.astype(np.int8, copy=False).reshape(-1).tolist()
+        native_state.board = (
+            state.board.astype(np.int8, copy=False).reshape(-1).tolist()
+        )
         native_state.p1_pts = int(state.p1_pts)
         native_state.p2_pts = int(state.p2_pts)
         native_state.next_player = int(state.next_player)
@@ -212,7 +245,12 @@ class AlphaZeroEngine:
         # cgroup v1
         quota_us = cls._read_int_file("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
         period_us = cls._read_int_file("/sys/fs/cgroup/cpu/cpu.cfs_period_us")
-        if quota_us is not None and period_us is not None and quota_us > 0 and period_us > 0:
+        if (
+            quota_us is not None
+            and period_us is not None
+            and quota_us > 0
+            and period_us > 0
+        ):
             return max(1, int(math.ceil(quota_us / period_us)))
         return None
 

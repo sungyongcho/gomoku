@@ -109,6 +109,7 @@ if [ "${DO_BUILD}" = true ]; then
   log "Step 5: Build & push alphazero..."
   docker buildx build \
     --platform linux/amd64 \
+    --no-cache \
     --output "type=image,compression=zstd,force-compression=true,push=true" \
     -t "${IMAGE_ALPHAZERO}" \
     -f "${ALPHAZERO_DOCKERFILE}" \
@@ -121,24 +122,25 @@ if [ "${DO_UPDATE}" = true ]; then
   log "Step 6: Update container metadata on VMs and restart..."
 
   if [ "${DO_PRUNE}" = true ]; then
-    log " -> Pruning old docker images/artifacts on VMs (best-effort)..."
+    log " -> Removing existing containers and images on VMs..."
     for vm in "${MINIMAX_VM}" "${ALPHAZERO_VM}"; do
       set +e
+      # Explicitly remove the container (using VM name as container name) and ALL images.
       gcloud compute ssh "${vm}" \
         --project="${PROJECT_ID}" \
         --zone="${ZONE}" \
-        --command "sudo docker container prune -f >/dev/null 2>&1 || true; sudo docker image prune -af >/dev/null 2>&1 || true; sudo docker builder prune -af >/dev/null 2>&1 || true; sudo docker system df || true" \
+        --command "sudo docker rm -f ${vm} >/dev/null 2>&1 || true; sudo docker rmi -f \$(sudo docker images -aq) >/dev/null 2>&1 || true" \
         >/dev/null 2>&1
       rc=$?
       set -e
       if [ "${rc}" -ne 0 ]; then
-        log "   -> ${vm}: prune skipped (ssh unavailable or docker not ready)"
+        log "   -> ${vm}: cleanup skipped (ssh unavailable or docker not ready)"
       else
-        log "   -> ${vm}: prune completed"
+        log "   -> ${vm}: cleanup completed (container & images deleted)"
       fi
     done
   else
-    log " -> Skipping VM docker prune"
+    log " -> Skipping VM docker cleanup"
   fi
 
   STARTUP_SCRIPT="${SCRIPT_DIR}/docker_container_startup_script.sh"
@@ -176,6 +178,9 @@ if [ "${DO_UPDATE}" = true ]; then
   fi
   if [ -n "${ALPHAZERO_TORCH_THREADS_VALUE}" ]; then
     AZ_ENV="${AZ_ENV},TORCH_NUM_THREADS=${ALPHAZERO_TORCH_THREADS_VALUE}"
+  fi
+  if [ -n "${ALPHAZERO_INFER_BACKEND}" ]; then
+    AZ_ENV="${AZ_ENV},ALPHAZERO_INFER_BACKEND=${ALPHAZERO_INFER_BACKEND}"
   fi
   AZ_META="container-image=${IMAGE_ALPHAZERO},container-port=8080,container-name=${ALPHAZERO_VM}"
   if [ -n "${ALPHAZERO_CPUS_VALUE}" ]; then
