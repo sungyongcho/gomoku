@@ -113,6 +113,12 @@ export default defineNuxtConfig({
             "solidity",
           ],
         },
+        remarkPlugins: {
+          "remark-math": {},
+        },
+        rehypePlugins: {
+          "rehype-katex": {},
+        },
       },
     },
   },

@@ -24,6 +24,8 @@
     "pinia": "^2.3.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.2.5",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
     "vue": "^3.5.14",
     "vue-router": "^4.5.0"
   },
