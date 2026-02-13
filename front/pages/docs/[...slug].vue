@@ -41,10 +41,12 @@ definePageMeta({
 </script>
 
 <template>
-  <main class="mx-auto flex max-w-[1140px] gap-8">
-    <DesktopSideDocs class="w-fit-content -sm:hidden" />
+  <main class="mx-auto flex max-w-[1140px] relative">
+    <DesktopSideDocs
+      class="sticky top-4 self-start w-[250px] min-h-0 max-h-[calc(100vh-60px-92px)]"
+    />
 
-    <div class="max-w-[800px] min-h-[calc(100vh-60px-104px)] flex-1">
+    <div class="max-w-[800px] min-h-[calc(100vh-60px-92px)] flex-1">
       <ContentRenderer v-if="pageData" :value="pageData" class="p-6" />
       <div v-else>Home not found</div>
 
