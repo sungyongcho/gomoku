@@ -237,7 +237,7 @@ response_error.json (backend 착수 에러)
   ```
 - [x] 부탁드림: docs 에서 아이콘을 눌렀을 때 예시 항목을 누른것 펼치도록 아코디언 처리 가능한지?
 - [x] 부탁드림: 옆 메뉴 바는 옆 위치에 고정되어 있도록 처리 할 수 있는지?
-- [ ] 부탁드림: evaluaton test 는 minimax 만 적용 하는것으로 명시 가능한지? 현재 alphazero 백엔드 에서도 동작은 하도록 설계 되어 있으나, 모델이 evaluation 케이스에 대응하도록 학습 되어있는지 알 수 없음
+- [x] 부탁드림: evaluaton test 는 minimax 만 적용 하는것으로 명시 가능한지? 현재 alphazero 백엔드 에서도 동작은 하도록 설계 되어 있으나, 모델이 evaluation 케이스에 대응하도록 학습 되어있는지 알 수 없음
 - [ ] alphazero, minimax 공통
   - ai와 player 가 둘때는, undo a move를 하면 player 의 차례의 이전수로 돌아가야한다. undo a move -> undo a turn 으로 바꾸자.
 
