@@ -14,6 +14,10 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
 });
 const emit = defineEmits(["update:modelValue"]);
 const { modelValue: _modelValue } = useVModels(props, emit);
@@ -21,8 +25,13 @@ const id = useId();
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
-    <label :for="id"> {{ label }} </label>
-    <ToggleSwitch :id="id" :name="name" v-model="_modelValue" />
+  <div
+    class="flex flex-col gap-2 transition-opacity"
+    :class="{
+      'opacity-60 cursor-not-allowed pointer-events-none select-none': disabled,
+    }"
+  >
+    <label :for="id" :class="{ 'text-gray-500': disabled }"> {{ label }} </label>
+    <ToggleSwitch :id="id" :name="name" v-model="_modelValue" :disabled="disabled" />
   </div>
 </template>
