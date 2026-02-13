@@ -1,12 +1,32 @@
 <script setup lang="ts">
 const route = useRoute();
+
+// Helper to find doc with case-insensitive path matching
+const findDocByPath = async (path: string) => {
+  // Try exact path first
+  let doc = await queryCollection("docs").path(path).first();
+  
+  // If not found, try case-insensitive matching
+  if (!doc) {
+    const allDocs = await queryCollection("docs").all();
+    const normalizedPath = path.toLowerCase();
+    doc = allDocs.find((d) => d.path.toLowerCase() === normalizedPath);
+  }
+  
+  return doc;
+};
+
 const { data: pageData } = await useAsyncData(route.path, () =>
-  queryCollection("docs").path(route.path).first(),
+  findDocByPath(route.path),
 );
+
 const { data: surroundData } = await useAsyncData(
   `${route.path}-surrounded`,
-  () => {
-    return queryCollectionItemSurroundings("docs", route.path);
+  async () => {
+    // Use the actual doc path for surroundings if we found a case-insensitive match
+    const doc = await findDocByPath(route.path);
+    const actualPath = doc?.path || route.path;
+    return queryCollectionItemSurroundings("docs", actualPath);
   },
 );
 
