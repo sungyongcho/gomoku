@@ -26,8 +26,11 @@ const isAccordionGroup = (groupName: string) => {
   return ACCORDION_GROUPS.has(groupName.toLowerCase());
 };
 </script>
+
 <template>
-  <aside class="overflow-y-auto border-r-[1px] border-gray-200 shadow-sm">
+  <aside
+    class="overflow-y-auto rounded-xl m-4 mr-0 border border-gray-200 bg-white shadow-md"
+  >
     <div class="flex flex-col">
       <template v-for="(item, index) in docLinks" :key="index">
         <template v-if="isFolder(item)">
