@@ -53,7 +53,6 @@ const isAccordionGroup = (groupName: string) => {
             <Transition name="slide-down">
               <div
                 v-if="isGroupOpen(item.label)"
-                class="bg-amber-50/60"
               >
                 <NuxtLink
                   v-for="(subItem, subIndex) in item.items"
@@ -74,7 +73,7 @@ const isAccordionGroup = (groupName: string) => {
             <div class="px-4 py-3 font-bold text-stone-800">
               {{ item.label }}
             </div>
-            <div class="bg-amber-50/40">
+            <div>
               <NuxtLink
                 v-for="(subItem, subIndex) in item.items"
                 :key="subIndex"
