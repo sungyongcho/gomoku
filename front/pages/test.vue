@@ -20,7 +20,7 @@ const { initialBoard, getPlayerTotalCaptured, importGame } = useGameStore();
 const { doAlert, closeAlert } = useAlertStore();
 const { getSocketUrl } = useEnv();
 
-const socketUrl = computed(() => getSocketUrl());
+const socketUrl = computed(() => getSocketUrl("minimax"));
 
 const { data, send, close, open, status } = useWebSocket(socketUrl, {
   autoReconnect: {

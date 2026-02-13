@@ -3,13 +3,13 @@ export const useEnv = () => {
   const { FRONT_WHERE, LOCAL_MINIMAX, LOCAL_ALPHAZERO } =
     useRuntimeConfig().public;
 
-  const getSocketUrl = () => {
+  const getSocketUrl = (forceAi?: "minimax" | "alphazero") => {
+    const ai = forceAi ?? settings.value.ai;
     if (FRONT_WHERE === "local") {
-      const port =
-        settings.value.ai === "minimax" ? LOCAL_MINIMAX : LOCAL_ALPHAZERO;
+      const port = ai === "minimax" ? LOCAL_MINIMAX : LOCAL_ALPHAZERO;
       return `ws://localhost:${port}/ws`;
     }
-    return settings.value.ai === "minimax"
+    return ai === "minimax"
       ? `wss://sungyongcho.com/minimax/ws`
       : `wss://sungyongcho.com/alphazero/ws`;
   };
