@@ -53,7 +53,7 @@ const onGameWithHuman = () => {
         <Button
           class="mx-auto w-full text-[15px] -sm:px-3 -sm:py-2 -sm:text-[12px]"
           :as="NuxtLink"
-          to="/docs/intro"
+          to="/docs/about-gomoku/intro"
         >
           <i class="pi pi-question-circle"></i>
           Help

@@ -43,12 +43,12 @@ definePageMeta({
 <template>
   <main class="mx-auto flex max-w-[1140px] relative">
     <DesktopSideDocs
-      class="sticky top-4 self-start w-[250px] min-h-0 max-h-[calc(100vh-60px-92px)]"
+      class="sticky -sm:hidden top-4 self-start w-[250px] min-h-0 max-h-[calc(100vh-60px-92px)]"
     />
 
     <div class="max-w-[800px] min-h-[calc(100vh-60px-92px)] flex-1">
       <ContentRenderer v-if="pageData" :value="pageData" class="p-6" />
-      <div v-else>Home not found</div>
+      <DocNotFound v-else />
 
       <DocNavButtons
         :prev="surroundData?.[0]"
