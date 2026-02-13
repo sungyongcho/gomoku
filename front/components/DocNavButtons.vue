@@ -12,7 +12,7 @@ const props = defineProps({
 </script>
 <template>
   <div class="w-full px-6">
-    <div class="flex justify-between py-6 gap-4 border-t-[1px] border-gray-200">
+    <div class="flex justify-between py-6 gap-4 border-gray-200">
       <Button v-if="prev" size="small">
         <NuxtLink :to="prev" class="flex items-center gap-2">
           <i class="pi pi-arrow-left text-sm"></i> Prev
