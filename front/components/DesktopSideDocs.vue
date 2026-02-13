@@ -29,7 +29,7 @@ const isAccordionGroup = (groupName: string) => {
 
 <template>
   <aside
-    class="overflow-y-auto rounded-xl m-4 mr-0 border border-gray-200 bg-white shadow-md"
+    class="overflow-y-auto rounded-xl m-4 mr-0 border border-stone-200 bg-stone-50/80 shadow-md"
   >
     <div class="flex flex-col">
       <template v-for="(item, index) in docLinks" :key="index">
@@ -37,11 +37,11 @@ const isAccordionGroup = (groupName: string) => {
           <!-- 아코디언 그룹 (Alphazero, Minimax) -->
           <div
             v-if="isAccordionGroup(item.label)"
-            class="border-b border-gray-100"
+            class="border-b border-stone-200"
           >
             <button
               @click="toggleGroup(item.label)"
-              class="link flex w-full items-center justify-between px-4 py-3 text-left font-bold text-black hover:bg-gray-50"
+              class="group-btn flex w-full items-center justify-between px-4 py-3 text-left font-bold text-stone-800 hover:bg-stone-200/80 hover:text-stone-900"
             >
               <span>{{ item.label }}</span>
               <span
@@ -53,13 +53,13 @@ const isAccordionGroup = (groupName: string) => {
             <Transition name="slide-down">
               <div
                 v-if="isGroupOpen(item.label)"
-                class="bg-gray-50"
+                class="bg-amber-50/60"
               >
                 <NuxtLink
                   v-for="(subItem, subIndex) in item.items"
                   :key="subIndex"
                   v-ripple
-                  class="link flex items-center gap-2 px-8 py-2 !text-gray-600 hover:bg-gray-100"
+                  class="sidebar-link flex items-center gap-2 pl-4 pr-2 py-2 text-stone-600 hover:bg-stone-200/70 hover:text-stone-900"
                   :to="subItem.url"
                 >
                   <span :class="`pi ${subItem.icon}`" />
@@ -70,16 +70,16 @@ const isAccordionGroup = (groupName: string) => {
           </div>
 
           <!-- 일반 그룹 (아코디언 없음) -->
-          <div v-else class="border-b border-gray-100">
-            <div class="px-4 py-3 font-bold text-black">
+          <div v-else class="border-b border-stone-200">
+            <div class="px-4 py-3 font-bold text-stone-800">
               {{ item.label }}
             </div>
-            <div>
+            <div class="bg-amber-50/40">
               <NuxtLink
                 v-for="(subItem, subIndex) in item.items"
                 :key="subIndex"
                 v-ripple
-                class="link flex items-center gap-2 px-8 py-2 !text-gray-600 hover:bg-gray-100"
+                class="sidebar-link flex items-center gap-2 pl-4 pr-2 py-2 text-stone-600 hover:bg-stone-200/70 hover:text-stone-900"
                 :to="subItem.url"
               >
                 <span :class="`pi ${subItem.icon}`" />
@@ -93,8 +93,12 @@ const isAccordionGroup = (groupName: string) => {
   </aside>
 </template>
 <style scoped>
-.link.router-link-active {
-  @apply bg-gray-100 !text-black;
+.sidebar-link.router-link-active {
+  @apply border-l-2 border-stone-700 bg-stone-200/60 font-medium text-stone-900;
+}
+
+.sidebar-link {
+  @apply border-l-2 border-transparent;
 }
 
 .slide-down-enter-active,
