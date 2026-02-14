@@ -57,6 +57,9 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-01-09",
   ssr: true,
   devtools: { enabled: false },
+  app: {
+    baseURL: "/gomoku/",
+  },
   modules: [
     "@nuxtjs/tailwindcss",
     "@primevue/nuxt-module",
