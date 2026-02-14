@@ -12,6 +12,21 @@ import {
   type StoneEval,
 } from "~/types/game";
 
+export const GOMOKU_SETTINGS_KEY = "gomoku-settings";
+
+export const defaultSettings: Settings = {
+  enableCapture: true,
+  enableDoubleThreeRestriction: true,
+  totalPairCaptured: 5,
+  firstMove: "Player1",
+  advantage1: 0,
+  advantage2: 0,
+  isPlayer2AI: true,
+  isDebugTurnLocked: true,
+  difficulty: "hard",
+  ai: "minimax",
+};
+
 type GameSituation = {
   boardData: { stone: Stone }[][];
   x: number;
@@ -36,18 +51,12 @@ export const useGameStore = defineStore("game", () => {
     isPerfectFiveEnded,
   } = useGameLogic();
   const showSettings = ref(false);
-  const settings = useStorage<Settings>("settings-2", {
-    enableCapture: true,
-    enableDoubleThreeRestriction: true,
-    totalPairCaptured: 5,
-    firstMove: "Player1",
-    advantage1: 0,
-    advantage2: 0,
-    isPlayer2AI: true,
-    isDebugTurnLocked: true,
-    difficulty: "hard", // easy, medium, hard
-    ai: "minimax",
-  });
+
+  const settings = useStorage<Settings>(
+    GOMOKU_SETTINGS_KEY,
+    defaultSettings,
+    typeof window !== "undefined" ? window.localStorage : undefined,
+  );
 
   const initialBoard = () => {
     return pipe(
