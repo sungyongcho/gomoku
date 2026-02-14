@@ -25,7 +25,7 @@ const {
   gameOver,
 } = storeToRefs(useGameStore());
 const {
-  deleteLastHistory,
+  deleteLastTurn,
   initGame,
   addStoneToBoardData,
   onPrevHistory,
@@ -33,6 +33,34 @@ const {
 } = useGameStore();
 
 const lastHistory = computed(() => histories.value.at(-1));
+
+const shouldAiPlayFirstMove = computed(
+  () =>
+    histories.value.length === 0 &&
+    settings.value.firstMove === "Player2" &&
+    settings.value.isPlayer2AI,
+);
+
+const aiFirstMoveRequested = ref(false);
+
+const requestAiFirstMoveIfNeeded = () => {
+  if (
+    !shouldAiPlayFirstMove.value ||
+    status.value !== "OPEN" ||
+    aiFirstMoveRequested.value
+  )
+    return;
+  aiFirstMoveRequested.value = true;
+  onSendStone();
+};
+
+const canUndoTurn = computed(() => {
+  if (gameOver.value || histories.value.length < 1) return false;
+  if (settings.value.isPlayer2AI) {
+    return !isAiThinking.value && histories.value.at(-1)?.stone === "O";
+  }
+  return true;
+});
 const { doAlert, closeAlert } = useAlertStore();
 const { getSocketUrl } = useEnv();
 
@@ -51,30 +79,32 @@ const { data, send, close, status, open } = useWebSocket(socketUrl, {
         actionLabel: "Reconnect",
         action: () => {
           open();
-          if (
-            settings.value.isPlayer2AI &&
-            settings.value.firstMove === "Player2"
-          ) {
-            onSendStone();
-          }
           closeAlert();
         },
       });
 
       isAiThinking.value = false;
     },
-    onConnected() {
-      if (settings.value.isPlayer2AI) {
-        if (
-          (turn.value === "X" && settings.value.firstMove === "Player2") ||
-          (settings.value.firstMove === "Player1" && turn.value === "O")
-        ) {
-          onSendStone();
-        }
-      }
-    },
+  },
+  onConnected() {
+    requestAiFirstMoveIfNeeded();
   },
 });
+
+watch(
+  () => histories.value.length,
+  (len) => {
+    if (len === 0) aiFirstMoveRequested.value = false;
+  },
+);
+
+watch(
+  status,
+  (s) => {
+    if (s === "OPEN") requestAiFirstMoveIfNeeded();
+  },
+  { immediate: true },
+);
 
 const onPutStone = async ({ x, y }: { x: number; y: number }) => {
   const isSuccessToPutStone = await addStoneToBoardData({ x, y }, turn.value);
@@ -226,11 +256,11 @@ onUnmounted(() => {
         <div class="mt-3 flex w-full flex-wrap justify-center gap-3">
           <template v-if="!historyMode">
             <Button
-              label="Undo a move"
+              :label="settings.isPlayer2AI ? 'Undo a turn' : 'Undo a move'"
               size="small"
               icon="pi pi-undo"
-              :disabled="histories.length < 1"
-              @click="deleteLastHistory"
+              :disabled="!canUndoTurn"
+              @click="deleteLastTurn"
             />
             <Button
               size="small"
