@@ -230,8 +230,8 @@ response_error.json (backend 착수 에러)
 
 # 부탁 & 의논사항 정리 (위 내용과 중복됨, 정리본)
 - [x] 코드 블록 / 수식 넣기
-- [ ] 부탁드림: doublethree 프론트엔드/백엔드 로직이 매치가 되지 않아 frontend쪽 doublethree 패치가 필요한 상황
-- [ ] doublethree 무조건 다 금지
+- [x] 부탁드림: doublethree 프론트엔드/백엔드 로직이 매치가 되지 않아 frontend쪽 doublethree 패치가 필요한 상황
+- [x] doublethree 무조건 다 금지
   ```c++
   bool CForbiddenPointFinder::IsDoubleThree(int x, int y)
   ```
