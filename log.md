@@ -245,6 +245,6 @@ response_error.json (backend 착수 에러)
 - [x] localhost:4000/ws 에 계속 시도하는 버그 (nuxt content ws 임. 그냥 놔두기)
 - [x] alphazero 옵션 option을 살려 두되, default 설정으로 돌아가서 disalbed.
 - [x] alphazero 가 선택되면, 난이도 대신 작은 infobox 추가.
-- [ ] sungyongcho.com/gomoku 로 프론트엔드 페이지 리다이렉트 기능 (구현 아직 X)
+- [x] sungyongcho.com/gomoku 로 프론트엔드 페이지 리다이렉트 기능 (구현 아직 X)
   - 프론트엔드 배포가 어디서 되어있는지 확인 필요
 - [ ] 부탁드림: 프론트 페이지에  랜딩을 하기 전에 sungyongcho.com/minimax, sungyongcho.com/alphazero 의 연결 상태를 확인 하고, 응답이 없을 경우 팝업 모달을 띄워서 (maintanance 중) 이라는 메세지를 띄울 수 있을지?

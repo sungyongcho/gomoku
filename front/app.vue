@@ -9,6 +9,7 @@ await callOnce(fetchDocLinks);
   <NuxtLayout>
     <NuxtPage />
     <AlertModal />
+    <MaintenanceModal />
     <SettingModal v-model:visible="showSettings" />
   </NuxtLayout>
 </template>
