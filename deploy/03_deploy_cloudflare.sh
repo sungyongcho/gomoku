@@ -112,6 +112,7 @@ ALPHAZERO_SUBDOMAIN="alphazero-api.${DEPLOY_DOMAIN}"
 
 MINIMAX_ORIGIN="http://${MINIMAX_SUBDOMAIN}:8080"
 ALPHAZERO_ORIGIN="http://${ALPHAZERO_SUBDOMAIN}:8080"
+GOMOKU_PROXY_ORIGIN="https://omoku.netlify.app/"
 
 log "Cloudflare deploy"
 log "  Account:            ${CLOUDFLARE_ACCOUNT_ID}"
@@ -120,6 +121,7 @@ log "  Minimax DNS:        ${MINIMAX_SUBDOMAIN} -> ${DEPLOY_MINIMAX_IP}"
 log "  AlphaZero DNS:      ${ALPHAZERO_SUBDOMAIN} -> ${DEPLOY_ALPHAZERO_IP}"
 log "  Minimax origin:     ${MINIMAX_ORIGIN}"
 log "  AlphaZero origin:   ${ALPHAZERO_ORIGIN}"
+log "  Gomoku proxy:       /gomoku -> ${GOMOKU_PROXY_ORIGIN}"
 
 # ---- Check tools ----
 require_cmd curl
