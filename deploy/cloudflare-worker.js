@@ -8,10 +8,12 @@
  * Routes:
  * - /alphazero/* -> ALPHAZERO_ORIGIN/*
  * - /minimax/*   -> MINIMAX_ORIGIN/*
+ * - /gomoku/*    -> proxy to https://omoku.netlify.app/*
  *
  * Note: This Worker is intended to be deployed on narrow routes
- * (e.g. sungyongcho.com/alphazero/* and sungyongcho.com/minimax/*).
+ * (e.g. sungyongcho.com/alphazero/*, /minimax/*, /gomoku/*).
  */
+const GOMOKU_SITE_ORIGIN = "https://omoku.netlify.app";
 
 function _matchesPrefix(pathname, prefix) {
   return pathname === prefix || pathname.startsWith(prefix + "/");
@@ -23,20 +25,21 @@ function _joinPaths(basePath, suffixPath) {
   return (base || "") + suffix;
 }
 
-function _proxyToOrigin(request, origin, stripPrefix) {
+async function _proxyToOrigin(request, origin, stripPrefix, publicPrefix = null) {
   if (!origin) {
     return new Response("Origin is not configured", { status: 500 });
   }
 
   const originUrl = new URL(origin);
-  const url = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const upstreamUrl = new URL(requestUrl.toString());
 
-  let newPath = url.pathname.slice(stripPrefix.length);
+  let newPath = requestUrl.pathname.slice(stripPrefix.length);
   if (!newPath) newPath = "/";
-  url.protocol = originUrl.protocol;
-  url.hostname = originUrl.hostname;
-  url.port = originUrl.port;
-  url.pathname = _joinPaths(originUrl.pathname, newPath);
+  upstreamUrl.protocol = originUrl.protocol;
+  upstreamUrl.hostname = originUrl.hostname;
+  upstreamUrl.port = originUrl.port;
+  upstreamUrl.pathname = _joinPaths(originUrl.pathname, newPath);
 
   // Preserve method/headers/body. Overwrite Host so origin sees the expected host:port.
   const headers = new Headers(request.headers);
@@ -49,7 +52,43 @@ function _proxyToOrigin(request, origin, stripPrefix) {
     body: request.body,
   };
 
-  return fetch(url.toString(), init);
+  const response = await fetch(upstreamUrl.toString(), init);
+  if (!publicPrefix) {
+    return response;
+  }
+
+  const location = response.headers.get("location");
+  if (!location) {
+    return response;
+  }
+
+  let locationUrl;
+  try {
+    locationUrl = new URL(location, upstreamUrl.toString());
+  } catch {
+    return response;
+  }
+
+  // Keep browser URL on sungyongcho.com by rewriting upstream redirects.
+  if (
+    locationUrl.protocol !== originUrl.protocol ||
+    locationUrl.hostname !== originUrl.hostname
+  ) {
+    return response;
+  }
+
+  const rewritten = new URL(request.url);
+  rewritten.pathname = _joinPaths(publicPrefix, locationUrl.pathname);
+  rewritten.search = locationUrl.search;
+  rewritten.hash = locationUrl.hash;
+
+  const responseHeaders = new Headers(response.headers);
+  responseHeaders.set("location", rewritten.toString());
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
+  });
 }
 
 export default {
@@ -62,10 +101,17 @@ export default {
     if (_matchesPrefix(url.pathname, "/minimax")) {
       return _proxyToOrigin(request, env.MINIMAX_ORIGIN, "/minimax");
     }
+    if (_matchesPrefix(url.pathname, "/gomoku")) {
+      return _proxyToOrigin(
+        request,
+        GOMOKU_SITE_ORIGIN,
+        "/gomoku",
+        "/gomoku"
+      );
+    }
 
-    // If the Worker is only deployed on /alphazero/* and /minimax/*,
+    // If the Worker is only deployed on /alphazero/*, /minimax/*, and /gomoku/*,
     // this branch is never hit. Kept for safety.
     return fetch(request);
   },
 };
-
