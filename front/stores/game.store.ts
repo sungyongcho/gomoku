@@ -12,6 +12,21 @@ import {
   type StoneEval,
 } from "~/types/game";
 
+export const GOMOKU_SETTINGS_KEY = "gomoku-settings";
+
+export const defaultSettings: Settings = {
+  enableCapture: true,
+  enableDoubleThreeRestriction: true,
+  totalPairCaptured: 5,
+  firstMove: "Player1",
+  advantage1: 0,
+  advantage2: 0,
+  isPlayer2AI: true,
+  isDebugTurnLocked: true,
+  difficulty: "hard",
+  ai: "minimax",
+};
+
 type GameSituation = {
   boardData: { stone: Stone }[][];
   x: number;
@@ -36,18 +51,12 @@ export const useGameStore = defineStore("game", () => {
     isPerfectFiveEnded,
   } = useGameLogic();
   const showSettings = ref(false);
-  const settings = useStorage<Settings>("settings-2", {
-    enableCapture: true,
-    enableDoubleThreeRestriction: true,
-    totalPairCaptured: 5,
-    firstMove: "Player1",
-    advantage1: 0,
-    advantage2: 0,
-    isPlayer2AI: true,
-    isDebugTurnLocked: true,
-    difficulty: "hard", // easy, medium, hard
-    ai: "minimax",
-  });
+
+  const settings = useStorage<Settings>(
+    GOMOKU_SETTINGS_KEY,
+    defaultSettings,
+    typeof window !== "undefined" ? window.localStorage : undefined,
+  );
 
   const initialBoard = () => {
     return pipe(
@@ -223,6 +232,47 @@ export const useGameStore = defineStore("game", () => {
     gameOver.value = false;
     playUndoSound();
     changeTurn(lastHistory.stone);
+  };
+
+  const canUndoTurn = computed(() => {
+    if (gameOver.value || histories.value.length < 1) return false;
+    if (settings.value.isPlayer2AI) {
+      return !isAiThinking.value && histories.value.at(-1)?.stone === "O";
+    }
+    return true;
+  });
+
+  const deleteLastTurn = () => {
+    if (!settings.value.isPlayer2AI) {
+      deleteLastHistory();
+      return;
+    }
+    const last = histories.value.at(-1);
+    if (!last || last.stone !== "O") return;
+    if (histories.value.length >= 2) {
+      const secondLast = histories.value.at(-2)!;
+      // Restore last (O) move: captured stones + clear cell
+      if (last.capturedStones) {
+        last.capturedStones.forEach(({ x, y, stone }) => {
+          boardData.value[y][x].stone = stone;
+        });
+      }
+      boardData.value[last.coordinate.y][last.coordinate.x].stone = ".";
+      // Restore secondLast (X) move
+      if (secondLast.capturedStones) {
+        secondLast.capturedStones.forEach(({ x, y, stone }) => {
+          boardData.value[y][x].stone = stone;
+        });
+      }
+      boardData.value[secondLast.coordinate.y][secondLast.coordinate.x].stone =
+        ".";
+      histories.value = histories.value.slice(0, -2);
+      gameOver.value = false;
+      turn.value = "X";
+      playUndoSound();
+    } else {
+      deleteLastHistory();
+    }
   };
 
   // Check end condition after change turn
@@ -478,6 +528,8 @@ export const useGameStore = defineStore("game", () => {
     debugAddStoneToBoardData,
     addStoneToBoardData,
     deleteLastHistory,
+    canUndoTurn,
+    deleteLastTurn,
     player1TotalCaptured,
     player2TotalCaptured,
     evalScores,
