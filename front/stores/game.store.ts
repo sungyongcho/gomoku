@@ -274,18 +274,9 @@ export const useGameStore = defineStore("game", () => {
     { x, y }: { x: number; y: number },
     stone: Stone,
     boardData: { stone: Stone }[][],
-    capturedStones: BoardStone[],
   ) => {
     if (!settings.value.enableDoubleThreeRestriction) return false;
-
-    // Check double-three (double-three can be bypassed by capturing)
-    if (
-      capturedStones.length == 0 &&
-      checkDoubleThree({ x, y, stone, boardData: boardData })
-    ) {
-      return true;
-    }
-    return false;
+    return checkDoubleThree({ x, y, stone, boardData });
   };
 
   const debugAddStoneToBoardData = async (
@@ -306,12 +297,7 @@ export const useGameStore = defineStore("game", () => {
 
     if (
       settings.value.enableDoubleThreeRestriction &&
-      checkDoubleThreeBeforeAddStone(
-        { x, y },
-        stone,
-        boardData.value,
-        capturedStones,
-      )
+      checkDoubleThreeBeforeAddStone({ x, y }, stone, boardData.value)
     ) {
       doAlert({
         header: "Caution",
@@ -376,12 +362,7 @@ export const useGameStore = defineStore("game", () => {
       : [];
 
     if (
-      checkDoubleThreeBeforeAddStone(
-        { x, y },
-        stone,
-        boardData.value,
-        capturedStones,
-      )
+      checkDoubleThreeBeforeAddStone({ x, y }, stone, boardData.value)
     ) {
       doAlert({
         header: "Caution",
