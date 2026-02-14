@@ -225,6 +225,47 @@ export const useGameStore = defineStore("game", () => {
     changeTurn(lastHistory.stone);
   };
 
+  const canUndoTurn = computed(() => {
+    if (gameOver.value || histories.value.length < 1) return false;
+    if (settings.value.isPlayer2AI) {
+      return !isAiThinking.value && histories.value.at(-1)?.stone === "O";
+    }
+    return true;
+  });
+
+  const deleteLastTurn = () => {
+    if (!settings.value.isPlayer2AI) {
+      deleteLastHistory();
+      return;
+    }
+    const last = histories.value.at(-1);
+    if (!last || last.stone !== "O") return;
+    if (histories.value.length >= 2) {
+      const secondLast = histories.value.at(-2)!;
+      // Restore last (O) move: captured stones + clear cell
+      if (last.capturedStones) {
+        last.capturedStones.forEach(({ x, y, stone }) => {
+          boardData.value[y][x].stone = stone;
+        });
+      }
+      boardData.value[last.coordinate.y][last.coordinate.x].stone = ".";
+      // Restore secondLast (X) move
+      if (secondLast.capturedStones) {
+        secondLast.capturedStones.forEach(({ x, y, stone }) => {
+          boardData.value[y][x].stone = stone;
+        });
+      }
+      boardData.value[secondLast.coordinate.y][secondLast.coordinate.x].stone =
+        ".";
+      histories.value = histories.value.slice(0, -2);
+      gameOver.value = false;
+      turn.value = "X";
+      playUndoSound();
+    } else {
+      deleteLastHistory();
+    }
+  };
+
   // Check end condition after change turn
   const checkGameOver = (situation: GameSituation) => {
     // Check perfect five win
@@ -478,6 +519,8 @@ export const useGameStore = defineStore("game", () => {
     debugAddStoneToBoardData,
     addStoneToBoardData,
     deleteLastHistory,
+    canUndoTurn,
+    deleteLastTurn,
     player1TotalCaptured,
     player2TotalCaptured,
     evalScores,
