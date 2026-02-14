@@ -9,6 +9,8 @@ compatibility_date = "2026-02-11"
 routes = [
   { pattern = "sungyongcho.com/alphazero/*", zone_name = "sungyongcho.com" },
   { pattern = "sungyongcho.com/minimax/*", zone_name = "sungyongcho.com" },
+  { pattern = "sungyongcho.com/gomoku", zone_name = "sungyongcho.com" },
+  { pattern = "sungyongcho.com/gomoku/*", zone_name = "sungyongcho.com" },
 ]
 
 
@@ -16,4 +18,3 @@ routes = [
 # ALPHAZERO_ORIGIN and MINIMAX_ORIGIN are injected at deploy time
 # via --var flags in 03_deploy_cloudflare.sh (read from .env).
 # Do NOT hardcode IPs here.
-
