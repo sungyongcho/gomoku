@@ -34,6 +34,26 @@ const {
 
 const lastHistory = computed(() => histories.value.at(-1));
 
+const shouldAiPlayFirstMove = computed(
+  () =>
+    histories.value.length === 0 &&
+    settings.value.firstMove === "Player2" &&
+    settings.value.isPlayer2AI,
+);
+
+const aiFirstMoveRequested = ref(false);
+
+const requestAiFirstMoveIfNeeded = () => {
+  if (
+    !shouldAiPlayFirstMove.value ||
+    status.value !== "OPEN" ||
+    aiFirstMoveRequested.value
+  )
+    return;
+  aiFirstMoveRequested.value = true;
+  onSendStone();
+};
+
 const canUndoTurn = computed(() => {
   if (gameOver.value || histories.value.length < 1) return false;
   if (settings.value.isPlayer2AI) {
@@ -59,30 +79,32 @@ const { data, send, close, status, open } = useWebSocket(socketUrl, {
         actionLabel: "Reconnect",
         action: () => {
           open();
-          if (
-            settings.value.isPlayer2AI &&
-            settings.value.firstMove === "Player2"
-          ) {
-            onSendStone();
-          }
           closeAlert();
         },
       });
 
       isAiThinking.value = false;
     },
-    onConnected() {
-      if (settings.value.isPlayer2AI) {
-        if (
-          (turn.value === "X" && settings.value.firstMove === "Player2") ||
-          (settings.value.firstMove === "Player1" && turn.value === "O")
-        ) {
-          onSendStone();
-        }
-      }
-    },
+  },
+  onConnected() {
+    requestAiFirstMoveIfNeeded();
   },
 });
+
+watch(
+  () => histories.value.length,
+  (len) => {
+    if (len === 0) aiFirstMoveRequested.value = false;
+  },
+);
+
+watch(
+  status,
+  (s) => {
+    if (s === "OPEN") requestAiFirstMoveIfNeeded();
+  },
+  { immediate: true },
+);
 
 const onPutStone = async ({ x, y }: { x: number; y: number }) => {
   const isSuccessToPutStone = await addStoneToBoardData({ x, y }, turn.value);
