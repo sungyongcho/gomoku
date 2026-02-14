@@ -8,7 +8,7 @@
  * Routes:
  * - /alphazero/* -> ALPHAZERO_ORIGIN/*
  * - /minimax/*   -> MINIMAX_ORIGIN/*
- * - /gomoku/*    -> proxy to https://omoku.netlify.app/*
+ * - /gomoku/*    -> proxy to https://omoku.netlify.app/gomoku/*
  *
  * Note: This Worker is intended to be deployed on narrow routes
  * (e.g. sungyongcho.com/alphazero/*, /minimax/*, /gomoku/*).
@@ -105,8 +105,8 @@ export default {
       return _proxyToOrigin(
         request,
         GOMOKU_SITE_ORIGIN,
-        "/gomoku",
-        "/gomoku"
+        "",
+        "/"
       );
     }
 
