@@ -193,6 +193,9 @@ async def _handle_payload(
     if message_type == "evaluate":
         return await _handle_evaluate(websocket, engine, data)
 
+    if message_type == "ping":
+        return await _safe_send_json(websocket, {"type": "pong"})
+
     if message_type == "reset":
         # Stateless on server side for now.
         return True

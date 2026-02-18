@@ -16,50 +16,70 @@ definePageMeta({
 const { isAiThinking, settings } = storeToRefs(useGameStore());
 const isAllTesting = ref(false);
 const { initialBoard, getPlayerTotalCaptured, importGame } = useGameStore();
+const maintenance = useMaintenanceStore();
 
 const { doAlert, closeAlert } = useAlertStore();
 const { getSocketUrl } = useEnv();
 
 const socketUrl = computed(() => getSocketUrl("minimax"));
 
-const { data, send, close, open, status } = useWebSocket(socketUrl, {
-  autoReconnect: {
-    retries: 0,
-    onFailed() {
-      doAlert({
-        header: "Error",
-        message: "WebSocket connection failed. Click button to reconnect",
-        type: "Warn",
-        actionIcon: "pi pi-undo",
-        actionLabel: "Reconnect",
-        action: () => {
-          open();
-          closeAlert();
-        },
-      });
-      isAiThinking.value = false;
+const showReconnectAlert = (message?: string) => {
+  doAlert({
+    header: "Error",
+    message: message || "WebSocket connection failed. Reconnecting...",
+    type: "Warn",
+    actionIcon: "pi pi-undo",
+    actionLabel: "Reconnect now",
+    action: () => {
+      open();
+      closeAlert();
     },
-  },
+  });
+};
+
+const { data, send, close, open, status } = useWebSocket(socketUrl, {
 });
 
+const { ensureOpen, startRequestTimeout, clearRequestTimeout, scheduleReconnect } =
+  useWebSocketReliability({
+    status,
+    open,
+    close,
+    onRequestTimedOut(type) {
+      isAiThinking.value = false;
+      isAllTesting.value = false;
+      triggeredTestLabel.value = "";
+      showReconnectAlert(
+        `No response from backend for '${type}' request. Auto reconnecting...`,
+      );
+    },
+  });
+
+watch(
+  status,
+  (s) => {
+    if (s === "OPEN") {
+      closeAlert();
+      return;
+    }
+
+    if (s === "CLOSED") {
+      isAiThinking.value = false;
+      scheduleReconnect();
+    }
+  },
+  { immediate: true },
+);
+
 const onSendData = (type: RequestType, testCase: TestCase) => {
-  if (status.value === "CLOSED") {
-    doAlert({
-      header: "Error",
-      message: "WebSocket connection failed. Click button to reconnect",
-      type: "Warn",
-      actionIcon: "pi pi-undo",
-      actionLabel: "Reconnect",
-      action: () => {
-        open();
-        nextTick(() => {
-          closeAlert();
-        });
-      },
-    });
+  if (!ensureOpen()) {
     isAiThinking.value = false;
+    showReconnectAlert();
     return;
   }
+
+  isAiThinking.value = true;
+  startRequestTimeout(type);
 
   const lastPlay = testCase.histories.at(-1);
   send(
@@ -150,7 +170,7 @@ const onTestAll = async () => {
 
   const labels = Object.keys(testCases.value);
 
-  while(labels.length) {
+  while (labels.length && isAllTesting.value) {
     if (triggeredTestLabel.value) {
       // Previous test is still in progress
       await delay(500);
@@ -180,8 +200,10 @@ const goToDebug = (testCase: TestCase) => {
 watch(data, (rawData) => {
   if (!data.value) return;
   if (!triggeredTestLabel.value) return;
+  maintenance.reportBackendSuccess();
 
   try {
+    clearRequestTimeout();
     const res: SocketMoveResponse =
       typeof rawData === "string" ? JSON.parse(rawData) : rawData;
 
@@ -189,9 +211,11 @@ watch(data, (rawData) => {
       console.error(res);
       doAlert({
         header: "Caution",
-        message: res.error as stiring,
+        message: res.error as string,
         type: "Warn",
       });
+      triggeredTestLabel.value = "";
+      isAiThinking.value = false;
       return;
     }
 
@@ -201,6 +225,7 @@ watch(data, (rawData) => {
     };
 
     triggeredTestLabel.value = "";
+    isAiThinking.value = false;
   } catch (error) {
     console.error("Error processing WebSocket data:", error);
     doAlert({
@@ -209,6 +234,9 @@ watch(data, (rawData) => {
       type: "Warn",
     });
     triggeredTestLabel.value = "";
+    isAiThinking.value = false;
+  } finally {
+    clearRequestTimeout();
   }
 });
 </script>

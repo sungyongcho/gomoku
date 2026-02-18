@@ -57,6 +57,9 @@ int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason, void *u
         return handleEvaluateRequest(wsi, doc);
       } else if (type == "test") {
         return handleTestRequest(wsi, doc);
+      } else if (type == "ping") {
+        sendJsonResponse(wsi, "{\"type\":\"pong\"}");
+        return 0;
       } else if (type == "reset") {
         handleResetRequest(psd);
       } else {

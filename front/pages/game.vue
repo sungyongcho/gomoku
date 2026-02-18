@@ -62,32 +62,45 @@ const canUndoTurn = computed(() => {
   return true;
 });
 const { doAlert, closeAlert } = useAlertStore();
+const maintenance = useMaintenanceStore();
 const { getSocketUrl } = useEnv();
 
 const socketUrl = computed(() => getSocketUrl());
 
-const { data, send, close, status, open } = useWebSocket(socketUrl, {
-  autoReconnect: {
-    retries: 0,
-    delay: 500,
-    onFailed() {
-      doAlert({
-        header: "Error",
-        message: "WebSocket connection failed. Click button to reconnect",
-        type: "Warn",
-        actionIcon: "pi pi-undo",
-        actionLabel: "Reconnect",
-        action: () => {
-          open();
-          closeAlert();
-        },
-      });
-
-      isAiThinking.value = false;
+const showReconnectAlert = (message?: string) => {
+  doAlert({
+    header: "Error",
+    message: message || "WebSocket connection failed. Reconnecting...",
+    type: "Warn",
+    actionIcon: "pi pi-undo",
+    actionLabel: "Reconnect now",
+    action: () => {
+      open();
+      closeAlert();
     },
-  },
+  });
+};
+
+const { data, send, close, status, open } = useWebSocket(socketUrl, {
   onConnected() {
     requestAiFirstMoveIfNeeded();
+  },
+});
+
+const {
+  ensureOpen,
+  startRequestTimeout,
+  clearRequestTimeout,
+  scheduleReconnect,
+} = useWebSocketReliability({
+  status,
+  open,
+  close,
+  onRequestTimedOut(type) {
+    isAiThinking.value = false;
+    showReconnectAlert(
+      `No response from backend for '${type}' request. Auto reconnecting...`,
+    );
   },
 });
 
@@ -101,7 +114,16 @@ watch(
 watch(
   status,
   (s) => {
-    if (s === "OPEN") requestAiFirstMoveIfNeeded();
+    if (s === "OPEN") {
+      closeAlert();
+      requestAiFirstMoveIfNeeded();
+      return;
+    }
+
+    if (s === "CLOSED") {
+      isAiThinking.value = false;
+      scheduleReconnect();
+    }
   },
   { immediate: true },
 );
@@ -119,7 +141,14 @@ const onSendData = (
   type: RequestType,
   coordinate?: { x: number; y: number },
 ) => {
+  if (!ensureOpen()) {
+    isAiThinking.value = false;
+    showReconnectAlert();
+    return;
+  }
+
   isAiThinking.value = true;
+  startRequestTimeout(type);
   send(
     JSON.stringify({
       type,
@@ -147,21 +176,6 @@ const onSendData = (
 };
 
 const onSendStone = () => {
-  if (status.value === "CLOSED") {
-    doAlert({
-      header: "Error",
-      message: "WebSocket connection failed. Click button to reconnect",
-      type: "Warn",
-      actionIcon: "pi pi-undo",
-      actionLabel: "Reconnect",
-      action: () => {
-        open();
-        closeAlert();
-      },
-    });
-    return;
-  }
-
   onSendData(
     "move",
     lastHistory.value?.coordinate ? lastHistory.value.coordinate : undefined,
@@ -172,6 +186,8 @@ const onEvaluateStone = (coordinate: undefined | { x: number; y: number }) => {
     onSendData("evaluate", coordinate);
   } else {
     // hide eval
+    clearRequestTimeout();
+    isAiThinking.value = false;
     evalScores.value = [];
     data.value = null;
   }
@@ -179,6 +195,10 @@ const onEvaluateStone = (coordinate: undefined | { x: number; y: number }) => {
 
 const onRestart = () => {
   initGame();
+  if (!ensureOpen()) {
+    showReconnectAlert();
+    return;
+  }
   send(JSON.stringify({ type: "reset" }));
   if (settings.value.isPlayer2AI && settings.value.firstMove === "Player2") {
     onSendStone();
@@ -186,12 +206,14 @@ const onRestart = () => {
 };
 
 const purgeState = () => {
+  clearRequestTimeout();
   isAiThinking.value = false;
   data.value = null;
 };
 
 watch(data, (rawData) => {
   if (!data.value) return;
+  maintenance.reportBackendSuccess();
 
   try {
     const res: SocketMoveResponse =
