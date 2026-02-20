@@ -622,8 +622,8 @@ int pvs(Board *board, int depth, int alpha, int beta, int currentPlayer, int las
       score = pvs(board, depth - 1, alpha, beta, next, mv.first, mv.second, !isMaximizing, evalFn);
       firstChild = false;
     } else {
-      // null window (width-1: beta = alpha + 1)
-      score = pvs(board, depth - 1, alpha, alpha + 1, next, mv.first, mv.second, !isMaximizing,
+      // null window (width-0: alpha = beta = alpha + 1)
+      score = pvs(board, depth - 1, alpha + 1, alpha + 1, next, mv.first, mv.second, !isMaximizing,
                   evalFn);
       // if it produced something interesting, re-search
       if (score > alpha && score < beta) {
