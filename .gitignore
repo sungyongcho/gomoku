@@ -72,3 +72,4 @@ alphazero/cpp/build/
 alphazero/gomoku/cpp_ext/*
 !alphazero/gomoku/cpp_ext/.gitkeep
 alphazero/infra/cluster/.cluster_elo1800.resolved.yaml
+node_modules/
