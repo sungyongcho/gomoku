@@ -28,6 +28,26 @@ require_cmd() {
   fi
 }
 
+require_ipv4() {
+  local name="$1"
+  local value="$2"
+  local octets
+  local octet
+
+  if [[ ! "${value}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+    echo "${name} must be a plain IPv4 address, got: ${value}" >&2
+    exit 1
+  fi
+
+  IFS='.' read -r -a octets <<< "${value}"
+  for octet in "${octets[@]}"; do
+    if (( 10#${octet} < 0 || 10#${octet} > 255 )); then
+      echo "${name} must be a valid IPv4 address, got: ${value}" >&2
+      exit 1
+    fi
+  done
+}
+
 cf_request() {
   local method="$1"
   local url="$2"
@@ -35,17 +55,17 @@ cf_request() {
   local response
 
   if [ -n "${payload}" ]; then
-    if ! response="$(curl -fsSL --connect-timeout 10 --max-time 30 "${CF_AUTH[@]}" -X "${method}" "${url}" -d "${payload}" 2>&1)"; then
+    if ! response="$(curl -sSL --connect-timeout 10 --max-time 30 "${CF_AUTH[@]}" -X "${method}" "${url}" -d "${payload}" 2>&1)"; then
       echo "Cloudflare API request failed (${method} ${url})." >&2
       echo "${response}" >&2
-      echo "Hint: check DNS/network egress and CLOUDFLARE_API_TOKEN permissions." >&2
+      echo "Hint: check DNS/network egress." >&2
       exit 1
     fi
   else
-    if ! response="$(curl -fsSL --connect-timeout 10 --max-time 30 "${CF_AUTH[@]}" -X "${method}" "${url}" 2>&1)"; then
+    if ! response="$(curl -sSL --connect-timeout 10 --max-time 30 "${CF_AUTH[@]}" -X "${method}" "${url}" 2>&1)"; then
       echo "Cloudflare API request failed (${method} ${url})." >&2
       echo "${response}" >&2
-      echo "Hint: check DNS/network egress and CLOUDFLARE_API_TOKEN permissions." >&2
+      echo "Hint: check DNS/network egress." >&2
       exit 1
     fi
   fi
@@ -105,6 +125,9 @@ ensure_cf_success() {
 : "${DEPLOY_MINIMAX_IP:?DEPLOY_MINIMAX_IP is required in .env}"
 : "${DEPLOY_ALPHAZERO_IP:?DEPLOY_ALPHAZERO_IP is required in .env}"
 : "${DEPLOY_DOMAIN:?DEPLOY_DOMAIN is required in .env}"
+
+require_ipv4 DEPLOY_MINIMAX_IP "${DEPLOY_MINIMAX_IP}"
+require_ipv4 DEPLOY_ALPHAZERO_IP "${DEPLOY_ALPHAZERO_IP}"
 
 # ---- Backend subdomains (DNS only, grey cloud) ----
 MINIMAX_SUBDOMAIN="minimax-api.${DEPLOY_DOMAIN}"
