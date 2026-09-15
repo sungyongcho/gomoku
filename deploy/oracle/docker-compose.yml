@@ -1,0 +1,28 @@
+# Minimax engine on the Oracle A1 host. 02_deploy_minimax.sh syncs the engine
+# source into ./src next to this file and builds the image on the instance
+# (aarch64), so no registry is involved. Plain WebSocket on the published port;
+# TLS terminates at Cloudflare and the Worker reaches http://<ip>:<port>.
+services:
+  minimax:
+    build:
+      context: ./src
+      dockerfile: Dockerfile.prod
+    image: gomoku-minimax:local
+    container_name: gomoku-minimax
+    environment:
+      MINIMAX_PORT: "8080"
+    ports:
+      - "${MINIMAX_PORT:-8080}:8080"
+    restart: unless-stopped
+    init: true
+    # The engine is a single-threaded search with a transposition table; keep it
+    # well inside the 12 GB shared with docreview-rag.
+    mem_limit: 1g
+    cpus: "1.5"
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
