@@ -23,10 +23,10 @@ require_cmd() {
 require_cmd gcloud
 require_cmd curl
 
-# Check ADC credentials (optional but useful for some tooling).
+# Check ADC credentials (optional but useful for some tooling). Never block a
+# deploy on an interactive login: the scripts only use the gcloud account token.
 if [ ! -f "${HOME}/.config/gcloud/application_default_credentials.json" ]; then
-  log "ADC credentials not found. Running: gcloud auth application-default login"
-  gcloud auth application-default login
+  log "ADC credentials not found; skipping interactive login (optional)."
 fi
 
 log "Step 1: Enabling required services..."

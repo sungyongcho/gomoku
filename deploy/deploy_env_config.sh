@@ -34,6 +34,9 @@ export USER_EMAIL="${DEPLOY_USER_EMAIL:?DEPLOY_USER_EMAIL is required}"
 # ===== Cloudflare Worker config (optional – required only for 03_deploy_cloudflare.sh) =====
 export DEPLOY_MINIMAX_IP="${DEPLOY_MINIMAX_IP:-}"
 export DEPLOY_ALPHAZERO_IP="${DEPLOY_ALPHAZERO_IP:-}"
+export DEPLOY_DOCREVIEW_IP="${DEPLOY_DOCREVIEW_IP:-}"
+export DEPLOY_DOCREVIEW_ORIGIN="${DEPLOY_DOCREVIEW_ORIGIN:-}"
+export DEPLOY_DOCREVIEW_SITE_ORIGIN="${DEPLOY_DOCREVIEW_SITE_ORIGIN:-}"
 
 # ===== Derived config =====
 export SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
@@ -62,6 +65,7 @@ echo "  Domain: ${DEPLOY_DOMAIN}"
 echo "  VMs: minimax=${MINIMAX_VM}, alphazero=${ALPHAZERO_VM}"
 echo "  Machines: minimax=${MINIMAX_MACHINE}, alphazero=${ALPHAZERO_MACHINE}"
 echo "  VM IPs: minimax=${DEPLOY_MINIMAX_IP:-unset}, alphazero=${DEPLOY_ALPHAZERO_IP:-unset}"
+echo "  DocReview: ip=${DEPLOY_DOCREVIEW_IP:-unset}, api=${DEPLOY_DOCREVIEW_ORIGIN:-unset}, site=${DEPLOY_DOCREVIEW_SITE_ORIGIN:-unset}"
 echo "  Artifact Registry: ${ARTIFACT_REGISTRY}"
 echo "  User: ${USER_EMAIL}"
 echo "  Service Account: ${SA_EMAIL}"

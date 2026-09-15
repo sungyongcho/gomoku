@@ -11,6 +11,9 @@ set -Eeuo pipefail
 #   CLOUDFLARE_API_TOKEN   – API token (needs Workers + DNS edit)
 #   DEPLOY_MINIMAX_IP      – external IP of the minimax VM
 #   DEPLOY_ALPHAZERO_IP    – external IP of the alphazero VM
+#   DEPLOY_DOCREVIEW_IP    – external IP of the DocReview VM
+#   DEPLOY_DOCREVIEW_ORIGIN – HTTPS Caddy origin for the DocReview API
+#   DEPLOY_DOCREVIEW_SITE_ORIGIN – Firebase Hosting origin
 #   DEPLOY_DOMAIN          – root domain (e.g. sungyongcho.com)
 # ============================================================
 
@@ -128,6 +131,14 @@ ensure_cf_success() {
 
 require_ipv4 DEPLOY_MINIMAX_IP "${DEPLOY_MINIMAX_IP}"
 require_ipv4 DEPLOY_ALPHAZERO_IP "${DEPLOY_ALPHAZERO_IP}"
+DOCREVIEW_ENABLED=false
+if [[ -n "${DEPLOY_DOCREVIEW_IP}" || -n "${DEPLOY_DOCREVIEW_ORIGIN}" || -n "${DEPLOY_DOCREVIEW_SITE_ORIGIN}" ]]; then
+  : "${DEPLOY_DOCREVIEW_IP:?Set every DocReview deploy variable or none of them}"
+  : "${DEPLOY_DOCREVIEW_ORIGIN:?Set every DocReview deploy variable or none of them}"
+  : "${DEPLOY_DOCREVIEW_SITE_ORIGIN:?Set every DocReview deploy variable or none of them}"
+  require_ipv4 DEPLOY_DOCREVIEW_IP "${DEPLOY_DOCREVIEW_IP}"
+  DOCREVIEW_ENABLED=true
+fi
 
 # ---- Backend subdomains (DNS only, grey cloud) ----
 MINIMAX_SUBDOMAIN="minimax-api.${DEPLOY_DOMAIN}"
@@ -145,6 +156,12 @@ log "  AlphaZero DNS:      ${ALPHAZERO_SUBDOMAIN} -> ${DEPLOY_ALPHAZERO_IP}"
 log "  Minimax origin:     ${MINIMAX_ORIGIN}"
 log "  AlphaZero origin:   ${ALPHAZERO_ORIGIN}"
 log "  Gomoku proxy:       /gomoku -> ${GOMOKU_PROXY_ORIGIN}"
+if [[ "${DOCREVIEW_ENABLED}" == true ]]; then
+  log "  DocReview API:      /docreview-rag/api -> ${DEPLOY_DOCREVIEW_ORIGIN}"
+  log "  DocReview site:     /docreview-rag -> ${DEPLOY_DOCREVIEW_SITE_ORIGIN}"
+else
+  log "  DocReview:          not configured in this deploy"
+fi
 
 # ---- Check tools ----
 require_cmd curl
@@ -202,6 +219,9 @@ upsert_dns_record() {
 log "Step 2: Upserting DNS A records (DNS only / grey cloud)..."
 upsert_dns_record "${MINIMAX_SUBDOMAIN}" "${DEPLOY_MINIMAX_IP}"
 upsert_dns_record "${ALPHAZERO_SUBDOMAIN}" "${DEPLOY_ALPHAZERO_IP}"
+if [[ "${DOCREVIEW_ENABLED}" == true ]]; then
+  upsert_dns_record "docreview-api.${DEPLOY_DOMAIN}" "${DEPLOY_DOCREVIEW_IP}"
+fi
 
 # ===========================================================
 # Step 3: Deploy Worker
@@ -210,10 +230,18 @@ log "Step 3: Deploying Cloudflare Worker..."
 export CLOUDFLARE_API_TOKEN
 export CLOUDFLARE_ACCOUNT_ID
 
-npx wrangler deploy \
-  --config "${SCRIPT_DIR}/wrangler.toml" \
-  --var "MINIMAX_ORIGIN:${MINIMAX_ORIGIN}" \
+WRANGLER_ARGS=(
+  --config "${SCRIPT_DIR}/wrangler.toml"
+  --var "MINIMAX_ORIGIN:${MINIMAX_ORIGIN}"
   --var "ALPHAZERO_ORIGIN:${ALPHAZERO_ORIGIN}"
+)
+if [[ "${DOCREVIEW_ENABLED}" == true ]]; then
+  WRANGLER_ARGS+=(
+    --var "DOCREVIEW_ORIGIN:${DEPLOY_DOCREVIEW_ORIGIN}"
+    --var "DOCREVIEW_SITE_ORIGIN:${DEPLOY_DOCREVIEW_SITE_ORIGIN}"
+  )
+fi
+npx wrangler deploy "${WRANGLER_ARGS[@]}"
 
 log "Cloudflare Worker deployed successfully ✅"
 log "Running connection verification..."

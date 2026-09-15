@@ -11,6 +11,8 @@ routes = [
   { pattern = "sungyongcho.com/minimax/*", zone_name = "sungyongcho.com" },
   { pattern = "sungyongcho.com/gomoku", zone_name = "sungyongcho.com" },
   { pattern = "sungyongcho.com/gomoku/*", zone_name = "sungyongcho.com" },
+  { pattern = "sungyongcho.com/docreview-rag", zone_name = "sungyongcho.com" },
+  { pattern = "sungyongcho.com/docreview-rag/*", zone_name = "sungyongcho.com" },
 ]
 
 
