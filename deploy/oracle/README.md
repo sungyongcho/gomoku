@@ -69,15 +69,19 @@ From the docreview-rag checkout, follow `deploy/oracle/README.md` there
 bash deploy/oracle/03_print_origin.sh
 ```
 
-Copy the printed `DEPLOY_MINIMAX_IP`, `DEPLOY_DOCREVIEW_IP` and
-`DEPLOY_DOCREVIEW_ORIGIN` into `.env` (leave `DEPLOY_ALPHAZERO_IP` on GCP), then:
+Copy the printed `DEPLOY_MINIMAX_IP` into `.env` (leave
+`DEPLOY_ALPHAZERO_IP` on GCP), then:
 
 ```sh
 bash deploy/03_deploy_cloudflare.sh
 ```
 
-This updates the `minimax-api` and `docreview-api` DNS records and redeploys the
-Worker with the new DocReview origin; `verify_connection.sh` runs at the end.
+This updates Gomoku's backend DNS records and redeploys `gomoku-ws-router`;
+`verify_connection.sh` checks Gomoku at the end. DocReview's Worker, API origin
+and Firebase deployment are owned by `docreview-rag/deploy/cloudflare` and
+`docreview-rag/deploy/oracle`. Its `/docreview-rag` routes must stay absent from
+this repository's `wrangler.toml` so future Gomoku deploys cannot reclaim them.
+The shared host setup and Cloudflare-only port rules remain here.
 
 ## 6. Retire the GCP VMs
 

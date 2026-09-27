@@ -9,8 +9,6 @@
  * - /alphazero/* -> ALPHAZERO_ORIGIN/*
  * - /minimax/*   -> MINIMAX_ORIGIN/*
  * - /gomoku/*    -> proxy to https://omoku.netlify.app/gomoku/*
- * - /docreview-rag/api/* -> DOCREVIEW_ORIGIN/*
- * - /docreview-rag/* -> DOCREVIEW_SITE_ORIGIN/docreview-rag/*
  *
  * Note: This Worker is intended to be deployed on narrow routes
  * (e.g. sungyongcho.com/alphazero/*, /minimax/*, /gomoku/*).
@@ -110,16 +108,6 @@ export default {
         "",
         "/"
       );
-    }
-    if (_matchesPrefix(url.pathname, "/docreview-rag/api")) {
-      return _proxyToOrigin(
-        request,
-        env.DOCREVIEW_ORIGIN,
-        "/docreview-rag/api"
-      );
-    }
-    if (_matchesPrefix(url.pathname, "/docreview-rag")) {
-      return _proxyToOrigin(request, env.DOCREVIEW_SITE_ORIGIN, "");
     }
 
     // If the Worker is only deployed on /alphazero/*, /minimax/*, and /gomoku/*,
