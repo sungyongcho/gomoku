@@ -1,5 +1,5 @@
 # Use an LTS Node.js image for stability
-FROM node:20-slim
+FROM node:24.22.1-slim
 
 # Install Python, make, g++, and set PYTHON env var
 RUN apt-get update && apt-get install -y python3 make g++ \
