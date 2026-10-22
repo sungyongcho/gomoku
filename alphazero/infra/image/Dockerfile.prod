@@ -1,11 +1,14 @@
-FROM python:3.13-slim
+FROM python:3.13-slim-trixie
 
-# Build dependencies for C++ extensions (pybind11/scikit-build-core) + curl for healthcheck.
+# Refresh Debian's CA bundle before fetching Python packages. DSA-6572-1 removes
+# the compromised eMudhra trust paths in ca-certificates 20250419+deb13u1.
 RUN apt-get update && apt-get install -y --no-install-recommends \
+	ca-certificates \
 	cmake \
 	g++ \
 	ninja-build \
 	curl \
+	&& dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20250419+deb13u1' \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONUNBUFFERED=1
@@ -15,7 +18,8 @@ WORKDIR /app
 COPY . /app
 RUN pip install --no-cache-dir --upgrade pip \
 	&& pip install --no-cache-dir ".[serve,torch-cpu]" \
-	--extra-index-url https://download.pytorch.org/whl/cpu
+	--extra-index-url https://download.pytorch.org/whl/cpu \
+	&& pip install --no-cache-dir --upgrade 'certifi>=2026.10.19'
 
 ENV PYTHONPATH=/app
 ENV ALPHAZERO_CONFIG=configs/local_play.yaml
