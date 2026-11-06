@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 # Resolve paths relative to this script so the command works from any cwd.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INFRA_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-ALPHAZERO_ROOT="$(cd "${INFRA_ROOT}/.." && pwd)"
+TRAINING_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ALPHAZERO_ROOT="$(cd "${TRAINING_ROOT}/../.." && pwd)"
 REPO_ROOT="$(cd "${ALPHAZERO_ROOT}/.." && pwd)"
 
 # Load .env defaults (can be overridden by exported env variables).
@@ -189,7 +189,7 @@ if [ "${DO_BUILD}" = true ]; then
     --platform linux/amd64 \
     --output "type=image,compression=zstd,force-compression=true,push=true" \
     -t "${IMAGE_GPU}" \
-    -f "${INFRA_ROOT}/image/Dockerfile.py313-cu124" \
+    -f "${TRAINING_ROOT}/image/Dockerfile.py313-cu124" \
     "${ALPHAZERO_ROOT}"
 
   log " -> CPU Image: ${IMAGE_CPU}"
@@ -197,7 +197,7 @@ if [ "${DO_BUILD}" = true ]; then
     --platform linux/amd64 \
     --output "type=image,compression=zstd,force-compression=true,push=true" \
     -t "${IMAGE_CPU}" \
-    -f "${INFRA_ROOT}/image/Dockerfile.py313-cpu" \
+    -f "${TRAINING_ROOT}/image/Dockerfile.py313-cpu" \
     "${ALPHAZERO_ROOT}"
 else
   log "Step 2: Skipping Build/Push"

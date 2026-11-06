@@ -14,6 +14,8 @@ Purges LOCAL Google Cloud login/config state:
   - default GCE SSH keys created by gcloud
 
 This does NOT delete remote GCP resources and does NOT uninstall gcloud.
+It affects the whole machine: anything else using gcloud or ADC here stops working
+until you log in again. It is not a step of any deploy.
 
 Options:
   --yes       Skip interactive confirmation

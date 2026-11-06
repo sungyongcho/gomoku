@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ALPHAZERO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+ALPHAZERO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd "${ALPHAZERO_ROOT}/.." && pwd)"
 
 DOTENV_PATH="${DOTENV_PATH:-${REPO_ROOT}/.env}"

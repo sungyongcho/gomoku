@@ -456,7 +456,7 @@ def run_ray(
     cluster_yaml_candidates = [
         "cluster_elo1800.yaml",
         os.path.join("infra", "cluster_elo1800.yaml"),
-        os.path.join("infra", "cluster", "cluster_elo1800.yaml"),
+        os.path.join("infra", "training", "cluster", "cluster_elo1800.yaml"),
     ]
     cluster_yaml_path = next(
         (path for path in cluster_yaml_candidates if os.path.exists(path)),

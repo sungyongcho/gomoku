@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/deploy_env_config.sh"
+source "${SCRIPT_DIR}/alphazero_env_config.sh"
 
 # Fix for gcloud IAP warning (some environments need python for IAP helpers).
 if command -v python3 &>/dev/null; then
@@ -126,18 +126,8 @@ else
   log " -> Firewall rule exists: ${SSH_RULE}"
 fi
 
-log "Step 5: Reserving static external IPs..."
-MINIMAX_IP_NAME="${MINIMAX_VM}-ip"
+log "Step 5: Reserving static external IP..."
 ALPHAZERO_IP_NAME="${ALPHAZERO_VM}-ip"
-
-if ! gcloud compute addresses describe "${MINIMAX_IP_NAME}" \
-  --region="${REGION}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
-  gcloud compute addresses create "${MINIMAX_IP_NAME}" \
-    --region="${REGION}" \
-    --project="${PROJECT_ID}"
-else
-  log " -> Address exists: ${MINIMAX_IP_NAME}"
-fi
 
 if ! gcloud compute addresses describe "${ALPHAZERO_IP_NAME}" \
   --region="${REGION}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
@@ -148,36 +138,16 @@ else
   log " -> Address exists: ${ALPHAZERO_IP_NAME}"
 fi
 
-MINIMAX_IP="$(gcloud compute addresses describe "${MINIMAX_IP_NAME}" \
-  --region="${REGION}" --project="${PROJECT_ID}" --format='get(address)')"
 ALPHAZERO_IP="$(gcloud compute addresses describe "${ALPHAZERO_IP_NAME}" \
   --region="${REGION}" --project="${PROJECT_ID}" --format='get(address)')"
 
-log "Step 6: Creating VMs (Container-Optimized OS + startup script)..."
+log "Step 6: Creating VM (Container-Optimized OS + startup script)..."
 PLACEHOLDER_IMAGE="docker.io/library/nginx:stable-alpine"
 STARTUP_SCRIPT="${SCRIPT_DIR}/docker_container_startup_script.sh"
 
 if [ ! -f "${STARTUP_SCRIPT}" ]; then
   echo "docker_container_startup_script.sh not found: ${STARTUP_SCRIPT}" >&2
   exit 1
-fi
-
-if ! gcloud compute instances describe "${MINIMAX_VM}" \
-  --zone="${ZONE}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
-  gcloud compute instances create "${MINIMAX_VM}" \
-    --project="${PROJECT_ID}" \
-    --zone="${ZONE}" \
-    --machine-type="${MINIMAX_MACHINE}" \
-    --image-family=cos-stable \
-    --image-project=cos-cloud \
-    --tags="gomoku-deploy" \
-    --address="${MINIMAX_IP_NAME}" \
-    --service-account="${SA_EMAIL}" \
-    --scopes="https://www.googleapis.com/auth/cloud-platform" \
-    --metadata=enable-oslogin=TRUE,container-image="${PLACEHOLDER_IMAGE}",container-port=8080,container-name="${MINIMAX_VM}",container-env="MINIMAX_PORT=8080" \
-    --metadata-from-file=startup-script="${STARTUP_SCRIPT}"
-else
-  log " -> Instance exists: ${MINIMAX_VM}"
 fi
 
 if ! gcloud compute instances describe "${ALPHAZERO_VM}" \
@@ -198,7 +168,6 @@ else
   log " -> Instance exists: ${ALPHAZERO_VM}"
 fi
 
-log "Setup complete. Static external IPs:"
-echo "  MINIMAX_IP=${MINIMAX_IP}"
-echo "  ALPHAZERO_IP=${ALPHAZERO_IP}"
+log "Setup complete. Static external IP:"
+echo "  DEPLOY_ALPHAZERO_IP=${ALPHAZERO_IP}"
 

@@ -4,7 +4,7 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/deploy_env_config.sh"
+source "${SCRIPT_DIR}/alphazero_env_config.sh"
 
 log(){ echo -e "[\e[36m$(date +'%F %T')\e[0m] $*"; }
 
@@ -17,17 +17,17 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [--yes] [--delete-sa] [--delete-repo] [--purge-all-images]
 
-Deletes deploy resources created by deploy/setup.sh:
-  - VMs (${MINIMAX_VM}, ${ALPHAZERO_VM})
-  - Static external IPs (${MINIMAX_VM}-ip, ${ALPHAZERO_VM}-ip)
+Deletes AlphaZero deploy resources created by 01_setup.sh:
+  - VM (${ALPHAZERO_VM})
+  - Static external IP (${ALPHAZERO_VM}-ip)
   - Firewall rules (gomoku-deploy-ws-8080, gomoku-deploy-ssh-iap)
-  - Artifact Registry images (default: gomoku-minimax, gomoku-alphazero)
+  - Artifact Registry images (default: gomoku-alphazero)
 
 Options:
   --yes               Skip interactive confirmation
   --delete-sa         Also delete the deploy service account (${SA_EMAIL})
   --delete-repo       Also delete the Artifact Registry repository (${REPO_NAME})
-  --purge-all-images  Delete ALL images in the Artifact Registry repo (not just gomoku-minimax/alphazero)
+  --purge-all-images  Delete ALL images in the Artifact Registry repo (not just gomoku-alphazero)
   -h, --help          Show help
 EOF
 }
@@ -67,30 +67,21 @@ fi
 log "Target project: ${PROJECT_ID}"
 log "Target region/zone: ${REGION} / ${ZONE}"
 log "Target deploy repo: ${REPO_NAME}"
-log "Target VMs: minimax=${MINIMAX_VM}, alphazero=${ALPHAZERO_VM}"
+log "Target VM: ${ALPHAZERO_VM}"
 log "Delete service account: ${DELETE_SA}"
 log "Delete Artifact Registry repo: ${DELETE_REPO}"
 log "Purge all images: ${PURGE_ALL_IMAGES}"
 
 confirm_or_exit "This will delete GCP deploy resources. Continue?"
 
-log "Step 1: Deleting VMs (if present)..."
-gcloud compute instances delete "${MINIMAX_VM}" \
-  --project "${PROJECT_ID}" \
-  --zone "${ZONE}" \
-  --quiet >/dev/null 2>&1 || true
+log "Step 1: Deleting VM (if present)..."
 gcloud compute instances delete "${ALPHAZERO_VM}" \
   --project "${PROJECT_ID}" \
   --zone "${ZONE}" \
   --quiet >/dev/null 2>&1 || true
 
-log "Step 2: Releasing static external IPs (if present)..."
-MINIMAX_IP_NAME="${MINIMAX_VM}-ip"
+log "Step 2: Releasing static external IP (if present)..."
 ALPHAZERO_IP_NAME="${ALPHAZERO_VM}-ip"
-gcloud compute addresses delete "${MINIMAX_IP_NAME}" \
-  --project "${PROJECT_ID}" \
-  --region "${REGION}" \
-  --quiet >/dev/null 2>&1 || true
 gcloud compute addresses delete "${ALPHAZERO_IP_NAME}" \
   --project "${PROJECT_ID}" \
   --region "${REGION}" \
@@ -110,11 +101,9 @@ if [[ "${PURGE_ALL_IMAGES}" == true ]]; then
     | sort -u \
     | xargs -r -I {} gcloud artifacts docker images delete {} --quiet --delete-tags >/dev/null 2>&1 || true
 else
-  # Delete only the deploy packages we create by default.
-  for pkg in gomoku-minimax gomoku-alphazero; do
-    gcloud artifacts docker images delete "${ARTIFACT_REGISTRY}/${pkg}" \
-      --quiet --delete-tags >/dev/null 2>&1 || true
-  done
+  # Delete only the deploy package we create by default.
+  gcloud artifacts docker images delete "${ARTIFACT_REGISTRY}/gomoku-alphazero" \
+    --quiet --delete-tags >/dev/null 2>&1 || true
 fi
 
 if [[ "${DELETE_REPO}" == true ]]; then

@@ -5,27 +5,27 @@ set -Eeuo pipefail
 #
 # Add the VCN security list ingress rules for the Oracle A1 origin with the OCI
 # CLI instead of typing 15 Cloudflare CIDRs into the console:
-#   - tcp/22 from DEPLOY_ORACLE_SSH_SOURCE_CIDR (default: your current public IP /32)
+#   - tcp/22 from DEPLOY_MINIMAX_SSH_SOURCE_CIDR (default: your current public IP /32)
 #   - tcp/<minimax port> and tcp/<docreview port> from every Cloudflare IPv4 range
 # Existing rules are preserved; missing ones are appended. Idempotent.
 #
 # Requires: oci CLI configured (oci setup config), jq, and in .env:
-#   DEPLOY_ORACLE_SECURITY_LIST_OCID=ocid1.securitylist.oc1...
+#   DEPLOY_MINIMAX_SECURITY_LIST_OCID=ocid1.securitylist.oc1...
 # Find it: Networking > Virtual cloud networks > <vcn> > Security lists.
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Only the security list OCID is needed here; DEPLOY_ORACLE_HOST may not exist yet.
-export ORACLE_HOST_OPTIONAL=1
+# Only the security list OCID is needed here; DEPLOY_MINIMAX_HOST may not exist yet.
+export MINIMAX_HOST_OPTIONAL=1
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/oracle_env_config.sh"
+source "${SCRIPT_DIR}/minimax_env_config.sh"
 
 for cmd in oci jq curl python3; do
   command -v "${cmd}" >/dev/null 2>&1 || { echo "Missing required command: ${cmd}" >&2; exit 1; }
 done
-SECURITY_LIST_OCID="${DEPLOY_ORACLE_SECURITY_LIST_OCID:?DEPLOY_ORACLE_SECURITY_LIST_OCID is required in .env}"
+SECURITY_LIST_OCID="${DEPLOY_MINIMAX_SECURITY_LIST_OCID:?DEPLOY_MINIMAX_SECURITY_LIST_OCID is required in .env}"
 
-SSH_SOURCE_CIDR="${DEPLOY_ORACLE_SSH_SOURCE_CIDR:-}"
+SSH_SOURCE_CIDR="${DEPLOY_MINIMAX_SSH_SOURCE_CIDR:-}"
 if [ -z "${SSH_SOURCE_CIDR}" ]; then
   my_ip="$(curl -fsSL --max-time 10 https://api.ipify.org)"
   [[ "${my_ip}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || { echo "Could not detect the current public IPv4." >&2; exit 1; }
@@ -40,7 +40,7 @@ log "Reading current security list ${SECURITY_LIST_OCID}..."
 current="$(oci network security-list get --security-list-id "${SECURITY_LIST_OCID}" --query 'data."ingress-security-rules"' --raw-output)"
 
 merged="$(SSH_SOURCE_CIDR="${SSH_SOURCE_CIDR}" CF_RANGES="${CF_RANGES}" \
-  MINIMAX_PORT="${ORACLE_MINIMAX_PORT}" DOCREVIEW_PORT="${ORACLE_DOCREVIEW_PORT}" \
+  MINIMAX_PORT="${MINIMAX_PORT}" DOCREVIEW_PORT="${DOCREVIEW_PORT}" \
   python3 -c '
 import json, os, sys
 rules = json.loads(sys.stdin.read() or "[]")
@@ -73,7 +73,7 @@ fi
 rules_file="$(mktemp)"
 trap 'rm -f "${rules_file}"' EXIT
 jq '.rules' <<< "${merged}" > "${rules_file}"
-log "Adding ${added} ingress rules (SSH from ${SSH_SOURCE_CIDR}; ${ORACLE_MINIMAX_PORT}/${ORACLE_DOCREVIEW_PORT} from Cloudflare)..."
+log "Adding ${added} ingress rules (SSH from ${SSH_SOURCE_CIDR}; ${MINIMAX_PORT}/${DOCREVIEW_PORT} from Cloudflare)..."
 oci network security-list update \
   --security-list-id "${SECURITY_LIST_OCID}" \
   --ingress-security-rules "file://${rules_file}" \

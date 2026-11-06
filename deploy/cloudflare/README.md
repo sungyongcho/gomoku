@@ -1,16 +1,16 @@
 # Cloudflare Deployment Notes
 
 This document summarizes Cloudflare setup for the current deployment flow in
-`deploy/03_deploy_cloudflare.sh`, focused on console actions and operational checks.
+`deploy/cloudflare/deploy.sh`, focused on console actions and operational checks.
 
 No real domain/account values are included here. Use placeholders like
 `<YOUR_DOMAIN>`, `<YOUR_ACCOUNT_ID>`, and `<YOUR_TOKEN>`.
 
 ## What The Script Does
 
-`deploy/03_deploy_cloudflare.sh` does three things:
+`deploy/cloudflare/deploy.sh` does three things:
 
-1. Loads deployment values from `.env` via `deploy/deploy_env_config.sh`
+1. Loads `CLOUDFLARE_*`, `DEPLOY_DOMAIN`, `DEPLOY_MINIMAX_HOST` and `DEPLOY_ALPHAZERO_IP` from `.env`
 2. Upserts DNS A records for backend origins:
    - `minimax-api.<YOUR_DOMAIN>` (DNS only / grey cloud)
    - `alphazero-api.<YOUR_DOMAIN>` (DNS only / grey cloud)
@@ -21,11 +21,11 @@ No real domain/account values are included here. Use placeholders like
 DocReview routing is maintained and deployed independently from
 [`docreview-rag/deploy/cloudflare`](https://github.com/sungyongcho/docreview-rag/tree/main/deploy/cloudflare).
 Do not add its routes or DNS updates to this Worker. The shared Oracle host setup
-and its reserved DocReview port remain in `deploy/oracle`.
+and its reserved DocReview port remain in `deploy/minimax`.
 
 ## Worker Behavior (Current Code)
 
-`deploy/cloudflare-worker.js` routes:
+`deploy/cloudflare/cloudflare-worker.js` routes:
 
 - `/alphazero/*` -> `ALPHAZERO_ORIGIN`
 - `/minimax/*` -> `MINIMAX_ORIGIN`
@@ -74,7 +74,7 @@ No variable is needed for the gomoku target in current code
 
 In DNS (or via script), ensure:
 
-- `A minimax-api.<YOUR_DOMAIN> -> <MINIMAX_VM_PUBLIC_IP>`
+- `A minimax-api.<YOUR_DOMAIN> -> <MINIMAX_INSTANCE_PUBLIC_IP>`
 - `A alphazero-api.<YOUR_DOMAIN> -> <ALPHAZERO_VM_PUBLIC_IP>`
 - Proxy status: `DNS only` (grey cloud)
 
@@ -83,12 +83,12 @@ In DNS (or via script), ensure:
 From repo root:
 
 ```bash
-bash deploy/03_deploy_cloudflare.sh
+bash deploy/cloudflare/deploy.sh
 ```
 
 ## Verification
 
-`deploy/verify_connection.sh` is called automatically by the deploy script.
+`deploy/cloudflare/verify_connection.sh` is called automatically by the deploy script.
 It checks:
 
 - `https://<YOUR_DOMAIN>/alphazero/` health response

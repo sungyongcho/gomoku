@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 # ============================================================
-# 03_deploy_cloudflare.sh
+# deploy/cloudflare/deploy.sh
 #
 # 1. Updates Cloudflare DNS A records for the backend subdomains
 # 2. Deploys the Cloudflare Worker that routes WebSocket traffic
@@ -9,16 +9,24 @@ set -Eeuo pipefail
 # Required .env variables:
 #   CLOUDFLARE_ACCOUNT_ID  – Cloudflare account ID
 #   CLOUDFLARE_API_TOKEN   – API token (needs Workers + DNS edit)
-#   DEPLOY_MINIMAX_IP      – external IP of the minimax VM
+#   DEPLOY_MINIMAX_HOST     – IP of the instance serving minimax
 #   DEPLOY_ALPHAZERO_IP    – external IP of the alphazero VM
 #   DEPLOY_DOMAIN          – root domain (e.g. sungyongcho.com)
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# shellcheck disable=SC1091
-source "${SCRIPT_DIR}/deploy_env_config.sh"
+DOTENV_PATH="${DOTENV_PATH:-${REPO_ROOT}/.env}"
+if [ ! -f "${DOTENV_PATH}" ]; then
+  echo "env file not found. Set DOTENV_PATH or create ${REPO_ROOT}/.env" >&2
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "${DOTENV_PATH}"
+set +a
 
 log(){ echo -e "[\e[36m$(date +'%F %T')\e[0m] $*"; }
 require_cmd() {
@@ -122,11 +130,11 @@ ensure_cf_success() {
 # ---- Validate ----
 : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID is required in .env}"
 : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN is required in .env}"
-: "${DEPLOY_MINIMAX_IP:?DEPLOY_MINIMAX_IP is required in .env}"
+: "${DEPLOY_MINIMAX_HOST:?DEPLOY_MINIMAX_HOST is required in .env}"
 : "${DEPLOY_ALPHAZERO_IP:?DEPLOY_ALPHAZERO_IP is required in .env}"
 : "${DEPLOY_DOMAIN:?DEPLOY_DOMAIN is required in .env}"
 
-require_ipv4 DEPLOY_MINIMAX_IP "${DEPLOY_MINIMAX_IP}"
+require_ipv4 DEPLOY_MINIMAX_HOST "${DEPLOY_MINIMAX_HOST}"
 require_ipv4 DEPLOY_ALPHAZERO_IP "${DEPLOY_ALPHAZERO_IP}"
 
 # ---- Backend subdomains (DNS only, grey cloud) ----
@@ -140,7 +148,7 @@ GOMOKU_PROXY_ORIGIN="https://omoku.netlify.app/"
 log "Cloudflare deploy"
 log "  Account:            ${CLOUDFLARE_ACCOUNT_ID}"
 log "  Domain:             ${DEPLOY_DOMAIN}"
-log "  Minimax DNS:        ${MINIMAX_SUBDOMAIN} -> ${DEPLOY_MINIMAX_IP}"
+log "  Minimax DNS:        ${MINIMAX_SUBDOMAIN} -> ${DEPLOY_MINIMAX_HOST}"
 log "  AlphaZero DNS:      ${ALPHAZERO_SUBDOMAIN} -> ${DEPLOY_ALPHAZERO_IP}"
 log "  Minimax origin:     ${MINIMAX_ORIGIN}"
 log "  AlphaZero origin:   ${ALPHAZERO_ORIGIN}"
@@ -200,7 +208,7 @@ upsert_dns_record() {
 }
 
 log "Step 2: Upserting DNS A records (DNS only / grey cloud)..."
-upsert_dns_record "${MINIMAX_SUBDOMAIN}" "${DEPLOY_MINIMAX_IP}"
+upsert_dns_record "${MINIMAX_SUBDOMAIN}" "${DEPLOY_MINIMAX_HOST}"
 upsert_dns_record "${ALPHAZERO_SUBDOMAIN}" "${DEPLOY_ALPHAZERO_IP}"
 
 # ===========================================================

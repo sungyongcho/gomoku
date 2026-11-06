@@ -2,10 +2,10 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # shellcheck disable=SC1091
-source "${SCRIPT_DIR}/deploy_env_config.sh"
+source "${SCRIPT_DIR}/alphazero_env_config.sh"
 
 # Fix for gcloud IAP warning (some environments need python for IAP helpers).
 if command -v python3 &>/dev/null; then
@@ -41,19 +41,11 @@ fi
 DEFAULT_TAG="${DEFAULT_TAG:-$(date +'%Y%m%d-%H%M%S')}"
 IMAGE_TAG="${IMAGE_TAG:-${DEFAULT_TAG}}"
 
-PKG_MINIMAX="${PKG_MINIMAX:-gomoku-minimax}"
 PKG_ALPHAZERO="${PKG_ALPHAZERO:-gomoku-alphazero}"
 
-IMAGE_MINIMAX="${IMAGE_MINIMAX:-${ARTIFACT_REGISTRY}/${PKG_MINIMAX}:${IMAGE_TAG}}"
 IMAGE_ALPHAZERO="${IMAGE_ALPHAZERO:-${ARTIFACT_REGISTRY}/${PKG_ALPHAZERO}:${IMAGE_TAG}}"
 
-# Dockerfiles
-MINIMAX_DOCKERFILE="${MINIMAX_DOCKERFILE:-${REPO_ROOT}/minimax/Dockerfile.prod}"
-if [ ! -f "${MINIMAX_DOCKERFILE}" ]; then
-  echo "minimax prod Dockerfile not found: ${MINIMAX_DOCKERFILE}" >&2
-  exit 1
-fi
-
+# Dockerfile
 if [ -n "${ALPHAZERO_DOCKERFILE:-}" ]; then
   :
 elif [ -f "${REPO_ROOT}/alphazero/infra/image/Dockerfile.prod" ]; then
@@ -67,22 +59,18 @@ fi
 # ---------------------------------------------------------
 
 log "Config: Project=${PROJECT_ID}, Region=${REGION}, Zone=${ZONE}"
-log "Images:"
-log "  minimax:   ${IMAGE_MINIMAX}"
-log "  alphazero: ${IMAGE_ALPHAZERO}"
+log "Image: ${IMAGE_ALPHAZERO}"
 log "Flags: DO_DELETE=${DO_DELETE}, DO_BUILD=${DO_BUILD}, DO_PRUNE=${DO_PRUNE}, DO_UPDATE=${DO_UPDATE}, DO_VERIFY=${DO_VERIFY}"
 
 log "Step 1: Authenticate Docker to Artifact Registry..."
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
 if [ "${DO_DELETE}" = true ]; then
-  log "Step 2: Purging deploy packages from Artifact Registry (dangerous)..."
-  for pkg in "${PKG_MINIMAX}" "${PKG_ALPHAZERO}"; do
-    # Delete all tags/versions under the package (ignore NOT_FOUND).
-    gcloud artifacts docker images delete "${ARTIFACT_REGISTRY}/${pkg}" \
-      --quiet --delete-tags >/dev/null 2>&1 || true
-    log "  -> Purged ${pkg}"
-  done
+  log "Step 2: Purging deploy package from Artifact Registry (dangerous)..."
+  # Delete all tags/versions under the package (ignore NOT_FOUND).
+  gcloud artifacts docker images delete "${ARTIFACT_REGISTRY}/${PKG_ALPHAZERO}" \
+    --quiet --delete-tags >/dev/null 2>&1 || true
+  log "  -> Purged ${PKG_ALPHAZERO}"
 else
   log "Step 2: Skipping registry purge"
 fi
@@ -98,15 +86,7 @@ rm -f "${CKPT_DEST}"
 cp -L "${CKPT_SOURCE}" "${CKPT_DEST}"
 
 if [ "${DO_BUILD}" = true ]; then
-  log "Step 4: Build & push minimax..."
-  docker buildx build \
-    --platform linux/amd64 \
-    --output "type=image,compression=zstd,force-compression=true,push=true" \
-    -t "${IMAGE_MINIMAX}" \
-    -f "${MINIMAX_DOCKERFILE}" \
-    "${REPO_ROOT}/minimax"
-
-  log "Step 5: Build & push alphazero..."
+  log "Step 4: Build & push alphazero..."
   docker buildx build \
     --platform linux/amd64 \
     --no-cache \
@@ -115,30 +95,28 @@ if [ "${DO_BUILD}" = true ]; then
     -f "${ALPHAZERO_DOCKERFILE}" \
     "${REPO_ROOT}/alphazero"
 else
-  log "Step 4-5: Skipping build/push"
+  log "Step 4: Skipping build/push"
 fi
 
 if [ "${DO_UPDATE}" = true ]; then
-  log "Step 6: Update container metadata on VMs and restart..."
+  log "Step 5: Update container metadata on the VM and restart..."
 
   if [ "${DO_PRUNE}" = true ]; then
-    log " -> Removing existing containers and images on VMs..."
-    for vm in "${MINIMAX_VM}" "${ALPHAZERO_VM}"; do
-      set +e
-      # Explicitly remove the container (using VM name as container name) and ALL images.
-      gcloud compute ssh "${vm}" \
-        --project="${PROJECT_ID}" \
-        --zone="${ZONE}" \
-        --command "sudo docker rm -f ${vm} >/dev/null 2>&1 || true; sudo docker rmi -f \$(sudo docker images -aq) >/dev/null 2>&1 || true" \
-        >/dev/null 2>&1
-      rc=$?
-      set -e
-      if [ "${rc}" -ne 0 ]; then
-        log "   -> ${vm}: cleanup skipped (ssh unavailable or docker not ready)"
-      else
-        log "   -> ${vm}: cleanup completed (container & images deleted)"
-      fi
-    done
+    log " -> Removing existing container and images on the VM..."
+    set +e
+    # Explicitly remove the container (using VM name as container name) and ALL images.
+    gcloud compute ssh "${ALPHAZERO_VM}" \
+      --project="${PROJECT_ID}" \
+      --zone="${ZONE}" \
+      --command "sudo docker rm -f ${ALPHAZERO_VM} >/dev/null 2>&1 || true; sudo docker rmi -f \$(sudo docker images -aq) >/dev/null 2>&1 || true" \
+      >/dev/null 2>&1
+    rc=$?
+    set -e
+    if [ "${rc}" -ne 0 ]; then
+      log "   -> cleanup skipped (ssh unavailable or docker not ready)"
+    else
+      log "   -> cleanup completed (container & images deleted)"
+    fi
   else
     log " -> Skipping VM docker cleanup"
   fi
@@ -148,16 +126,6 @@ if [ "${DO_UPDATE}" = true ]; then
     echo "docker_container_startup_script.sh not found: ${STARTUP_SCRIPT}" >&2
     exit 1
   fi
-
-  log " -> minimax: ${MINIMAX_VM}"
-  gcloud compute instances add-metadata "${MINIMAX_VM}" \
-    --project="${PROJECT_ID}" \
-    --zone="${ZONE}" \
-    --metadata=container-image="${IMAGE_MINIMAX}",container-port=8080,container-name="${MINIMAX_VM}",container-env="MINIMAX_PORT=8080"
-  gcloud compute instances add-metadata "${MINIMAX_VM}" \
-    --project="${PROJECT_ID}" \
-    --zone="${ZONE}" \
-    --metadata-from-file=startup-script="${STARTUP_SCRIPT}"
 
   # Defaults match the Dockerfile; env overrides are optional.
   # Use DEPLOY_ALPHAZERO_* to avoid conflicts with training env vars.
@@ -223,35 +191,28 @@ if [ "${DO_UPDATE}" = true ]; then
     --zone="${ZONE}" \
     --metadata-from-file=startup-script="${STARTUP_SCRIPT}"
 
-  log " -> Resetting VMs to re-run startup script..."
-  gcloud compute instances reset "${MINIMAX_VM}" \
-    --project="${PROJECT_ID}" \
-    --zone="${ZONE}" --quiet
+  log " -> Resetting the VM to re-run startup script..."
   gcloud compute instances reset "${ALPHAZERO_VM}" \
     --project="${PROJECT_ID}" \
     --zone="${ZONE}" --quiet
 
-  log " -> Waiting 30s for VMs to boot..."
+  log " -> Waiting 30s for the VM to boot..."
   sleep 30
 else
-  log "Step 6: Skipping VM updates"
+  log "Step 5: Skipping VM update"
 fi
 
 if [ "${DO_VERIFY}" = true ]; then
-  log "Step 7: Verify containers via SSH (best-effort)..."
+  log "Step 6: Verify container via SSH (best-effort)..."
 
   set +e
-  gcloud compute ssh "${MINIMAX_VM}" \
-    --project="${PROJECT_ID}" \
-    --zone="${ZONE}" \
-    --command "sudo docker ps --format 'minimax: {{.Image}} | {{.Status}}'" 2>/dev/null
   gcloud compute ssh "${ALPHAZERO_VM}" \
     --project="${PROJECT_ID}" \
     --zone="${ZONE}" \
     --command "sudo docker ps --format 'alphazero: {{.Image}} | {{.Status}}'" 2>/dev/null
   set -e
 else
-  log "Step 7: Skipping verification"
+  log "Step 6: Skipping verification"
 fi
 
 log "Deploy complete."

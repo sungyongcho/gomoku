@@ -13,11 +13,7 @@ test('Gomoku deploy does not change DocReview DNS, bindings or routes even with 
     const log = join(root, 'commands.jsonl');
     const dotenv = join(root, '.env');
     await writeFile(dotenv, [
-      'DEPLOY_GCP_PROJECT=fixture', 'DEPLOY_GCP_REGION=fixture', 'DEPLOY_GCP_ZONE=fixture',
-      'DEPLOY_GCP_REPO=fixture', 'DEPLOY_MINIMAX_VM=fixture', 'DEPLOY_ALPHAZERO_VM=fixture',
-      'DEPLOY_MINIMAX_MACHINE=fixture', 'DEPLOY_ALPHAZERO_MACHINE=fixture',
-      'DEPLOY_DOMAIN=example.test', 'DEPLOY_SA_NAME=fixture', 'DEPLOY_USER_EMAIL=fixture@example.test',
-      'DEPLOY_MINIMAX_IP=192.0.2.1', 'DEPLOY_ALPHAZERO_IP=192.0.2.2',
+      'DEPLOY_DOMAIN=example.test', 'DEPLOY_MINIMAX_HOST=192.0.2.1', 'DEPLOY_ALPHAZERO_IP=192.0.2.2',
       'CLOUDFLARE_ACCOUNT_ID=fixture-account', 'CLOUDFLARE_API_TOKEN=fixture-token',
       'DEPLOY_DOCREVIEW_IP=192.0.2.3', 'DEPLOY_DOCREVIEW_ORIGIN=http://docreview.invalid:8880',
       'DEPLOY_DOCREVIEW_SITE_ORIGIN=https://docreview.invalid',
@@ -31,15 +27,19 @@ console.log(JSON.stringify({ success: true, result: [{ id: 'fixture-record' }], 
     for (const command of ['curl', 'npx']) {
       await writeFile(join(bin, command), stub, { mode: 0o755 });
     }
-    const result = spawnSync('bash', [new URL('../03_deploy_cloudflare.sh', import.meta.url).pathname], {
+    const result = spawnSync('bash', [new URL('../deploy.sh', import.meta.url).pathname], {
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, DOTENV_PATH: dotenv, COMMAND_LOG: log },
       encoding: 'utf8', timeout: 15000,
     });
     assert.equal(result.status, 0, result.stderr);
     const calls = (await readFile(log, 'utf8')).trim().split('\n').map(JSON.parse);
     const dnsWrites = calls.filter(args => args[0] === 'curl' && args.includes('-d'));
-    assert.deepEqual(dnsWrites.map(args => JSON.parse(args[args.indexOf('-d') + 1]).name), [
-      'minimax-api.example.test', 'alphazero-api.example.test',
+    assert.deepEqual(dnsWrites.map(args => {
+      const { name, content } = JSON.parse(args[args.indexOf('-d') + 1]);
+      return [name, content];
+    }), [
+      ['minimax-api.example.test', '192.0.2.1'],
+      ['alphazero-api.example.test', '192.0.2.2'],
     ]);
     const deploy = calls.find(args => args[0] === 'npx' && args[1] === 'wrangler');
     assert.ok(deploy);

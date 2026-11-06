@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLUSTER_DIR="${SCRIPT_DIR}"
-ALPHAZERO_ROOT="$(cd "${CLUSTER_DIR}/../.." && pwd)"
+ALPHAZERO_ROOT="$(cd "${CLUSTER_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd "${ALPHAZERO_ROOT}/.." && pwd)"
 CLUSTER_TEMPLATE="${CLUSTER_DIR}/cluster_elo1800.yaml"
 CLUSTER_RESOLVED="${CLUSTER_DIR}/.cluster_elo1800.resolved.yaml"
