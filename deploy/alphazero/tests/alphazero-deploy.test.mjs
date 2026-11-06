@@ -75,6 +75,30 @@ test('deploy builds one image and restarts only the AlphaZero VM', async () => {
   assert.deepEqual(resets.map(c => c[4]), ['gomoku-alphazero']);
 });
 
+test('deploy serves the champion named by the run manifest', async () => {
+  const runDir = join(root, 'run');
+  await mkdir(join(runDir, 'ckpt'), { recursive: true });
+  await writeFile(join(runDir, 'manifest.json'), JSON.stringify({ champion_model_path: 'gs://fixture/run/ckpt/iteration_0222.pt' }));
+  await writeFile(join(runDir, 'ckpt', 'iteration_0222.pt'), 'newest champion');
+  await writeFile(join(runDir, 'ckpt', 'champion.pt'), 'stale link target');
+  delete env.CKPT_SOURCE;
+  env.CKPT_RUN_DIR = runDir;
+  await run('02_deploy.sh');
+  assert.equal(await readFile(env.CKPT_DEST, 'utf8'), 'newest champion');
+});
+
+test('deploy stops when the manifest champion file is missing', async () => {
+  const runDir = join(root, 'run');
+  await mkdir(join(runDir, 'ckpt'), { recursive: true });
+  await writeFile(join(runDir, 'manifest.json'), JSON.stringify({ champion_model_path: 'gs://fixture/run/ckpt/iteration_0222.pt' }));
+  await writeFile(env.CKPT_DEST, 'current model');
+  delete env.CKPT_SOURCE;
+  env.CKPT_RUN_DIR = runDir;
+  const result = spawnSync('bash', [script('02_deploy.sh')], { env, encoding: 'utf8', timeout: 15000 });
+  assert.notEqual(result.status, 0);
+  assert.equal(await readFile(env.CKPT_DEST, 'utf8'), 'current model');
+});
+
 test('teardown removes only AlphaZero resources', async () => {
   const { calls } = await run('teardown.sh', '--yes');
   const deletedVms = calls.filter(c => c[0] === 'gcloud' && c[2] === 'instances' && c[3] === 'delete').map(c => c[4]);

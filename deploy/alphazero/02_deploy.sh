@@ -24,6 +24,7 @@ require_cmd() {
 
 require_cmd gcloud
 require_cmd docker
+require_cmd python3
 
 # Flags (match training infra style)
 DO_DELETE="${DO_DELETE:-false}"   # Purge images in Artifact Registry (dangerous)
@@ -76,12 +77,18 @@ else
 fi
 
 log "Step 3: Prepare AlphaZero checkpoint in build context..."
-CKPT_SOURCE="${CKPT_SOURCE:-${REPO_ROOT}/alphazero/runs/elo1800-gcp-v4/ckpt/champion.pt}"
+# The run manifest is the only record that training keeps current.
+CKPT_RUN_DIR="${CKPT_RUN_DIR:-${REPO_ROOT}/alphazero/runs/elo1800-gcp-v4}"
+if [ -z "${CKPT_SOURCE:-}" ]; then
+  CKPT_NAME="$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["champion_model_path"].rsplit("/", 1)[-1])' "${CKPT_RUN_DIR}/manifest.json")"
+  CKPT_SOURCE="${CKPT_RUN_DIR}/ckpt/${CKPT_NAME}"
+fi
 CKPT_DEST="${CKPT_DEST:-${REPO_ROOT}/alphazero/models/champion.pt}"
 if [ ! -f "${CKPT_SOURCE}" ]; then
   echo "Checkpoint source not found: ${CKPT_SOURCE}" >&2
   exit 1
 fi
+log "  -> ${CKPT_SOURCE}"
 rm -f "${CKPT_DEST}"
 cp -L "${CKPT_SOURCE}" "${CKPT_DEST}"
 
