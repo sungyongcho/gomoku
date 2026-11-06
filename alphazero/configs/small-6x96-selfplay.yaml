@@ -72,7 +72,7 @@ runtime:
     games_per_actor: 16
   inference:
     actor_num_gpus: 0.0
-    num_actors: 0
+    num_actors: 1 # unused with local inference, but 0 falls back to 4 and overbooks the CPUs
     actor_num_cpus: 1.0
     use_local_inference: true
   evaluation:
