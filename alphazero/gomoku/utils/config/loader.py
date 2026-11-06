@@ -99,6 +99,10 @@ class MctsConfig(BaseConfig):
     max_batch_wait_ms: int
     min_batch_size: int
     use_native: bool = False
+    # Serving only: stop the native search after this many seconds (None = no limit).
+    time_limit_s: float | None = None
+    # Native search: score unvisited moves with the parent's mean value instead of 0.
+    fpu_from_parent: bool = False
     # Adjudication (Early Resignation) Settings
     resign_threshold: float = 0.95
     resign_enabled: bool = True

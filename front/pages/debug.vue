@@ -126,6 +126,9 @@ const onSendData = (
             stone: lastHistory.value?.stone,
           }
         : undefined,
+      recentMoves: coordinate
+        ? histories.value.slice(-5).map((history) => history.coordinate)
+        : undefined,
       board: boardData.value.map((row) => row.map((col) => col.stone)),
       scores: [
         { player: "X", score: player1TotalCaptured.value },

@@ -95,7 +95,7 @@ PYBIND11_MODULE(gomoku_cpp, m)
         );
 
 	py::class_<MctsEngine>(m, "MctsEngine")
-		.def(py::init<GomokuCore *, float>(), py::arg("core"), py::arg("c_puct") = 5.0f)
+		.def(py::init<GomokuCore *, float, bool>(), py::arg("core"), py::arg("c_puct") = 5.0f, py::arg("fpu_from_parent") = false)
 		.def(
 			"run_mcts", // Python에서는 run_mcts로 호출
 			[](MctsEngine &engine, const GomokuState &state, int sims, py::function evaluator) {
@@ -126,7 +126,7 @@ PYBIND11_MODULE(gomoku_cpp, m)
 		)
 		.def(
 			"run_mcts_encoded",
-			[](MctsEngine &engine, const GomokuState &state, int sims, py::function evaluator) {
+			[](MctsEngine &engine, const GomokuState &state, int sims, py::function evaluator, float time_limit_s) {
 				// 1. Python Evaluator Wrapper for Encoded State
 				EvaluationCallbackEncoded callback = [&engine, evaluator](const GomokuState &s, int player, int last_move) {
 					// NOTE: This runs inside the MCTS loop (thread). We need GIL to call Python.
@@ -168,14 +168,16 @@ PYBIND11_MODULE(gomoku_cpp, m)
 				};
 
 				py::gil_scoped_release release;
-				return engine.RunSimulationEncoded(state, sims, callback);
+				return engine.RunSimulationEncoded(state, sims, callback, time_limit_s);
 			},
 			py::arg("state"),
 			py::arg("sims"),
 			py::arg("evaluator"),
+			py::arg("time_limit_s") = 0.0f,
 			"Run MCTS simulation with native feature encoding and legal move generation."
 			"Run MCTS simulation with native feature encoding and legal move generation."
 		)
+		.def("root_priors", &MctsEngine::RootPriors, "(move_idx, prior) of the root children from the last search.")
 		.def(
 			"run_mcts_batch_encoded",
 			[](MctsEngine &engine, const GomokuState &state, int sims, int batch_size, py::function evaluator) {

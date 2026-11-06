@@ -102,6 +102,7 @@ const onSendData = (type: RequestType, testCase: TestCase) => {
             stone: lastPlay.stone,
           }
         : undefined,
+      recentMoves: testCase.histories.slice(-5).map((history) => history.coordinate),
       board: testCase.boardData.map((row) => row.map((col) => col.stone)),
       scores: [
         { player: "X", score: getPlayerTotalCaptured(testCase.histories, "X") },

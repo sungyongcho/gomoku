@@ -38,7 +38,8 @@ using AsyncCheckCallback = std::function<
 
 class MctsEngine {
 public:
-	MctsEngine(GomokuCore *core, float c_puct = 5.0f);
+	// fpu_from_parent scores unvisited moves with the parent's mean value instead of 0.
+	MctsEngine(GomokuCore *core, float c_puct = 5.0f, bool fpu_from_parent = false);
 	~MctsEngine();
 
 	std::vector<std::pair<int, int>> RunSimulation(
@@ -47,11 +48,16 @@ public:
 		EvaluationCallback eval_func
 	);
 
+	// time_limit_s > 0 stops the search once the budget is spent, after at least one simulation.
 	std::vector<std::pair<int, int>> RunSimulationEncoded(
 		const GomokuState &root_state,
 		int num_simulations,
-		EvaluationCallbackEncoded eval_func
+		EvaluationCallbackEncoded eval_func,
+		float time_limit_s = 0.0f
 	);
+
+	// (move_idx, prior) of the root children from the last search.
+	std::vector<std::pair<int, float>> RootPriors() const;
 
 	std::vector<std::pair<int, int>> RunBatchSimulation(
 		const GomokuState &root_state,
@@ -75,6 +81,7 @@ private:
 	int board_size_;
 	int action_size_;
 	float c_puct_;
+	bool fpu_from_parent_;
 	MctsNode *root_{nullptr};
 
 	MctsNode *Select(MctsNode *node, GomokuState &state);

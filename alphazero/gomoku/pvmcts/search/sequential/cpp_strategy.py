@@ -185,10 +185,11 @@ class CppSearchStrategy(SearchStrategy):
             root_native_state,
             sims,
             native_evaluator_encoded,
+            time_limit_s=float(engine.params.time_limit_s or 0.0),
         )
-        self._sync_visits(engine, root, visits)
+        self._sync_visits(engine, root, visits, dict(engine._native_engine.root_priors()))
 
-    def _sync_visits(self, engine: 'SequentialEngine', root: 'TreeNode', visits: List[Tuple[int, int]]) -> None:
+    def _sync_visits(self, engine: 'SequentialEngine', root: 'TreeNode', visits: List[Tuple[int, int]], priors: dict[int, float] | None = None) -> None:
         """Sync C++ visits to Python TreeNode."""
         total_visits = sum(int(count) for _, count in visits)
         root.visit_count = total_visits
@@ -204,7 +205,7 @@ class CppSearchStrategy(SearchStrategy):
                 state=next_state,
                 parent=root,
                 action_taken=action,
-                prior=float(count) / float(denom),
+                prior=priors[move_idx] if priors else float(count) / float(denom),
             )
             child.visit_count = int(count)
             root.children[action] = child

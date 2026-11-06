@@ -47,6 +47,7 @@ export type SocketMoveRequest = {
     coordinate: { x: number; y: number };
     stone: Stone;
   };
+  recentMoves?: { x: number; y: number }[]; // oldest first, alphazero only
   enableCapture: boolean;
   enableDoubleThreeRestriction: boolean;
   board: Stone[][];

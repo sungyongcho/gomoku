@@ -52,6 +52,41 @@ def _quantize_dynamic(model_input: str, model_output: str) -> None:
     logger.info("Model quantized to INT8: %s", model_output)
 
 
+class _CalibrationReader:
+    """Feed calibration samples to ONNX Runtime static quantization."""
+
+    def __init__(self, input_name: str, samples: np.ndarray) -> None:
+        self._items = iter({input_name: sample[None]} for sample in samples)
+
+    def get_next(self) -> dict[str, np.ndarray] | None:
+        return next(self._items, None)
+
+
+def _quantize_static(
+    model_input: str, model_output: str, samples: np.ndarray
+) -> None:
+    """Apply static QDQ INT8 quantization calibrated on real positions."""
+    import onnxruntime as ort
+    from onnxruntime.quantization import QuantFormat, QuantType, quantize_static
+    from onnxruntime.quantization.shape_inference import quant_pre_process
+
+    prepared = f"{model_output}.prepared.onnx"
+    quant_pre_process(model_input, prepared, skip_symbolic_shape=True)
+    input_name = ort.InferenceSession(
+        model_input, providers=["CPUExecutionProvider"]
+    ).get_inputs()[0].name
+    quantize_static(
+        prepared,
+        model_output,
+        _CalibrationReader(input_name, samples),
+        quant_format=QuantFormat.QDQ,
+        activation_type=QuantType.QUInt8,
+        weight_type=QuantType.QInt8,
+        per_channel=True,
+    )
+    logger.info("Model statically quantized to INT8: %s", model_output)
+
+
 class OnnxInference(InferenceClient):
     """ONNX Runtime inference backend with optional INT8 quantization.
 
@@ -79,6 +114,8 @@ class OnnxInference(InferenceClient):
         board_w: int,
         quantize: bool = True,
         onnx_cache_dir: str | None = None,
+        calibration_samples: np.ndarray | None = None,
+        num_threads: int = 0,
     ):
         import onnxruntime as ort
 
@@ -104,7 +141,10 @@ class OnnxInference(InferenceClient):
         final_path = onnx_path
         if quantize:
             try:
-                _quantize_dynamic(onnx_path, quantized_path)
+                if calibration_samples is None:
+                    _quantize_dynamic(onnx_path, quantized_path)
+                else:
+                    _quantize_static(onnx_path, quantized_path, calibration_samples)
                 final_path = quantized_path
             except Exception:
                 logger.warning(
@@ -117,9 +157,8 @@ class OnnxInference(InferenceClient):
         sess_options.graph_optimization_level = (
             ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         )
-        # Use all available CPU threads
-        sess_options.intra_op_num_threads = 0  # 0 = auto (all cores)
-        sess_options.inter_op_num_threads = 0
+        sess_options.intra_op_num_threads = num_threads  # 0 = auto (all cores)
+        sess_options.inter_op_num_threads = 1 if num_threads else 0
 
         self._session = ort.InferenceSession(
             final_path,

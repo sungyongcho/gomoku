@@ -18,11 +18,12 @@ MctsNode::~MctsNode()
 	}
 }
 
-MctsEngine::MctsEngine(GomokuCore *core, float c_puct)
+MctsEngine::MctsEngine(GomokuCore *core, float c_puct, bool fpu_from_parent)
 	: core_(core)
 	, board_size_(core != nullptr ? core->board_size() : 0)
 	, action_size_(core != nullptr ? core->action_size() : 0)
 	, c_puct_(c_puct)
+	, fpu_from_parent_(fpu_from_parent)
 {
 	if (core_ == nullptr) {
 		throw std::invalid_argument("GomokuCore pointer is null");
@@ -128,10 +129,24 @@ std::vector<std::pair<int, int>> MctsEngine::RunSimulation(
 	return visits;
 }
 
+std::vector<std::pair<int, float>> MctsEngine::RootPriors() const
+{
+	std::vector<std::pair<int, float>> priors;
+	if (root_ == nullptr) {
+		return priors;
+	}
+	priors.reserve(root_->children.size());
+	for (const auto *child : root_->children) {
+		priors.emplace_back(child->move_idx, child->prior);
+	}
+	return priors;
+}
+
 std::vector<std::pair<int, int>> MctsEngine::RunSimulationEncoded(
 	const GomokuState &root_state,
 	int num_simulations,
-	EvaluationCallbackEncoded eval_func
+	EvaluationCallbackEncoded eval_func,
+	float time_limit_s
 )
 {
 	if (static_cast<int>(root_state.board.size()) != action_size_) {
@@ -148,7 +163,15 @@ std::vector<std::pair<int, int>> MctsEngine::RunSimulationEncoded(
 	root_ = new MctsNode();
 	root_->player_to_play = root_state.next_player;
 
+	const auto started = std::chrono::steady_clock::now();
 	for (int i = 0; i < num_simulations; ++i) {
+		if (i > 0 && time_limit_s > 0.0f) {
+			const std::chrono::duration<float> elapsed = std::chrono::steady_clock::now() - started;
+			if (elapsed.count() >= time_limit_s) {
+				break;
+			}
+		}
+
 		GomokuState state = root_state;
 		std::vector<MctsNode *> path;
 		path.reserve(64);
@@ -651,6 +674,8 @@ float MctsEngine::CalculateUcb(const MctsNode *parent, const MctsNode *child) co
 	float q = 0.0f;
 	if (child_visits > 0) {
 		q = -(child->value_sum / static_cast<float>(child_visits));
+	} else if (fpu_from_parent_ && parent->visit_count > 0) {
+		q = parent->value_sum / static_cast<float>(parent->visit_count);
 	}
 	const float u = c_puct_ * child->prior
 		* std::sqrt(static_cast<float>(parent_visits + 1))

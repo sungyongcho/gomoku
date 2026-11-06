@@ -4,6 +4,7 @@ import logging
 import math
 import os
 from pathlib import Path
+import random
 from typing import Any
 
 import numpy as np
@@ -19,6 +20,7 @@ except ImportError:
     OnnxInference = None
 from gomoku.model.policy_value_net import PolicyValueNet
 from gomoku.pvmcts.pvmcts import PVMCTS
+from gomoku.pvmcts.treenode import TreeNode
 from gomoku.utils.config.loader import MctsConfig, load_and_parse_config
 from gomoku.utils.state_dict_utils import align_state_dict_to_model
 
@@ -46,7 +48,7 @@ class AlphaZeroEngine:
                 self.inference_client = LocalInference(self.model, self.device)
             else:
                 logger.info("Initializing ONNX Runtime inference backend...")
-                quantize = "int8" in infer_backend
+                quantize = "int8" in infer_backend or infer_backend == "onnx-static"
                 # Cache directory for ONNX models
                 onnx_cache = os.getenv("ONNX_CACHE_DIR", "/tmp/onnx_cache")
                 self.inference_client = OnnxInference(
@@ -56,6 +58,12 @@ class AlphaZeroEngine:
                     board_w=config.board.num_lines,
                     quantize=quantize,
                     onnx_cache_dir=onnx_cache,
+                    calibration_samples=(
+                        self._calibration_positions(config.board)
+                        if infer_backend == "onnx-static"
+                        else None
+                    ),
+                    num_threads=int(os.getenv("ALPHAZERO_INFER_THREADS", "0")),
                 )
         else:
             self.inference_client = LocalInference(self.model, self.device)
@@ -73,10 +81,40 @@ class AlphaZeroEngine:
             update={"use_native": native_enabled}
         )
 
+    def _calibration_positions(self, board_config, count: int = 100, seed: int = 7) -> np.ndarray:
+        """Sample positions by walking games through the top network moves."""
+        rng = random.Random(seed)
+        samples: list[np.ndarray] = []
+        game = Gomoku(board_config, use_native=False)
+        while len(samples) < count:
+            state = game.get_initial_state()
+            for _ in range(rng.randint(4, 60)):
+                encoded = np.asarray(game.get_encoded_state(state), dtype=np.float32)
+                encoded = encoded[0] if encoded.ndim == 4 else encoded
+                samples.append(encoded)
+                with torch.no_grad():
+                    logits, _ = self.model(torch.from_numpy(encoded[None]))
+                logits = logits.numpy().reshape(-1)
+                logits[state.board.reshape(-1) != 0] = -np.inf
+                action = int(rng.choice(np.argsort(logits)[-3:].tolist()))
+                xy = action_to_xy(action, game.col_count)
+                state = game.get_next_state(state, xy, state.next_player)
+                if game.get_value_and_terminated(state, xy)[1]:
+                    break
+        rng.shuffle(samples)
+        return np.stack(samples[:count])
+
     def get_best_move(
         self, state: GameState, num_searches_override: int | None = None
     ) -> int:
         """Run MCTS and return a flat action index."""
+        root, policy = self.search(state, num_searches_override)
+        return self._most_visited_action(root, policy)
+
+    def search(
+        self, state: GameState, num_searches_override: int | None = None
+    ) -> tuple[TreeNode, np.ndarray]:
+        """Run a noise-free MCTS and return the searched root and visit policy."""
         cfg = self.mcts_config
         if num_searches_override is not None:
             cfg = cfg.model_copy(update={"num_searches": float(num_searches_override)})
@@ -92,7 +130,20 @@ class AlphaZeroEngine:
         )
         root = pvmcts.create_root(state)
         [(policy, _)] = pvmcts.run_search([root], add_noise=False)
-        return int(np.argmax(policy))
+        return root, policy
+
+    def _most_visited_action(self, root: TreeNode, policy: np.ndarray) -> int:
+        """Pick the most visited move, breaking visit ties by the network prior."""
+        if not root.children:
+            return int(np.argmax(policy))
+        x, y = max(
+            root.children,
+            key=lambda action: (
+                root.children[action].visit_count,
+                root.children[action].prior,
+            ),
+        )
+        return int(x + y * self.game.col_count)
 
     def apply_move(self, state: GameState, action: int) -> tuple[GameState, list[int]]:
         """Apply a flat action index and return the next state + captured flat indices."""

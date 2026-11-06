@@ -107,6 +107,25 @@ def build_evaluate_response(
     }
 
 
+def _extract_history(
+    recent_moves: Any, last_move_idx: int, board_size: int
+) -> tuple[int, ...]:
+    """Return move indices newest first, as self-play builds ``GameState.history``."""
+    history: list[int] = []
+    for move in reversed(recent_moves) if isinstance(recent_moves, list) else ():
+        if not isinstance(move, dict):
+            raise ValueError("Invalid 'recentMoves' entry.")
+        x, y = int(move.get("x", -1)), int(move.get("y", -1))
+        if not (0 <= x < board_size and 0 <= y < board_size):
+            raise ValueError("Invalid 'recentMoves' coordinate.")
+        history.append(xy_to_index(x, y, board_size))
+    if not history and last_move_idx >= 0:
+        history.append(last_move_idx)
+    if history and history[0] != last_move_idx:
+        raise ValueError("'recentMoves' must end with 'lastPlay'.")
+    return tuple(history)
+
+
 def frontend_to_gamestate(data: dict[str, Any]) -> GameState:
     """
     Frontend JSON -> GameState.
@@ -141,7 +160,7 @@ def frontend_to_gamestate(data: dict[str, Any]) -> GameState:
             if 0 <= x < board_size and 0 <= y < board_size:
                 last_move_idx = xy_to_index(x, y, board_size)
 
-    history: tuple[int, ...] = (int(last_move_idx),) if last_move_idx >= 0 else tuple()
+    history = _extract_history(data.get("recentMoves"), last_move_idx, board_size)
     empty_count = int(np.count_nonzero(board == EMPTY_SPACE))
 
     return GameState(

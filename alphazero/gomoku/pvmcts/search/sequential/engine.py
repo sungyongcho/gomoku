@@ -37,7 +37,9 @@ class SequentialEngine(SearchEngine):
                 ) from exc
 
             self._native_engine = gomoku_cpp.MctsEngine(
-                game._native_core, float(mcts_params.C)
+                game._native_core,
+                float(mcts_params.C),
+                bool(mcts_params.fpu_from_parent),
             )
             self.strategy = CppSearchStrategy()
         else:
