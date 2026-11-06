@@ -7,7 +7,6 @@ from gomoku.inference.base import InferenceClient
 from gomoku.pvmcts.pvmcts import PVMCTS
 from gomoku.utils.config.loader import (
     EvaluationConfig,
-    MctsConfig,
     RootConfig,
     SPRTConfig,
 )
@@ -39,8 +38,8 @@ def _build_eval_mcts(
     PVMCTS
         Configured MCTS instance for evaluation (noise disabled).
     """
-    game = Gomoku(cfg.board)
     mcts_cfg = cfg.mcts
+    game = Gomoku(cfg.board, use_native=bool(getattr(mcts_cfg, "use_native", False)))
     # Enforce evaluation settings: disable noise/temperature, optionally raise searches
     eval_searches = int(
         get_scheduled_value(
@@ -49,15 +48,14 @@ def _build_eval_mcts(
         )
     )
     eval_dir_eps = float(getattr(eval_cfg, "eval_dirichlet_epsilon", 0.0))
-    eval_mcts_cfg = MctsConfig(
-        C=mcts_cfg.C,
-        num_searches=eval_searches,
-        exploration_turns=int(get_scheduled_value(mcts_cfg.exploration_turns, 0)),
-        dirichlet_epsilon=eval_dir_eps,
-        dirichlet_alpha=float(get_scheduled_value(mcts_cfg.dirichlet_alpha, 0)),
-        batch_infer_size=mcts_cfg.batch_infer_size,
-        max_batch_wait_ms=mcts_cfg.max_batch_wait_ms,
-        min_batch_size=mcts_cfg.min_batch_size,
+    # Keep every other search setting so evaluation matches self-play and serving.
+    eval_mcts_cfg = mcts_cfg.model_copy(
+        update={
+            "num_searches": eval_searches,
+            "exploration_turns": int(get_scheduled_value(mcts_cfg.exploration_turns, 0)),
+            "dirichlet_epsilon": eval_dir_eps,
+            "dirichlet_alpha": float(get_scheduled_value(mcts_cfg.dirichlet_alpha, 0)),
+        }
     )
     # Auto-detect engine type: use "ray" if client is async, else "sequential"
     engine_type = "sequential"
@@ -90,6 +88,7 @@ def _run_duel(
     metrics: H2HMetrics | None = None,
     sprt_state: dict[str, int] | None = None,
     async_inflight_limit: int | None = None,
+    opening_seed: int = 0,
 ) -> H2HMetrics:
     """Run head-to-head games with alternating colors under identical settings.
 
@@ -122,13 +121,16 @@ def _run_duel(
     sprt_state : dict[str, int] | None
         Mutable SPRT state to carry across multiple duels. When ``None``, a new
         state is initialized.
+    opening_seed : int
+        Base seed for random openings. Games sharing a seed share an opening.
 
     Returns
     -------
     H2HMetrics
         Aggregated head-to-head statistics.
     """
-    game = Gomoku(cfg.board)
+    game = Gomoku(cfg.board, use_native=bool(getattr(cfg.mcts, "use_native", False)))
+    random_plies = int(getattr(eval_cfg, "eval_random_opening_plies", 0) or 0)
     metrics = metrics or H2HMetrics()
     sprt_cfg: SPRTConfig | None = (
         getattr(eval_cfg, "sprt", None)
@@ -154,6 +156,13 @@ def _run_duel(
             use_a_first = i % 2 == 0
             flip_sign = not use_a_first
 
+        # Fixed-colour duels pair by index across the two duels, others within this one.
+        pair = i if first_player in ("a", "b") else i // 2
+        opening = {
+            "random_opening_plies": random_plies,
+            "random_opening_seed": opening_seed + pair,
+        }
+
         if use_a_first:
             winner, blunders, moves = play_match(
                 game,
@@ -162,6 +171,7 @@ def _run_duel(
                 opening_turns=opening_turns,
                 temperature=temperature,
                 blunder_threshold=blunder_th,
+                **opening,
             )
         else:
             winner, blunders, moves = play_match(
@@ -171,6 +181,7 @@ def _run_duel(
                 opening_turns=opening_turns,
                 temperature=temperature,
                 blunder_threshold=blunder_th,
+                **opening,
             )
             flip_sign = True
 

@@ -79,6 +79,7 @@ class RayEvalWorker:
         opening_turns: int = 0,
         temperature: float = 0.0,
         blunder_threshold: float = 0.5,
+        opening_seed: int = 0,
     ) -> dict:
         """Run a batch of duel games and return H2H metrics summary."""
         # self.logger.info(f"Starting duel batch of {games} games.")
@@ -101,6 +102,7 @@ class RayEvalWorker:
             blunder_th=blunder_threshold,
             progress_desc=None,
             async_inflight_limit=inflight_limit,
+            opening_seed=opening_seed,
         )
 
         summary = metrics.summary()

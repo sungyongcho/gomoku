@@ -16,6 +16,14 @@ action_to_xy = index_to_xy
 xy_to_action = xy_to_index
 
 
+def greedy_action(pi: np.ndarray) -> Action:
+    """Return the most likely action, breaking ties at random instead of by index."""
+    best = np.flatnonzero(pi == np.max(pi))
+    if best.size <= 1 or pi[best[0]] <= 0:
+        return int(np.argmax(pi))
+    return int(np.random.choice(best))
+
+
 @dataclass(slots=True)
 class GameRecord:
     """Container for a single self-play game's training targets.

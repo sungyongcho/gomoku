@@ -98,6 +98,9 @@ class CppSearchStrategy(SearchStrategy):
                     try:
                         policy_t, value_t = ray.get(ref)
                         policy_np = policy_t.detach().cpu().numpy()
+                        if h_found == 0 and noise_pending:
+                            # The first batch holds only the root.
+                            policy_np = self._with_root_noise(engine, root, root_native_state, policy_np)
                         values_np = value_t.detach().cpu().numpy().reshape(-1, 1)
                         results.append((h_found, (policy_np, values_np)))
                     except Exception as e:
@@ -134,10 +137,11 @@ class CppSearchStrategy(SearchStrategy):
             nonlocal internal_noise_pending
             tensor = torch.from_numpy(py_batch).to(device=engine._inference_device, dtype=torch.float32)
             logits, values = engine.inference.infer(tensor)
+            logits_np = logits.detach().cpu().numpy()
             if internal_noise_pending:
                 internal_noise_pending = False
-                root.noise_applied = True
-            logits_np = logits.detach().cpu().numpy()
+                # The first batch holds only the root.
+                logits_np = self._with_root_noise(engine, root, root_native_state, logits_np)
             values_np = values.detach().cpu().numpy().reshape(-1, 1)
             return logits_np, values_np
 
@@ -188,6 +192,18 @@ class CppSearchStrategy(SearchStrategy):
             time_limit_s=float(engine.params.time_limit_s or 0.0),
         )
         self._sync_visits(engine, root, visits, dict(engine._native_engine.root_priors()))
+
+    def _with_root_noise(self, engine: 'SequentialEngine', root: 'TreeNode', root_native_state, logits: np.ndarray) -> np.ndarray:
+        """Return batch logits with Dirichlet noise mixed into the root policy."""
+        legal = np.asarray(engine.game._native_core.get_legal_moves(root_native_state), dtype=np.int64)
+        legal_mask = torch.zeros(engine.game.action_size, dtype=torch.bool)
+        legal_mask[torch.from_numpy(legal)] = True
+        root_logits = torch.as_tensor(np.array(logits[0], dtype=np.float32)).reshape(1, -1)
+        policy = engine._masked_policy_from_logits(root_logits, legal_mask, apply_dirichlet=True)
+        noisy = np.array(logits, dtype=np.float32)
+        noisy[0] = np.log(np.maximum(policy.squeeze(0).numpy(), 1e-30)).reshape(noisy[0].shape)
+        root.noise_applied = True
+        return noisy
 
     def _sync_visits(self, engine: 'SequentialEngine', root: 'TreeNode', visits: List[Tuple[int, int]], priors: dict[int, float] | None = None) -> None:
         """Sync C++ visits to Python TreeNode."""

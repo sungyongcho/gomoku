@@ -524,11 +524,17 @@ def run_ray(
     # Optimization: Start once we have 50% of resources to avoid hanging on slow scalep up
     wait_target = max(1, int(min_workers * 0.5))
 
-    log(
-        f"[Cluster] Waiting for at least {wait_target} 'selfplay' resources (workers)..."
+    # A fixed worker count on a plain local Ray has no 'selfplay' resources to wait for.
+    waits_for_cluster = (
+        int(current_workers_conf or 0) == -1
+        or "selfplay" in ray.cluster_resources()
     )
+    if waits_for_cluster:
+        log(
+            f"[Cluster] Waiting for at least {wait_target} 'selfplay' resources (workers)..."
+        )
     DEADLINE = time.time() + 600  # 10 minutes timeout
-    while time.time() < DEADLINE:
+    while waits_for_cluster and time.time() < DEADLINE:
         available_resources = ray.available_resources().get("selfplay", 0)
         if available_resources >= wait_target:
             log(

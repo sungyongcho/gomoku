@@ -1,6 +1,6 @@
 import numpy as np
 
-from gomoku.alphazero.types import action_to_xy
+from gomoku.alphazero.types import action_to_xy, greedy_action
 from gomoku.core.gomoku import Gomoku
 from gomoku.pvmcts.pvmcts import PVMCTS
 
@@ -41,6 +41,21 @@ def _calculate_q_drop(
     return max(0.0, best_q - chosen_q)
 
 
+def _random_opening(game: Gomoku, plies: int, seed: int):
+    """Place seeded random legal stones, stopping before any move that ends the game."""
+    rng = np.random.default_rng(seed)
+    state = game.get_initial_state()
+    for _ in range(plies):
+        game.get_legal_moves(state)
+        action = int(rng.choice(state.legal_indices_cache.astype(int)))
+        xy = action_to_xy(action, game.col_count)
+        next_state = game.get_next_state(state, xy, state.next_player)
+        if game.get_value_and_terminated(next_state, xy)[1]:
+            break
+        state = next_state
+    return state
+
+
 def play_match(
     game: Gomoku,
     p1: PVMCTS,
@@ -49,6 +64,8 @@ def play_match(
     opening_turns: int,
     temperature: float,
     blunder_threshold: float,
+    random_opening_plies: int = 0,
+    random_opening_seed: int = 0,
 ) -> tuple[int, int, int]:
     """Play a single game and return ``(winner, blunder_count, move_count)``.
 
@@ -66,6 +83,10 @@ def play_match(
         Sampling temperature for the opening phase.
     blunder_threshold : float
         Q-drop threshold to count a blunder.
+    random_opening_plies : int
+        Random stones to place before the game starts.
+    random_opening_seed : int
+        Seed for those stones, so a pair of games can share an opening.
 
     Returns
     -------
@@ -73,7 +94,7 @@ def play_match(
         Winner (1 for p1, -1 for p2, 0 draw), total blunder count, and move count.
     """
     players = {1: p1, 2: p2}
-    state = game.get_initial_state()
+    state = _random_opening(game, random_opening_plies, random_opening_seed)
     turn = 0
     blunders = 0
     move_count = 0
@@ -109,7 +130,7 @@ def play_match(
                 else:
                     action_idx = int(np.argmax(policy))
         else:
-            action_idx = int(np.argmax(policy))
+            action_idx = greedy_action(policy)
 
         # Blunder accounting
         best_q = float(stats.get("q_max", 0.0))

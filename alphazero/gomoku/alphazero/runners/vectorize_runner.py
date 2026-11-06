@@ -167,11 +167,13 @@ class VectorizeRunner:
                         pi = np.zeros(self.game.action_size, dtype=np.float32)
 
                 is_agent_turn = i in agent_indices
+                is_training_target = True
                 if is_agent_turn:
                     if rnd_opening > 0 and slot.turn < rnd_opening:
                         random_idx = random_legal_action(self.game, slot.state)
                         if random_idx is not None:
                             action = random_idx
+                            is_training_target = False
                             pi = np.zeros_like(pi)
                             pi[action] = 1.0
                         else:
@@ -210,6 +212,7 @@ class VectorizeRunner:
                         policy_probs=pi,
                         move=action,
                         player=player,
+                        is_training_target=is_training_target,
                     )
                 )
 

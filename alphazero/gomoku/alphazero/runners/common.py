@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 import numpy as np
 
-from gomoku.alphazero.types import Action, GameRecord
+from gomoku.alphazero.types import Action, GameRecord, greedy_action
 from gomoku.core.gomoku import GameState
 
 
@@ -13,6 +13,8 @@ class SelfPlaySample(NamedTuple):
     policy_probs: np.ndarray
     move: Action
     player: int
+    # Random opening moves carry no search result, so they are not training targets.
+    is_training_target: bool = True
 
 
 def sample_action(pi: np.ndarray, turn: int, exploration_turns: int) -> Action:
@@ -33,7 +35,7 @@ def sample_action(pi: np.ndarray, turn: int, exploration_turns: int) -> Action:
         Chosen flat action index.
     """
     if turn >= exploration_turns:
-        return int(np.argmax(pi))
+        return greedy_action(pi)
 
     probs = np.nan_to_num(pi, nan=0.0, posinf=0.0, neginf=0.0)
     probs = np.maximum(probs, 0.0)
@@ -82,6 +84,8 @@ def build_game_record(
     outcomes = []
 
     for sample in memory:
+        if not sample.is_training_target:
+            continue
         # outcome is stored from each turn player's perspective
         outcome = final_value if sample.player == last_player else -final_value
         states_raw.append(sample.state)
@@ -92,7 +96,7 @@ def build_game_record(
 
     return GameRecord(
         states_raw=states_raw,
-        policies=np.stack(policies),
+        policies=np.stack(policies) if policies else np.empty((0, 0), dtype=np.float32),
         moves=np.asarray(moves, dtype=np.int32),
         players=np.asarray(players, dtype=np.int8),
         outcomes=np.asarray(outcomes, dtype=np.int8),

@@ -104,6 +104,7 @@ class SelfPlayRunner:
                 raise RuntimeError("Opponent not provided for non-agent turn.")
 
             # 2. Query actor policy
+            is_training_target = True
             if is_agent_turn:
                 # 3. Choose action: random opening -> random ratio -> explore -> argmax
                 if rnd_opening > 0 and turn < rnd_opening:
@@ -111,6 +112,7 @@ class SelfPlayRunner:
                     random_idx = random_legal_action(self.game, state)
                     if random_idx is not None:
                         action = random_idx
+                        is_training_target = False
                         board_size = self.game.col_count * self.game.row_count
                         pi = np.zeros(board_size, dtype=np.float32)
                         pi[action] = 1.0
@@ -155,6 +157,7 @@ class SelfPlayRunner:
                     policy_probs=pi,
                     move=action,
                     player=current_player,
+                    is_training_target=is_training_target,
                 )
             )
 

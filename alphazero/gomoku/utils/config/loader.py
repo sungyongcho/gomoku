@@ -143,6 +143,8 @@ class EvaluationConfig(BaseConfig):
     blunder_increase_limit: float
     baseline_wr_min: float
     random_play_ratio: ScheduledFloat
+    # Random stones before each evaluation game; both colours play the same opening.
+    eval_random_opening_plies: int = 0
     eval_opening_turns: int | None = None
     eval_temperature: float | None = None
     eval_dirichlet_epsilon: float | None = None

@@ -184,13 +184,15 @@ class RayAsyncRunner:
             try:
                 logger.info("Loading past weights (champion)...")
                 past_weights = self.past_weights_fn()
-                logger.info("Broadcasting past weights to actors...")
-                # Broadcast to Actors ONLY (Workers use actors via SlotInferenceClient)
-                futures = [
-                    actor.set_weights.remote(past_weights, slot="champion")
-                    for actor in actors
-                ]
-                ray.get(futures)
+                # No past opponent exists when prev_bot_ratio is 0.
+                if past_weights is not None:
+                    logger.info("Broadcasting past weights to actors...")
+                    # Broadcast to Actors ONLY (Workers use actors via SlotInferenceClient)
+                    futures = [
+                        actor.set_weights.remote(past_weights, slot="champion")
+                        for actor in actors
+                    ]
+                    ray.get(futures)
             except Exception as exc:
                 logger.error("Ray past weight broadcast failed: %s", exc)
                 # Don't crash if past weights fail loading, maybe just warn?

@@ -162,6 +162,7 @@ class RayEvalRunner(RayAsyncRunner):
                             opening_turns=eval_cfg.eval_opening_turns,
                             temperature=eval_cfg.eval_temperature,
                             blunder_threshold=eval_cfg.blunder_threshold,
+                            opening_seed=idx * 100_000,
                         )
                     )
 

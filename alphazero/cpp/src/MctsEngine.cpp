@@ -672,8 +672,10 @@ float MctsEngine::CalculateUcb(const MctsNode *parent, const MctsNode *child) co
 	const int parent_visits = parent->visit_count + parent->virtual_loss;
 	const int child_visits = child->visit_count + child->virtual_loss;
 	float q = 0.0f;
-	if (child_visits > 0) {
-		q = -(child->value_sum / static_cast<float>(child_visits));
+	if (child->visit_count > 0) {
+		// Pending evaluations count as losses so batched selection spreads out.
+		q = -(child->value_sum + static_cast<float>(child->virtual_loss))
+			/ static_cast<float>(child_visits);
 	} else if (fpu_from_parent_ && parent->visit_count > 0) {
 		q = parent->value_sum / static_cast<float>(parent->visit_count);
 	}

@@ -1,0 +1,93 @@
+# Small model self-play from scratch on the local CPU, without opening rules or a teacher.
+# Random opening moves stay off: search noise and temperature provide exploration.
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 96
+  num_resblocks: 6
+
+mcts:
+  C: 2.0
+  num_searches: 400
+  fpu_from_parent: true
+  exploration_turns: 8
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.03
+  batch_infer_size: 8
+  min_batch_size: 1
+  max_batch_wait_ms: 0
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 50
+  num_selfplay_iterations: 200
+  num_epochs: 1
+  batch_size: 256
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 30000
+  min_samples_to_train: 2000
+  random_play_ratio: 0.0
+  random_opening_turns: 0
+  dataloader_num_workers: 0
+  use_channels_last: false
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 5
+  promotion_win_rate: 0.55
+  eval_num_searches: 400
+  eval_random_opening_plies: 4
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 32
+    games_per_actor: 16
+  inference:
+    actor_num_gpus: 0.0
+    num_actors: 0
+    actor_num_cpus: 1.0
+    use_local_inference: true
+  evaluation:
+    num_workers: 12
+
+paths:
+  use_gcs: false
+  run_prefix: "runs"
+  run_id: "small-6x96-selfplay"
+
+parallel:
+  ray_local_num_workers: 14
+  mp_num_workers: 1
+  num_parallel_games: 1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache
