@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-test('Gomoku deploy does not change DocReview DNS, bindings or routes even with old env values', async () => {
+test('Gomoku deploy changes only its own DNS records and Worker origins', async () => {
   const root = await mkdtemp(join(tmpdir(), 'gomoku-deploy-test-'));
   try {
     const bin = join(root, 'bin');
@@ -15,8 +15,6 @@ test('Gomoku deploy does not change DocReview DNS, bindings or routes even with 
     await writeFile(dotenv, [
       'DEPLOY_DOMAIN=example.test', 'DEPLOY_MINIMAX_HOST=192.0.2.1', 'DEPLOY_ALPHAZERO_IP=192.0.2.2',
       'CLOUDFLARE_ACCOUNT_ID=fixture-account', 'CLOUDFLARE_API_TOKEN=fixture-token',
-      'DEPLOY_DOCREVIEW_IP=192.0.2.3', 'DEPLOY_DOCREVIEW_ORIGIN=http://docreview.invalid:8880',
-      'DEPLOY_DOCREVIEW_SITE_ORIGIN=https://docreview.invalid',
     ].join('\n') + '\n');
     const stub = `#!/usr/bin/env node
 const fs = require('node:fs');
@@ -47,7 +45,6 @@ console.log(JSON.stringify({ success: true, result: [{ id: 'fixture-record' }], 
       'MINIMAX_ORIGIN:http://minimax-api.example.test:8080',
       'ALPHAZERO_ORIGIN:http://alphazero-api.example.test:8080',
     ]);
-    assert.ok(!calls.some(args => args.join(' ').toLowerCase().includes('docreview')));
   } finally {
     await rm(root, { recursive: true, force: true });
   }

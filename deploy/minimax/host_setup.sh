@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs ON the Oracle A1 instance as root (01_host_setup.sh copies and invokes it).
-# Idempotent: prepares Docker, swap, host firewall and deployment directories for
-# the minimax engine and docreview-rag. Ubuntu 24.04 aarch64 (Oracle image).
+# Idempotent: prepares Docker, swap, host firewall and the build directory for the
+# minimax engine. Ubuntu 24.04 aarch64 (Oracle image).
 set -euo pipefail
 
 if [[ "${EUID}" -ne 0 ]]; then
@@ -11,10 +11,10 @@ fi
 
 SSH_USER="${1:-ubuntu}"
 shift || true
-# Remaining arguments: TCP ports to open in the host firewall (default 8080 8880).
+# Remaining arguments: TCP ports to open in the host firewall (default 8080).
 PORTS=("$@")
 if [ "${#PORTS[@]}" -eq 0 ]; then
-  PORTS=(8080 8880)
+  PORTS=(8080)
 fi
 
 log() { echo "[$(date +'%F %T')] $*"; }
@@ -60,9 +60,8 @@ for port in "${PORTS[@]}"; do
 done
 netfilter-persistent save >/dev/null
 
-# ---- Deployment roots ----
-install -d -m 0750 /opt/docreview /var/lib/docreview
+# ---- Build directory ----
 install -d -m 0755 -o "${SSH_USER}" -g "${SSH_USER}" "/home/${SSH_USER}/build"
 
 log "Host ready: $(uname -m), $(nproc) cores, $(free -h | awk '/Mem:/ {print $2}') RAM, docker $(docker --version | awk '{print $3}' | tr -d ,)"
-log "Next: 02_deploy_minimax.sh from the gomoku repo, deploy/oracle/deploy_backend.sh from docreview-rag."
+log "Next: 02_deploy_minimax.sh from the gomoku repo."

@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
     init: true
     # The engine is a single-threaded search with a transposition table; keep it
-    # well inside the 12 GB shared with docreview-rag.
+    # well inside the 12 GB shared with the instance's other services.
     mem_limit: 1g
     cpus: "1.5"
     security_opt:

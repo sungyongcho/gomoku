@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Configuration for deploy/minimax. Source it; do not execute it.
 #
-# The Oracle Cloud host is a single Always Free Ampere A1 instance that serves
-# the minimax engine (this repo) and docreview-rag (its own deploy/oracle).
+# The Oracle Cloud host is a single Always Free Ampere A1 instance.
 # Values come from the repo .env (or DOTENV_PATH); see .env.example.
 set -euo pipefail
 
@@ -32,8 +31,6 @@ fi
 export MINIMAX_SSH_USER="${DEPLOY_MINIMAX_SSH_USER:-ubuntu}"
 export MINIMAX_SSH_KEY="${DEPLOY_MINIMAX_SSH_KEY:-}"
 export MINIMAX_PORT="${DEPLOY_MINIMAX_PORT:-8080}"
-# Port reserved for docreview-rag's Caddy on the same host; opened by host_setup.sh.
-export DOCREVIEW_PORT="${DEPLOY_MINIMAX_DOCREVIEW_PORT:-8880}"
 # Remote directories. The compose project lives in the SSH user's home so rsync
 # needs no root; containers are managed with sudo docker.
 export MINIMAX_DIR="${DEPLOY_MINIMAX_DIR:-/home/${MINIMAX_SSH_USER}/build/gomoku-minimax}"
@@ -57,6 +54,6 @@ log() { echo -e "[\e[36m$(date +'%F %T')\e[0m] $*"; }
 
 echo "Loaded Oracle configuration:"
 echo "  Host: ${MINIMAX_SSH_TARGET}$( [ -n "${MINIMAX_SSH_KEY}" ] && echo " (key ${MINIMAX_SSH_KEY})")"
-echo "  Ports: minimax=${MINIMAX_PORT}, docreview=${DOCREVIEW_PORT}"
+echo "  Port: ${MINIMAX_PORT}"
 echo "  Minimax dir: ${MINIMAX_DIR}"
 echo "-------------------------------------"

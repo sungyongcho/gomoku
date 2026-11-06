@@ -18,10 +18,8 @@ No real domain/account values are included here. Use placeholders like
    - `ALPHAZERO_ORIGIN=http://alphazero-api.<YOUR_DOMAIN>:8080`
    - `MINIMAX_ORIGIN=http://minimax-api.<YOUR_DOMAIN>:8080`
 
-DocReview routing is maintained and deployed independently from
-[`docreview-rag/deploy/cloudflare`](https://github.com/sungyongcho/docreview-rag/tree/main/deploy/cloudflare).
-Do not add its routes or DNS updates to this Worker. The shared Oracle host setup
-and its reserved DocReview port remain in `deploy/minimax`.
+This Worker owns only the game routes. Do not add other services' routes or DNS
+updates here.
 
 ## Worker Behavior (Current Code)
 

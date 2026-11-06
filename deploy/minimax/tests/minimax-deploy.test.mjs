@@ -42,6 +42,8 @@ test('host setup reaches the host named by DEPLOY_MINIMAX_* with its key', async
   const calls = await run('01_host_setup.sh');
   const ssh = calls.filter(call => call[0] === 'ssh');
   assert.ok(ssh.length > 0);
+  const setup = ssh.find(call => call.join(' ').includes('host_setup.sh'));
+  assert.match(setup.at(-1), /'fixture-user' '8123'; rm -rf/);
   for (const call of ssh) {
     assert.ok(call.includes('fixture-user@192.0.2.1'));
     assert.ok(call.includes('/fixture/key'));

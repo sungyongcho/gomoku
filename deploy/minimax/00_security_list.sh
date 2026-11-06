@@ -6,7 +6,7 @@ set -Eeuo pipefail
 # Add the VCN security list ingress rules for the Oracle A1 origin with the OCI
 # CLI instead of typing 15 Cloudflare CIDRs into the console:
 #   - tcp/22 from DEPLOY_MINIMAX_SSH_SOURCE_CIDR (default: your current public IP /32)
-#   - tcp/<minimax port> and tcp/<docreview port> from every Cloudflare IPv4 range
+#   - tcp/<minimax port> from every Cloudflare IPv4 range
 # Existing rules are preserved; missing ones are appended. Idempotent.
 #
 # Requires: oci CLI configured (oci setup config), jq, and in .env:
@@ -40,7 +40,7 @@ log "Reading current security list ${SECURITY_LIST_OCID}..."
 current="$(oci network security-list get --security-list-id "${SECURITY_LIST_OCID}" --query 'data."ingress-security-rules"' --raw-output)"
 
 merged="$(SSH_SOURCE_CIDR="${SSH_SOURCE_CIDR}" CF_RANGES="${CF_RANGES}" \
-  MINIMAX_PORT="${MINIMAX_PORT}" DOCREVIEW_PORT="${DOCREVIEW_PORT}" \
+  MINIMAX_PORT="${MINIMAX_PORT}" \
   python3 -c '
 import json, os, sys
 rules = json.loads(sys.stdin.read() or "[]")
@@ -56,8 +56,7 @@ def key(r):
 
 wanted = [rule(os.environ["SSH_SOURCE_CIDR"], 22, "SSH from operator")]
 for cidr in os.environ["CF_RANGES"].split():
-    for name in ("MINIMAX_PORT", "DOCREVIEW_PORT"):
-        wanted.append(rule(cidr, int(os.environ[name]), f"Cloudflare origin {name.split(chr(95))[0].lower()}"))
+    wanted.append(rule(cidr, int(os.environ["MINIMAX_PORT"]), "Cloudflare origin minimax"))
 existing = {key(r) for r in rules}
 added = [r for r in wanted if key(r) not in existing]
 rules.extend(added)
@@ -73,7 +72,7 @@ fi
 rules_file="$(mktemp)"
 trap 'rm -f "${rules_file}"' EXIT
 jq '.rules' <<< "${merged}" > "${rules_file}"
-log "Adding ${added} ingress rules (SSH from ${SSH_SOURCE_CIDR}; ${MINIMAX_PORT}/${DOCREVIEW_PORT} from Cloudflare)..."
+log "Adding ${added} ingress rules (SSH from ${SSH_SOURCE_CIDR}; ${MINIMAX_PORT} from Cloudflare)..."
 oci network security-list update \
   --security-list-id "${SECURITY_LIST_OCID}" \
   --ingress-security-rules "file://${rules_file}" \
