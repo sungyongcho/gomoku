@@ -739,9 +739,9 @@ def test_manager_cleanup_cancels_inflight_tasks(
     assert len(manager._queue) == 0
 
 
-def test_ray_integration_real_init() -> None:
+def test_ray_integration_real_init(monkeypatch: pytest.MonkeyPatch) -> None:
     """Integration-like smoke with fake Ray to catch serialization path issues."""
-    _patch_fake_ray(monkeypatch=pytest.MonkeyPatch())
+    _patch_fake_ray(monkeypatch=monkeypatch)
 
     class FakeActor:
         def __init__(self) -> None:

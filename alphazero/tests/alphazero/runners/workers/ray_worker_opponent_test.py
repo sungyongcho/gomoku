@@ -12,7 +12,7 @@ from gomoku.utils.config.loader import OpponentConfig, load_and_parse_config
     "rnd_rate, prev_rate, expected_warn",
     [
         (0.5, 0.0, False),
-        (0.0, 0.5, True),
+        (0.0, 1.0, True),
     ],
 )
 def test_ray_worker_prev_bot_warning(

@@ -2,6 +2,10 @@ import numpy as np
 import pytest
 
 
+# The engine applies softmax to evaluator output, so a single move needs a large logit.
+DOMINANT_LOGIT = 50.0
+
+
 def _require_gomoku_cpp():
     try:
         from gomoku.cpp_ext import gomoku_cpp  # type: ignore
@@ -28,7 +32,7 @@ def test_run_mcts_single_child():
 
     def evaluator(board_state):
         policy = [0.0 for _ in range(action_size)]
-        policy[center] = 1.0
+        policy[center] = DOMINANT_LOGIT
         value = 0.25
         board = board_state.board  # Use board property
         print(
@@ -153,7 +157,7 @@ def test_run_mcts_encoded_features():
         assert features.shape == (8, board_size, board_size)
         assert features.dtype == np.float32
         policy = np.zeros(action_size, dtype=np.float32)
-        policy[center] = 1.0
+        policy[center] = DOMINANT_LOGIT
         return policy.tolist(), 0.1
 
     visits = engine.run_mcts_encoded(state, 3, evaluator)

@@ -159,7 +159,7 @@ def test_per_sampler_probability_proportional_to_priority() -> None:
     print(f"[per_probs] {probs.tolist()}")
     assert probs[0] > probs[1]
     # Probability ratio should match priority ratio
-    assert pytest.approx(probs[0] / probs[1], rel=1e-5) == 10.0
+    assert float(probs[0] / probs[1]) == pytest.approx(10.0, rel=1e-5)
 
 
 def _make_state_with_marker(game: Gomoku) -> GameState:

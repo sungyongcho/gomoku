@@ -66,6 +66,8 @@ def test_selfplay_random_ratio_picks_uniform_legal(random_ratio: float) -> None:
     runner = SelfPlayRunner(game, mcts_cfg, train_cfg)
 
     # First move with empty board: legal moves are all cells (uniform expected)
+    # An unseeded run misses some cell about 2.5% of the time, and earlier tests leak seeds.
+    np.random.seed(0)
     samples = []
     for _ in range(50):
         record = runner.play_one_game(
