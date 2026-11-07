@@ -230,7 +230,8 @@ else
       --quiet \
       --command="${CLEANUP_CMD}" \
       --ssh-flag="-o StrictHostKeyChecking=no" \
-      --ssh-flag="-o UserKnownHostsFile=/dev/null"
+      --ssh-flag="-o UserKnownHostsFile=/dev/null" \
+      || log " -> Cleanup failed on ${node}; ray up will still replace its container"
   done
   # wait # No need to wait anymore, as SSH is sequential
 fi
