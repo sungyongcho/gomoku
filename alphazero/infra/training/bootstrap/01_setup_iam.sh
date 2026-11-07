@@ -58,6 +58,14 @@ for role in "${ROLES[@]}"; do
 done
 
 
+# The head's autoscaler runs as the SA and attaches the same SA to every worker it creates.
+gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
+    --member="serviceAccount:${SA_EMAIL}" \
+    --role="roles/iam.serviceAccountUser" \
+    --project="$PROJECT_ID" >/dev/null
+echo "  - Granted roles/iam.serviceAccountUser to $SA_EMAIL on itself"
+
+
 echo "Step 5: Granting Roles to User ($USER_EMAIL)..."
 # An owner already holds these permissions, and an organization with domain-restricted
 # sharing rejects new bindings for consumer accounts, so owners skip this step.
