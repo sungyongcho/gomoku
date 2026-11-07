@@ -98,7 +98,7 @@ available_node_types:
           autoDelete: true
           initializeParams:
             diskSizeGb: 100
-            sourceImage: projects/deeplearning-platform-release/global/images/family/common-cu128-ubuntu-2204-nvidia-570
+            sourceImage: projects/deeplearning-platform-release/global/images/family/common-cu129-ubuntu-2204-nvidia-580
 
       serviceAccounts:
         - email: ${GCP_SA_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com
