@@ -96,6 +96,9 @@ RUN apt-get update && \
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /opt/image-versions.txt /opt/image-versions.txt
 ENV PATH="/opt/venv/bin:/usr/local/bin:$PATH" VIRTUAL_ENV="/opt/venv"
+# Ray runs node commands through `bash --login`, and Debian's /etc/profile resets PATH,
+# which would drop the venv. /etc/profile.d runs after that reset.
+RUN printf 'export PATH="/opt/venv/bin:$PATH"\nexport VIRTUAL_ENV="/opt/venv"\n' > /etc/profile.d/10-venv.sh
 # Ask the NVIDIA container runtime for the GPU and its compute libraries; the nvidia/cuda images
 # set these, the official Python image does not.
 ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
