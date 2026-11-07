@@ -769,3 +769,54 @@ def test_ray_integration_real_init(monkeypatch: pytest.MonkeyPatch) -> None:
         f"value_shape={tuple(value.shape)}"
     )
     assert policy.shape[0] == 1 and value.shape[0] == 1
+
+
+def _recording_worker_class(created: list[dict]):
+    """Fake RaySelfPlayWorker that records the Ray options each worker was created with."""
+
+    class Recorder:
+        _options: dict = {}
+
+        @classmethod
+        def options(cls, **kwargs):
+            cls._options = kwargs
+            return cls
+
+        @classmethod
+        def remote(cls, *args, **kwargs):
+            created.append(dict(cls._options))
+            return SimpleNamespace()
+
+    return Recorder
+
+
+def test_gpu_workers_get_an_equal_share_of_the_gpu(monkeypatch: pytest.MonkeyPatch) -> None:
+    created: list[dict] = []
+    monkeypatch.setattr(ray_runner_mod, "RaySelfPlayWorker", _recording_worker_class(created))
+    monkeypatch.setattr(ray_runner_mod.ray, "cluster_resources", lambda: {"CPU": 8})
+    cfg = MagicMock()
+    cfg.runtime = SimpleNamespace(
+        inference=SimpleNamespace(use_local_inference=True),
+        selfplay=SimpleNamespace(
+            actor_num_cpus=1.0, actor_num_gpus=None, gpu_workers=4, gpu_worker_gpu_total=0.8
+        ),
+    )
+    runner = ray_runner_mod.RayAsyncRunner(cfg=cfg, num_actors=1, num_workers=2)
+
+    runner._create_workers([])
+
+    assert [c.get("num_gpus") for c in created] == [0, 0, 0.2, 0.2, 0.2, 0.2]
+
+
+def test_gpu_workers_need_local_inference(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ray_runner_mod, "RaySelfPlayWorker", _recording_worker_class([]))
+    monkeypatch.setattr(ray_runner_mod.ray, "cluster_resources", lambda: {"CPU": 8})
+    cfg = MagicMock()
+    cfg.runtime = SimpleNamespace(
+        inference=SimpleNamespace(use_local_inference=False),
+        selfplay=SimpleNamespace(actor_num_cpus=1.0, actor_num_gpus=None, gpu_workers=2),
+    )
+    runner = ray_runner_mod.RayAsyncRunner(cfg=cfg, num_actors=1, num_workers=1)
+
+    with pytest.raises(ValueError):
+        runner._create_workers([])

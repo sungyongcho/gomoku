@@ -1,0 +1,103 @@
+# v5 local-inference pilot: same as v5-small-6x96-pilot.yaml, but self-play workers run the model
+# on their own CPU in bf16 instead of calling the GPU inference actors on the head. Measured
+# 2026-11-07: the head handles about 770 inference requests/s no matter how many workers run,
+# while each C4D worker slot evaluates about 290 positions/s in bf16 with all slots busy.
+# Twelve more self-play workers run on the head, each with its own model on the L4: in-process GPU
+# inference measured about 11,600 positions/s for 12 processes at batch 8, against about 6,200
+# through the Ray inference actors. One iteration of 240 games.
+# Start with GMK_CLUSTER_YAML=cluster_v5-pilot.yaml.
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 96
+  num_resblocks: 6
+
+mcts:
+  C: 2.0
+  num_searches: 400
+  fpu_from_parent: true
+  fpu_reduction: 0.1 # measured 2026-11-07: 0 leaves targets near uniform, 0.2+ narrows to about 8 moves
+  exploration_turns: 8
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.03
+  batch_infer_size: 8
+  min_batch_size: 1
+  max_batch_wait_ms: 0
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 1
+  num_selfplay_iterations: 240
+  num_epochs: 2
+  batch_size: 512
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 250000
+  min_samples_to_train: 2000
+  random_play_ratio: 0.0
+  random_opening_turns: 0
+  dataloader_num_workers: 4
+  use_channels_last: true
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 8
+  eval_every_iters: 1
+  promotion_win_rate: 0.55
+  eval_num_searches: 400
+  eval_random_opening_plies: 4
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 192
+    games_per_actor: 80
+    max_chunk_size: 1
+    gpu_workers: 12 # head: 16 vCPU = 12 workers + 1 inference actor + driver
+    gpu_worker_gpu_total: 0.9
+  inference:
+    actor_num_gpus: 0.08
+    num_actors: 1 # still created by the runner; unused for self-play
+    actor_num_cpus: 1.0
+    use_local_inference: true
+    local_dtype: bfloat16
+  evaluation:
+    num_workers: 4 # fits the pilot's 24 worker vCPUs
+
+paths:
+  use_gcs: true
+  run_prefix: "gomoku-v5-training"
+  run_id: "v5-local-gpu-pilot"
+
+parallel:
+  ray_local_num_workers: -1 # follow the cluster's selfplay resources
+  mp_num_workers: 1
+  num_parallel_games: 1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

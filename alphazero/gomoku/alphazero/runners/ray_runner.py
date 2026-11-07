@@ -152,6 +152,22 @@ class RayAsyncRunner:
             workers.append(
                 RaySelfPlayWorker.options(**options).remote(self.cfg, inference_actors)
             )
+
+        # Extra workers on the GPU node that run the model in-process on the GPU. Ray only
+        # exposes the GPU to an actor that requests a share of it, which also pins them there.
+        gpu_workers = int(getattr(selfplay_rt, "gpu_workers", 0) or 0)
+        if gpu_workers > 0:
+            inference_rt = getattr(runtime, "inference", None) if runtime else None
+            if not getattr(inference_rt, "use_local_inference", False):
+                raise ValueError("runtime.selfplay.gpu_workers needs inference.use_local_inference")
+            gpu_total = float(getattr(selfplay_rt, "gpu_worker_gpu_total", 0.9) or 0.9)
+            for _ in range(gpu_workers):
+                workers.append(
+                    RaySelfPlayWorker.options(
+                        num_cpus=_safe_num(num_cpus_cfg) or 1,
+                        num_gpus=gpu_total / gpu_workers,
+                    ).remote(self.cfg, inference_actors)
+                )
         return workers
 
     def _broadcast_weights(
@@ -366,10 +382,6 @@ class RayAsyncRunner:
             past_opponent_path=past_opponent_path,
         )
 
-        total_workers = len(workers)
-        base = games // total_workers
-        remainder = games % total_workers
-
         progress = make_progress(
             total=games,
             desc=progress_desc,
@@ -403,40 +415,54 @@ class RayAsyncRunner:
             )
             or 0.0
         )
-        for idx, w in enumerate(workers):
-            target = base + (1 if idx < remainder else 0)
-            if target <= 0:
-                continue
-            remaining = target
-            while remaining > 0:
+        random_ratio = (
+            getattr(resolved_training, "random_play_ratio", 0.0)
+            if resolved_training is not None
+            else 0.0
+        )
+        random_opening_turns = int(
+            getattr(resolved_training, "random_opening_turns", 0)
+            if resolved_training is not None
+            else 0
+        )
+
+        def submit(worker, count: int):
+            return worker.run_games.remote(
+                batch_size,
+                count,
+                random_ratio,
+                rnd_bot_rate,
+                prev_bot_rate,
+                past_opponent_path,
+                random_opening_turns,
+            )
+
+        # Workers differ in speed (GPU-node workers, CPU workers) and games differ in length,
+        # so chunks are handed out as workers finish instead of split evenly up front.
+        # Two chunks per worker keep the next one queued while the current one runs.
+        remaining = games
+        pending: list = []  # (run_games ref, worker that runs it)
+        for _ in range(2):
+            for w in workers:
+                if remaining <= 0:
+                    break
                 this_chunk = min(chunk_size, remaining)
-                futures.append(
-                    w.run_games.remote(
-                        batch_size,
-                        this_chunk,
-                        getattr(resolved_training, "random_play_ratio", 0.0)
-                        if resolved_training is not None
-                        else 0.0,
-                        rnd_bot_rate,
-                        prev_bot_rate,
-                        past_opponent_path,
-                        int(
-                            getattr(resolved_training, "random_opening_turns", 0)
-                            if resolved_training is not None
-                            else 0
-                        ),
-                    )
-                )
+                pending.append((submit(w, this_chunk), w))
                 remaining -= this_chunk
 
         records: list[GameRecord] = []
-        pending = list(futures)
         while pending:
-            ready, pending = ray.wait(pending, num_returns=1)
+            ready, _ = ray.wait([ref for ref, _ in pending], num_returns=1)
             for handle in ready:
+                index = next(i for i, (ref, _) in enumerate(pending) if ref is handle)
+                _, worker = pending.pop(index)
                 batch = ray.get(handle)
                 progress.update(len(batch))
                 records.extend(batch)
+                if remaining > 0:
+                    this_chunk = min(chunk_size, remaining)
+                    pending.append((submit(worker, this_chunk), worker))
+                    remaining -= this_chunk
         progress.close()
         return records
         # Finally block removed: we keep actors alive. Call shutdown() if needed.
