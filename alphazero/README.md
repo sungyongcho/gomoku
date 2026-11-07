@@ -20,9 +20,9 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
   pip install -e ".[torch-cpu]" --extra-index-url https://download.pytorch.org/whl/cpu
   ```
 
-- Torch CUDA 13.0:
+- Torch CUDA 13.4:
   ```bash
-  pip install -e ".[torch-cu130]" --extra-index-url https://download.pytorch.org/whl/cu130
+  pip install -e ".[torch-cu134]" --extra-index-url https://download.pytorch.org/whl/cu134
   ```
 
 - Ray + CPU torch:
@@ -30,9 +30,9 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
   pip install -e ".[ray,torch-cpu]" --extra-index-url https://download.pytorch.org/whl/cpu
   ```
 
-- Ray + CUDA 13.0 torch:
+- Ray + CUDA 13.4 torch:
   ```bash
-  pip install -e ".[ray,torch-cu130]" --extra-index-url https://download.pytorch.org/whl/cu130
+  pip install -e ".[ray,torch-cu134]" --extra-index-url https://download.pytorch.org/whl/cu134
   ```
 
 - Dev tools (pytest/coverage/ruff/flake8/mypy/pre-commit):

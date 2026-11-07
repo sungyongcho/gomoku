@@ -24,7 +24,7 @@ RUN python -m pip install -U pip \
 # 3) (선택) 추가 의존성
 # Torch CPU 버전 먼저 설치 (인덱스 URL 우선순위 문제 방지)
 RUN python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu \
-	"torch==2.9.1+cpu" "torchvision==0.24.1+cpu" "torchaudio==2.9.1+cpu"
+	"torch==2.15.0+cpu"
 
 ENV CMAKE_BUILD_PARALLEL_LEVEL=1
 
