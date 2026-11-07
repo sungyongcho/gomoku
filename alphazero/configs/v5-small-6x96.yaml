@@ -97,7 +97,7 @@ paths:
   run_id: "v5-small-6x96"
 
 parallel:
-  ray_local_num_workers: 72 # the 9 C4D workers the quota allows; the cluster asks for 11
+  ray_local_num_workers: 84 # CPU worker slots: 9 C4D x 8 + C4 8 + C4 4 (cluster_v5.yaml)
   mp_num_workers: 1
   num_parallel_games: 1
 

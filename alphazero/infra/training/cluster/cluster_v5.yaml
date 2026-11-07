@@ -1,8 +1,10 @@
-# v5 cluster: g2-standard-16 head with one L4 plus C4D (AMD Turin) workers in europe-west2.
-# It asks for 11 workers while the approved C4D quota (72 vCPUs, 2026-11-07) fits 9: the two that
-# cannot start keep logging quota errors, which past requests needed before Google raised a quota.
-# Training uses the 9 that start (configs/v5-small-6x96.yaml sets ray_local_num_workers: 72).
-# Total vCPUs: 16 head + 72 = 88 now; 16 + 88 = 104 once the C4D and all-regions CPU quotas allow.
+# v5 cluster in europe-west2, sized to fill the project quotas exactly (2026-11-07): Google kept
+# C4D at 72 vCPUs and all-regions CPUs at 100, so the last 12 vCPUs come from C4 (Intel, AMX bf16).
+#   head  g2-standard-16 + 1 L4    16 vCPU  (12 self-play workers on the GPU)
+#   C4D   9 x c4d-standard-8       72 vCPU
+#   C4    c4-standard-8 + c4-standard-4   12 vCPU
+#   total                         100 vCPU, 96 self-play workers
+# configs/v5-small-6x96.yaml sets ray_local_num_workers: 84 for the CPU worker slots.
 # To scale, copy this file under a new name and change the worker counts, so earlier runs keep
 # their exact cluster shape.
 cluster_name: ${GCP_CLUSTER_NAME}
@@ -51,7 +53,7 @@ docker:
 
 head_node_type: head_gpu
 
-max_workers: 11
+max_workers: 11 # 9 C4D + 2 C4
 upscaling_speed: 1.0
 idle_timeout_minutes: 10
 
@@ -138,9 +140,59 @@ available_node_types:
         - email: ${GCP_SA_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com
           scopes: [https://www.googleapis.com/auth/cloud-platform]
     resources: { "CPU": 8, "selfplay": 8 }
-    min_workers: 11
-    max_workers: 11
+    min_workers: 9
+    max_workers: 9
 
+
+  cpu_worker_c4_8:
+    node_config:
+      machineType: c4-standard-8
+      tags:
+        items: ["ray-worker", "ray-node"]
+      scheduling:
+        onHostMaintenance: MIGRATE
+        automaticRestart: true
+      networkInterfaces:
+        - network: projects/${GCP_PROJECT}/global/networks/default
+          subnetwork: regions/${GCP_REGION}/subnetworks/default
+          # No accessConfigs -> private worker (egress via Cloud NAT)
+      disks:
+        - boot: true
+          autoDelete: true
+          initializeParams:
+            diskSizeGb: 30
+            sourceImage: projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts
+      serviceAccounts:
+        - email: ${GCP_SA_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com
+          scopes: [https://www.googleapis.com/auth/cloud-platform]
+    resources: { "CPU": 8, "selfplay": 8 }
+    min_workers: 1
+    max_workers: 1
+
+  cpu_worker_c4_4:
+    node_config:
+      machineType: c4-standard-4
+      tags:
+        items: ["ray-worker", "ray-node"]
+      scheduling:
+        onHostMaintenance: MIGRATE
+        automaticRestart: true
+      networkInterfaces:
+        - network: projects/${GCP_PROJECT}/global/networks/default
+          subnetwork: regions/${GCP_REGION}/subnetworks/default
+          # No accessConfigs -> private worker (egress via Cloud NAT)
+      disks:
+        - boot: true
+          autoDelete: true
+          initializeParams:
+            diskSizeGb: 30
+            sourceImage: projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts
+      serviceAccounts:
+        - email: ${GCP_SA_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com
+          scopes: [https://www.googleapis.com/auth/cloud-platform]
+    resources: { "CPU": 4, "selfplay": 4 }
+    min_workers: 1
+    max_workers: 1
 head_start_ray_commands:
   - ray stop
   - >-
