@@ -1,5 +1,8 @@
 # v5: small model self-play from scratch on the Ray cluster in
 # infra/training/cluster/cluster_v5.yaml (g2-standard-16 head with 1 L4, 9 c4d-standard-8 workers).
+# Self-play runs the model inside each worker: bf16 on the C4D CPUs and, for 12 workers on the head,
+# on the L4. Pilot 2026-11-07 (3 C4D + head): 240 games in 15 minutes, about 10,700 positions/s,
+# against about 6,000 through Ray inference actors, whose async search also flattened root targets.
 # No opening rules, teacher or old replay. Replay and checkpoints go to the GCS bucket in run_prefix,
 # which must match GCP_BUCKET_NAME. Runtime sizes follow v4; measure one iteration before changing them.
 # To change settings mid-run, stop the run and resume with a copy under a new name
@@ -77,11 +80,14 @@ runtime:
     inflight_per_actor: 192
     games_per_actor: 80
     max_chunk_size: 1
+    gpu_workers: 12 # head: 16 vCPU = 12 workers + 1 inference actor + driver
+    gpu_worker_gpu_total: 0.9
   inference:
-    actor_num_gpus: 0.08
-    num_actors: 12
+    actor_num_gpus: 0.05
+    num_actors: 1 # still created by the runner; unused for self-play
     actor_num_cpus: 1.0
-    use_local_inference: false
+    use_local_inference: true
+    local_dtype: bfloat16
   evaluation:
     num_workers: 40 # 40 games: each worker plays one opening pair
 
@@ -91,7 +97,7 @@ paths:
   run_id: "v5-small-6x96"
 
 parallel:
-  ray_local_num_workers: -1 # follow the cluster's selfplay resources
+  ray_local_num_workers: 72 # the 9 C4D workers the quota allows; the cluster asks for 11
   mp_num_workers: 1
   num_parallel_games: 1
 

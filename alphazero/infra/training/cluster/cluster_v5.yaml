@@ -1,5 +1,8 @@
-# v5 cluster: cluster_elo1800.yaml with nine C4D (AMD Turin) workers, the most the approved
-# C4D quota of 72 vCPUs in europe-west4 allows (2026-11-07). Total vCPUs: 16 head + 72 = 88.
+# v5 cluster: g2-standard-16 head with one L4 plus C4D (AMD Turin) workers in europe-west2.
+# It asks for 11 workers while the approved C4D quota (72 vCPUs, 2026-11-07) fits 9: the two that
+# cannot start keep logging quota errors, which past requests needed before Google raised a quota.
+# Training uses the 9 that start (configs/v5-small-6x96.yaml sets ray_local_num_workers: 72).
+# Total vCPUs: 16 head + 72 = 88 now; 16 + 88 = 104 once the C4D and all-regions CPU quotas allow.
 # To scale, copy this file under a new name and change the worker counts, so earlier runs keep
 # their exact cluster shape.
 cluster_name: ${GCP_CLUSTER_NAME}
@@ -48,7 +51,7 @@ docker:
 
 head_node_type: head_gpu
 
-max_workers: 9
+max_workers: 11
 upscaling_speed: 1.0
 idle_timeout_minutes: 10
 
@@ -135,8 +138,8 @@ available_node_types:
         - email: ${GCP_SA_NAME}@${GCP_PROJECT}.iam.gserviceaccount.com
           scopes: [https://www.googleapis.com/auth/cloud-platform]
     resources: { "CPU": 8, "selfplay": 8 }
-    min_workers: 9
-    max_workers: 9
+    min_workers: 11
+    max_workers: 11
 
 head_start_ray_commands:
   - ray stop
