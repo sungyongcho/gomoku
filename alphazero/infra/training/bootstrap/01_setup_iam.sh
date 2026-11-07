@@ -6,7 +6,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env_config.sh"
 
 # Check ADC credentials
-if [ ! -f ~/.config/gcloud/application_default_credentials.json ]; then
+# CLOUDSDK_CONFIG from .env keeps these credentials apart from the default gcloud folder.
+if [ ! -f "${CLOUDSDK_CONFIG:-$HOME/.config/gcloud}/application_default_credentials.json" ]; then
     echo "ADC credentials not found. Running gcloud auth application-default login..."
     gcloud auth application-default login
 fi
@@ -58,26 +59,35 @@ done
 
 
 echo "Step 5: Granting Roles to User ($USER_EMAIL)..."
-USER_ROLES=(
-    "roles/compute.osAdminLogin"
-    "roles/compute.instanceAdmin.v1"
-    "roles/compute.securityAdmin"
-    "roles/artifactregistry.reader"
-    "roles/storage.admin"
-)
+# An owner already holds these permissions, and an organization with domain-restricted
+# sharing rejects new bindings for consumer accounts, so owners skip this step.
+OWNERS=$(gcloud projects get-iam-policy "$PROJECT_ID" \
+    --flatten="bindings[].members" --filter="bindings.role=roles/owner" \
+    --format="value(bindings.members)" | tr '[:upper:]' '[:lower:]')
+if grep -qx "user:$(echo "$USER_EMAIL" | tr '[:upper:]' '[:lower:]')" <<<"$OWNERS"; then
+    echo "  - $USER_EMAIL is a project owner; skipping user role grants"
+else
+    USER_ROLES=(
+        "roles/compute.osAdminLogin"
+        "roles/compute.instanceAdmin.v1"
+        "roles/compute.securityAdmin"
+        "roles/artifactregistry.reader"
+        "roles/storage.admin"
+    )
 
-for role in "${USER_ROLES[@]}"; do
-    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    for role in "${USER_ROLES[@]}"; do
+        gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+            --member="user:${USER_EMAIL}" \
+            --role="$role" >/dev/null
+        echo "  - Granted $role to $USER_EMAIL"
+    done
+
+    # Grant Service Account User role to the user on the SA
+    gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
         --member="user:${USER_EMAIL}" \
-        --role="$role" >/dev/null
-    echo "  - Granted $role to $USER_EMAIL"
-done
-
-# Grant Service Account User role to the user on the SA
-gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
-    --member="user:${USER_EMAIL}" \
-    --role="roles/iam.serviceAccountUser" \
-    --project="$PROJECT_ID" >/dev/null
-echo "  - Granted roles/iam.serviceAccountUser to $USER_EMAIL on $SA_EMAIL"
+        --role="roles/iam.serviceAccountUser" \
+        --project="$PROJECT_ID" >/dev/null
+    echo "  - Granted roles/iam.serviceAccountUser to $USER_EMAIL on $SA_EMAIL"
+fi
 
 echo "IAM setup complete."

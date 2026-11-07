@@ -89,8 +89,7 @@ if ! gcloud compute routers nats describe ${NAT} --router=${ROUTER} --project=${
         --router=${ROUTER} \
         --region=${REGION} \
         --auto-allocate-nat-external-ips \
-        --nat-all-subnet-ip-ranges \
-        --enable-logging
+        --nat-all-subnet-ip-ranges
     echo "  - Created NAT $NAT"
 else
     echo "  - NAT $NAT already exists"

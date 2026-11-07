@@ -82,10 +82,12 @@ while true; do
     exit 0
   fi
 
-  # If it already exists, treat as success.
-  if gcloud compute reservations describe "${RES}" \
+  # A failed create leaves a CREATING reservation for a few seconds, so only READY counts.
+  status="$(gcloud compute reservations describe "${RES}" \
       --zone="${ZONE}" \
-      --project="${PROJECT}" >/dev/null 2>&1; then
+      --project="${PROJECT}" \
+      --format='value(status)' 2>/dev/null || true)"
+  if [[ "${status}" == "READY" ]]; then
     log "Reservation '${RES}' already exists."
     exit 0
   fi
