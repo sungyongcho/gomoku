@@ -54,9 +54,12 @@ upscaling_speed: 1.0
 idle_timeout_minutes: 10
 
 initialization_commands:
+  # unattended-upgrades can start any time after boot and hold the dpkg lock; make every apt call
+  # (including the one inside get-docker.sh) wait for it instead of failing.
+  - echo 'DPkg::Lock::Timeout "600";' | sudo tee /etc/apt/apt.conf.d/99-lock-timeout
   # Wait for apt lock to be released (handle unattended-upgrades)
   - sudo bash -lc "while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do echo 'Waiting for apt lock...'; sleep 1; done"
-  - sudo bash -lc "export DEBIAN_FRONTEND=noninteractive; apt-get -yq update && apt-get -yq install -y unattended-upgrades"
+  - sudo bash -lc "export DEBIAN_FRONTEND=noninteractive; apt-get -o DPkg::Lock::Timeout=600 -yq update && apt-get -o DPkg::Lock::Timeout=600 -yq install -y unattended-upgrades"
   - sudo bash -lc "mkdir -p /etc/needrestart/conf.d && echo '\\$nrconf{restart} = \"a\";' > /etc/needrestart/conf.d/99-non-interactive.conf"
 
   - curl -fsSL https://get.docker.com -o get-docker.sh
@@ -66,12 +69,12 @@ initialization_commands:
   - sudo systemctl restart docker
   - sleep 2
 
-  - sudo apt-get update -y
-  - sudo apt-get install -y ca-certificates gnupg
+  - sudo apt-get -o DPkg::Lock::Timeout=600 update -y
+  - sudo apt-get -o DPkg::Lock::Timeout=600 install -y ca-certificates gnupg
   - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
   - curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/cloud.google.gpg
-  - sudo apt-get update -y
-  - sudo apt-get install -y google-cloud-cli
+  - sudo apt-get -o DPkg::Lock::Timeout=600 update -y
+  - sudo apt-get -o DPkg::Lock::Timeout=600 install -y google-cloud-cli
 
   - gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev --quiet
   - sudo gcloud auth configure-docker ${GCP_REGION}-docker.pkg.dev --quiet
