@@ -1,6 +1,11 @@
-# Ray needs the same Python patch version on every node. The GPU head image installs the newest
-# deadsnakes python3.13 at build time (3.13.18 on 2026-11-07), so match it here after a GPU rebuild.
-FROM python:3.13.18-slim
+# CPU worker image: Python 3.13 + torch 2.15.0 CPU build.
+#
+# Ray rejects a node whose Python patch version differs from the head's, so this image and
+# Dockerfile.py313-cu134 start from the same official Python image (keep PYTHON_IMAGE equal in both)
+# and install shared packages under the same constraints.txt. check_image_versions.sh compares
+# the two images' versions stage and fails before anything is pushed when they disagree.
+ARG PYTHON_IMAGE=python:3.13.18-slim-trixie
+FROM ${PYTHON_IMAGE} AS image
 
 # 1) 런타임 유틸 설치 (필수: rsync, openssh-client)
 #    권장: iproute2, curl, procps, tzdata
@@ -13,16 +18,17 @@ ENV PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
 WORKDIR /app
 SHELL ["/bin/bash", "-lc"]
 
+# Versions shared with the GPU head image.
+COPY infra/training/image/constraints.txt /opt/constraints.txt
+ENV PIP_CONSTRAINT=/opt/constraints.txt
+
 # 2) pip 최신화 및 Ray/기본 파이썬 의존 설치
-#    - 운영 안정성을 위해 Ray 버전을 로그에 맞춰 고정 권장 (예: 2.60.0)
-RUN python -m pip install -U pip \
+RUN python -m pip install --upgrade pip wheel setuptools \
 	&& python -m pip install --prefer-binary --only-binary=:all: \
 	"ray[default]==2.60.0" fsspec gcsfs pyarrow tqdm PyYAML \
 	google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib cryptography
 
-# 3) (선택) 추가 의존성
-# 3) (선택) 추가 의존성
-# Torch CPU 버전 먼저 설치 (인덱스 URL 우선순위 문제 방지)
+# 3) Torch CPU 버전 먼저 설치 (인덱스 URL 우선순위 문제 방지)
 RUN python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu \
 	"torch==2.15.0+cpu"
 
@@ -32,9 +38,16 @@ ENV CMAKE_BUILD_PARALLEL_LEVEL=1
 COPY . /app
 RUN python -m pip install ".[ray]"
 
-
-
 # 5) 빌드타임 검증 (rsync/pyarrow/fsspec/Ray)
 RUN rsync --version | head -n 1 \
-	&& python -c "import ray, pyarrow, fsspec; print('py313_env_ok')"
-# touch to invalidate cache
+	&& python -c "import ray, pyarrow, fsspec; print('py313_env_ok')" \
+	&& python infra/training/image/image_versions.py > /opt/image-versions.txt
+
+
+# ========= Versions: compared with the GPU image by check_image_versions.sh =========
+FROM scratch AS versions
+COPY --from=image /opt/image-versions.txt /image-versions.txt
+
+
+# ========= Runtime (default target) =========
+FROM image AS runtime

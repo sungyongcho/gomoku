@@ -1,39 +1,28 @@
 # syntax=docker/dockerfile:1.7
-# ========= Base: CUDA 13.4 + Python 3.13 공통 베이스 =========
-# torch 2.15.0 ships cu132 and cu134 builds; cu134 is the newest. PyTorch states CUDA 13 wheels need
-# driver 580 or newer (CUDA 13.x minor version compatibility), which the head VM image family
-# common-cu129-ubuntu-2204-nvidia-580 provides.
-FROM nvidia/cuda:13.4.3-runtime-ubuntu22.04 AS pybase
+# GPU head image: Python 3.13 + torch 2.15.0 CUDA 13.4 build.
+#
+# Ray rejects a node whose Python patch version differs from the head's, so this image and
+# Dockerfile.py313-cpu start from the same official Python image (keep PYTHON_IMAGE equal in both)
+# and install shared packages under the same constraints.txt. check_image_versions.sh compares
+# the two images' versions stage and fails before anything is pushed when they disagree.
+#
+# CUDA comes from the pip dependencies of the torch cu134 wheel (cuda-toolkit, cuDNN, NCCL); the
+# NVIDIA driver comes from the host through `--gpus all`. PyTorch states CUDA 13 wheels need driver
+# 580 or newer (CUDA 13.x minor version compatibility), which the head VM image family
+# common-cu129-ubuntu-2204-nvidia-580 provides. torch 2.15.0 ships cu132 and cu134; cu134 is newest.
+ARG PYTHON_IMAGE=python:3.13.18-slim-trixie
+
+# ========= Base: Python 3.13 공통 베이스 =========
+FROM ${PYTHON_IMAGE} AS pybase
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Paris
 RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && \
 	apt-get update && \
-	apt-get install -y --no-install-recommends tzdata software-properties-common ca-certificates curl && \
-	add-apt-repository -y ppa:deadsnakes/ppa && \
+	apt-get install -y --no-install-recommends tzdata ca-certificates curl && \
 	dpkg-reconfigure --frontend noninteractive tzdata && \
 	rm -rf /var/lib/apt/lists/*
 
-# --- 수정 --- (주석만)
-# Python 3.13 런타임 (최신 3.13 버전 사용)
-RUN apt-get update && \
-	PY313_VER="$(apt-cache madison python3.13 | awk '$3 ~ /^3\.13\./{print $3; exit}')" && \
-	PY313_VENV_VER="$(apt-cache madison python3.13-venv | awk '$3 ~ /^3\.13\./{print $3; exit}')" && \
-	test -n "$PY313_VER" && test -n "$PY313_VENV_VER" || (echo 'ERROR: python3.13(venv) not found in deadsnakes.' >&2; exit 1) && \
-	apt-get install -y --no-install-recommends \
-	"python3.13=${PY313_VER}" \
-	"python3.13-venv=${PY313_VENV_VER}" && \
-	apt-mark hold python3.13 python3.13-venv && \
-	rm -rf /var/lib/apt/lists/*
-
-# pip 부트스트랩 및 심볼릭 링크
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.13 && \
-	ln -sf /usr/bin/python3.13 /usr/local/bin/python && \
-	ln -sf /usr/bin/python3.13 /usr/local/bin/python3 && \
-	python -m pip install --upgrade pip && \
-	python -V && python -m pip --version
-
-ENV PATH=/usr/local/bin:$PATH \
-	PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1 PIP_DEFAULT_TIMEOUT=120 PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # --- 수정 ---
@@ -45,21 +34,19 @@ SHELL ["/bin/bash", "-c"]
 
 # ========= Stage 1: Builder (모든 설치/컴파일은 여기서) =========
 FROM pybase AS builder
-# --- 수정 --- (주석만)
-# 빌드툴 & 헤더 (최종 런타임에는 미포함)
-# - python3.13-dev도 최신 3.13 버전 사용
+# 빌드툴 & 헤더 (최종 런타임에는 미포함). The official Python image already ships its headers.
 RUN apt-get update && \
-	PY313_DEV_VER="$(apt-cache madison python3.13-dev | awk '$3 ~ /^3\.13\./{print $3; exit}')" && \
-	test -n "$PY313_DEV_VER" || (echo 'ERROR: python3.13-dev not found in deadsnakes.' >&2; exit 1) && \
 	apt-get install -y --no-install-recommends \
-	build-essential git pkg-config libffi-dev libssl-dev \
-	"python3.13-dev=${PY313_DEV_VER}" && \
-	apt-mark hold python3.13-dev && \
+	build-essential git pkg-config libffi-dev libssl-dev && \
 	rm -rf /var/lib/apt/lists/*
 
 # 전용 venv 생성 (이 디렉토리를 런타임으로 복사)
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH" VIRTUAL_ENV="/opt/venv"
+
+# Versions shared with the CPU worker image.
+COPY infra/training/image/constraints.txt /opt/constraints.txt
+ENV PIP_CONSTRAINT=/opt/constraints.txt
 
 # 기본 업그레이드
 RUN python -m pip install --upgrade pip wheel setuptools
@@ -86,9 +73,15 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # 불필요 캐시/바이트코드 정리
 # builder 스테이지는 버려지므로 /root/.cache/pip 정리는 불필요. venv 내부만 정리합니다.
 RUN find /opt/venv -type d -name '__pycache__' -prune -exec rm -rf {} +
+RUN python infra/training/image/image_versions.py > /opt/image-versions.txt
 
 
-# ========= Stage 2: Runtime (슬림) =========
+# ========= Versions: compared with the CPU image by check_image_versions.sh =========
+FROM scratch AS versions
+COPY --from=builder /opt/image-versions.txt /image-versions.txt
+
+
+# ========= Stage 2: Runtime (슬림, default target) =========
 FROM pybase AS runtime
 
 # --- 수정 ---
@@ -101,7 +94,11 @@ RUN apt-get update && \
 
 # 빌더의 완성된 venv 복사
 COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /opt/image-versions.txt /opt/image-versions.txt
 ENV PATH="/opt/venv/bin:/usr/local/bin:$PATH" VIRTUAL_ENV="/opt/venv"
+# Ask the NVIDIA container runtime for the GPU and its compute libraries; the nvidia/cuda images
+# set these, the official Python image does not.
+ENV NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 WORKDIR /app
 

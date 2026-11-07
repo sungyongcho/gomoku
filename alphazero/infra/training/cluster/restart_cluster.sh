@@ -184,6 +184,11 @@ fi
 if [ "${DO_BUILD}" = true ]; then
   log "Step 2: Building & Pushing Images (zstd mode)..."
 
+  # Ray rejects workers whose Python patch version differs from the head's: compare the two
+  # images' versions before pushing either of them.
+  log " -> Checking that the GPU and CPU images share their versions"
+  "${TRAINING_ROOT}/image/check_image_versions.sh"
+
   log " -> GPU Image: ${IMAGE_GPU}"
   docker buildx build \
     --platform linux/amd64 \
