@@ -199,3 +199,22 @@ def test_evaluation_search_keeps_the_serving_settings() -> None:
     assert search.params.num_searches == 32
     assert search.params.dirichlet_epsilon == 0.0
     assert isinstance(search, PVMCTS)
+
+
+def _top_visits_with_equal_values(fpu_reduction: float) -> int:
+    core = gomoku_cpp.GomokuCore(SIZE, True, False, 0, 5, 0)
+    engine = gomoku_cpp.MctsEngine(core, 2.0, True, fpu_reduction)
+
+    def evaluator(features, legal):
+        return [0.0] * core.action_size, 0.0
+
+    visits = engine.run_mcts_encoded(core.initial_state(), 60, evaluator)
+    return max(count for _, count in visits)
+
+
+def test_without_fpu_reduction_equal_values_spread_the_search() -> None:
+    assert _top_visits_with_equal_values(0.0) == 1
+
+
+def test_fpu_reduction_revisits_tried_moves_when_values_are_equal() -> None:
+    assert _top_visits_with_equal_values(0.2) > 1

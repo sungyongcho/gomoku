@@ -18,12 +18,13 @@ MctsNode::~MctsNode()
 	}
 }
 
-MctsEngine::MctsEngine(GomokuCore *core, float c_puct, bool fpu_from_parent)
+MctsEngine::MctsEngine(GomokuCore *core, float c_puct, bool fpu_from_parent, float fpu_reduction)
 	: core_(core)
 	, board_size_(core != nullptr ? core->board_size() : 0)
 	, action_size_(core != nullptr ? core->action_size() : 0)
 	, c_puct_(c_puct)
 	, fpu_from_parent_(fpu_from_parent)
+	, fpu_reduction_(fpu_reduction)
 {
 	if (core_ == nullptr) {
 		throw std::invalid_argument("GomokuCore pointer is null");
@@ -677,7 +678,7 @@ float MctsEngine::CalculateUcb(const MctsNode *parent, const MctsNode *child) co
 		q = -(child->value_sum + static_cast<float>(child->virtual_loss))
 			/ static_cast<float>(child_visits);
 	} else if (fpu_from_parent_ && parent->visit_count > 0) {
-		q = parent->value_sum / static_cast<float>(parent->visit_count);
+		q = parent->value_sum / static_cast<float>(parent->visit_count) - fpu_reduction_;
 	}
 	const float u = c_puct_ * child->prior
 		* std::sqrt(static_cast<float>(parent_visits + 1))

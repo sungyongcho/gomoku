@@ -95,7 +95,7 @@ PYBIND11_MODULE(gomoku_cpp, m)
         );
 
 	py::class_<MctsEngine>(m, "MctsEngine")
-		.def(py::init<GomokuCore *, float, bool>(), py::arg("core"), py::arg("c_puct") = 5.0f, py::arg("fpu_from_parent") = false)
+		.def(py::init<GomokuCore *, float, bool, float>(), py::arg("core"), py::arg("c_puct") = 5.0f, py::arg("fpu_from_parent") = false, py::arg("fpu_reduction") = 0.0f)
 		.def(
 			"run_mcts", // Python에서는 run_mcts로 호출
 			[](MctsEngine &engine, const GomokuState &state, int sims, py::function evaluator) {

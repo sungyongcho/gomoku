@@ -40,6 +40,7 @@ class SequentialEngine(SearchEngine):
                 game._native_core,
                 float(mcts_params.C),
                 bool(mcts_params.fpu_from_parent),
+                float(mcts_params.fpu_reduction),
             )
             self.strategy = CppSearchStrategy()
         else:

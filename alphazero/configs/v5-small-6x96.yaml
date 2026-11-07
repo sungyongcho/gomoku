@@ -18,6 +18,7 @@ mcts:
   C: 2.0
   num_searches: 400
   fpu_from_parent: true
+  fpu_reduction: 0.1 # measured 2026-11-07: 0 leaves targets near uniform, 0.2+ narrows to about 8 moves
   exploration_turns: 8
   dirichlet_epsilon: 0.25
   dirichlet_alpha: 0.03

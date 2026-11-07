@@ -103,6 +103,8 @@ class MctsConfig(BaseConfig):
     time_limit_s: float | None = None
     # Native search: score unvisited moves with the parent's mean value instead of 0.
     fpu_from_parent: bool = False
+    # Subtracted from the parent value for unvisited moves; needs fpu_from_parent.
+    fpu_reduction: float = 0.0
     # Adjudication (Early Resignation) Settings
     resign_threshold: float = 0.95
     resign_enabled: bool = True
