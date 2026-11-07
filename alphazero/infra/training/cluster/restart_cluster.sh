@@ -189,7 +189,7 @@ if [ "${DO_BUILD}" = true ]; then
     --platform linux/amd64 \
     --output "type=image,compression=zstd,force-compression=true,push=true" \
     -t "${IMAGE_GPU}" \
-    -f "${TRAINING_ROOT}/image/Dockerfile.py313-cu124" \
+    -f "${TRAINING_ROOT}/image/Dockerfile.py313-cu130" \
     "${ALPHAZERO_ROOT}"
 
   log " -> CPU Image: ${IMAGE_CPU}"

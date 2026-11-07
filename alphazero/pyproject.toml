@@ -54,9 +54,9 @@ torch-cpu = [
   "torch==2.9.1+cpu",
   "torchvision==0.24.1+cpu",
 ]
-torch-cu121 = [
-  "torch==2.9.1+cu121",
-  "torchvision==0.24.1+cu121",
+torch-cu130 = [
+  "torch==2.9.1+cu130",
+  "torchvision==0.24.1+cu130",
 ]
 
 [tool.scikit-build]

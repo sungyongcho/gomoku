@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.7
-# ========= Base: CUDA 12.4 + Python 3.13 공통 베이스 =========
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS pybase
+# ========= Base: CUDA 13.0 + Python 3.13 공통 베이스 =========
+# CUDA 13.0 is the newest CUDA build of torch 2.9.1 (newer CUDA needs torch 2.14+). Its R580 driver
+# branch matches the head VM image family common-cu129-ubuntu-2204-nvidia-580 (driver 580).
+FROM nvidia/cuda:13.0.3-runtime-ubuntu22.04 AS pybase
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Paris
 RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && \
@@ -68,10 +70,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 	"ray[default]==2.60.0" fsspec gcsfs pyarrow tqdm PyYAML \
 	google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib cryptography
 
-# PyTorch CUDA 12.4
+# PyTorch CUDA 13.0. Pin the +cu130 local version so pip fails instead of falling back to PyPI's
+# default CUDA build when the index lacks a wheel.
 RUN --mount=type=cache,target=/root/.cache/pip \
-	python -m pip install --extra-index-url https://download.pytorch.org/whl/cu124 \
-	"torch==2.9.1" "torchvision==0.24.1" "torchaudio==2.9.1"
+	python -m pip install --extra-index-url https://download.pytorch.org/whl/cu130 \
+	"torch==2.9.1+cu130" "torchvision==0.24.1+cu130" "torchaudio==2.9.1+cu130"
 
 # 나머지 파이썬 의존성 (pyproject.toml 기반)
 COPY . /app
@@ -112,7 +115,8 @@ RUN echo "import sys, ssl, sqlite3, zlib, bz2, lzma, torch, ray, pyarrow, fsspec
 	&& echo "print('ssl:', ssl.OPENSSL_VERSION)" >> check_env.py \
 	&& echo "print('ray:', ray.__version__)" >> check_env.py \
 	&& echo "print('cuda?', torch.cuda.is_available())" >> check_env.py \
-	&& echo "print('torch:', torch.__version__)" >> check_env.py \
+	&& echo "print('torch:', torch.__version__, 'cuda:', torch.version.cuda)" >> check_env.py \
+	&& echo "assert torch.version.cuda.startswith('13.0'), torch.version.cuda" >> check_env.py \
 	&& echo "if torch.cuda.is_available(): print('device:', torch.cuda.get_device_name(0))" >> check_env.py \
 	&& python check_env.py \
 	&& rm check_env.py
