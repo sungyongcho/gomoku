@@ -378,11 +378,15 @@ std::vector<std::pair<int, int>> MctsEngine::RunAsyncSimulation(
 	int num_simulations,
 	int batch_size,
 	AsyncDispatchCallback dispatch_func,
-	AsyncCheckCallback check_func
+	AsyncCheckCallback check_func,
+	int max_inflight_batches
 )
 {
 	if (static_cast<int>(root_state.board.size()) != action_size_) {
 		throw std::invalid_argument("root_state size mismatch");
+	}
+	if (max_inflight_batches <= 0) {
+		throw std::invalid_argument("max_inflight_batches must be positive");
 	}
 	if (num_simulations <= 0) return {};
 	if (!dispatch_func || !check_func) {
@@ -419,8 +423,11 @@ std::vector<std::pair<int, int>> MctsEngine::RunAsyncSimulation(
     while (sims_completed < num_simulations) {
         bool made_progress_selection = false;
 
-        // 1. Selection Phase
+        // 1. Selection Phase. Select only while a batch slot is free: leaves picked while
+        // earlier results are still out see virtual loss instead of values, so an uncapped
+        // loop under a slow evaluator spreads the visits over almost every move.
         while (sims_dispatched < num_simulations &&
+               static_cast<int>(in_flight.size()) < max_inflight_batches &&
                static_cast<int>(current_states.size()) < batch_size)
         {
              GomokuState state = root_state;

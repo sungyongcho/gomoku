@@ -117,7 +117,8 @@ class CppSearchStrategy(SearchStrategy):
                 sims,
                 batch_size,
                 async_dispatcher,
-                async_checker
+                async_checker,
+                max_inflight_batches=int(getattr(engine.params, "max_inflight_batches", 1)),
             )
             self._sync_visits(engine, root, visits)
         finally:

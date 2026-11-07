@@ -72,7 +72,10 @@ public:
 		int num_simulations,
 		int batch_size,
 		AsyncDispatchCallback dispatch_func,
-		AsyncCheckCallback check_func
+		AsyncCheckCallback check_func,
+		// Batches allowed in flight at once. 1 makes the search match RunBatchSimulation; larger
+		// values overlap inference with selection but spread visits under a slow evaluator.
+		int max_inflight_batches = 1
 	);
 
 	GomokuCore *core() const { return core_; }

@@ -259,7 +259,7 @@ PYBIND11_MODULE(gomoku_cpp, m)
 		)
         .def(
             "run_mcts_async_encoded",
-            [](MctsEngine &engine, const GomokuState &state, int sims, int batch_size, py::function dispatcher, py::function checker) {
+            [](MctsEngine &engine, const GomokuState &state, int sims, int batch_size, py::function dispatcher, py::function checker, int max_inflight_batches) {
                 // Dispatch: (vector<State>) -> Handle
                 AsyncDispatchCallback dispatch = [&engine, dispatcher](std::vector<GomokuState> &states) -> AsyncHandle {
                     py::gil_scoped_acquire gil;
@@ -338,13 +338,14 @@ PYBIND11_MODULE(gomoku_cpp, m)
                 };
 
                 py::gil_scoped_release release;
-                return engine.RunAsyncSimulation(state, sims, batch_size, dispatch, check);
+                return engine.RunAsyncSimulation(state, sims, batch_size, dispatch, check, max_inflight_batches);
             },
 			py::arg("state"),
 			py::arg("sims"),
 			py::arg("batch_size"),
             py::arg("dispatcher"),
             py::arg("checker"),
-            "Run Async MCTS."
+            py::arg("max_inflight_batches") = 1,
+            "Run Async MCTS with at most max_inflight_batches batches awaiting results."
         );
 	}

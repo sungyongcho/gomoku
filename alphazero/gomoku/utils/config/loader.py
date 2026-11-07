@@ -105,6 +105,9 @@ class MctsConfig(BaseConfig):
     fpu_from_parent: bool = False
     # Subtracted from the parent value for unvisited moves; needs fpu_from_parent.
     fpu_reduction: float = 0.0
+    # Native async search: batches awaiting inference at once. 1 matches the sync batch search;
+    # more overlaps slow remote inference but spreads the visits.
+    max_inflight_batches: int = 1
     # Adjudication (Early Resignation) Settings
     resign_threshold: float = 0.95
     resign_enabled: bool = True
