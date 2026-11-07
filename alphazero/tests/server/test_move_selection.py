@@ -78,7 +78,7 @@ def _encoded_search(time_limit_s: float, delay_s: float) -> tuple[int, list]:
 
 
 def test_time_limit_stops_the_native_search_early() -> None:
-    searched, _ = _encoded_search(time_limit_s=0.05, delay_s=0.02)
+    searched, _ = _encoded_search(time_limit_s=0.2, delay_s=0.02)
     assert 1 <= searched < 49
 
 

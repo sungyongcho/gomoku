@@ -148,12 +148,14 @@ class RayEvalRunner(RayAsyncRunner):
 
         try:
             # 4. Distribute Games
-            base = num_games // self.num_workers
-            remainder = num_games % self.num_workers
+            # Whole pairs per worker: each pair plays one opening once with each colour.
+            pairs, odd_game = divmod(num_games, 2)
+            base, remainder = divmod(pairs, self.num_workers)
             futures = []
 
             for idx, w in enumerate(workers):
-                count = base + (1 if idx < remainder else 0)
+                count = 2 * (base + (1 if idx < remainder else 0))
+                count += 1 if idx == 0 and odd_game else 0
                 if count > 0:
                     futures.append(
                         w.run_duel.remote(

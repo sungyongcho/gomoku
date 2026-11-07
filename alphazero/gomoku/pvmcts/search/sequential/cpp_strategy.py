@@ -95,20 +95,17 @@ class CppSearchStrategy(SearchStrategy):
                         break
 
                 if h_found is not None:
-                    try:
-                        policy_t, value_t = ray.get(ref)
-                        policy_np = policy_t.detach().cpu().numpy()
-                        if h_found == 0 and noise_pending:
-                            # The first batch holds only the root.
-                            policy_np = self._with_root_noise(engine, root, root_native_state, policy_np)
-                        values_np = value_t.detach().cpu().numpy().reshape(-1, 1)
-                        results.append((h_found, (policy_np, values_np)))
-                    except Exception as e:
-                        import logging
-                        logging.getLogger(__name__).error(f"Async inference error for handle {h_found}: {e}")
-
-                    # Remove from tracking
+                    # Remove from tracking; an error propagates, because the native search
+                    # would otherwise wait forever for a handle that never returns.
                     del inflight_refs[h_found]
+                    policy_t, value_t = ray.get(ref)
+                    # CPU actors run under bfloat16 autocast, which numpy cannot read.
+                    policy_np = policy_t.detach().float().cpu().numpy()
+                    if h_found == 0 and noise_pending:
+                        # The first batch holds only the root.
+                        policy_np = self._with_root_noise(engine, root, root_native_state, policy_np)
+                    values_np = value_t.detach().float().cpu().numpy().reshape(-1, 1)
+                    results.append((h_found, (policy_np, values_np)))
 
             return results
 
@@ -137,12 +134,12 @@ class CppSearchStrategy(SearchStrategy):
             nonlocal internal_noise_pending
             tensor = torch.from_numpy(py_batch).to(device=engine._inference_device, dtype=torch.float32)
             logits, values = engine.inference.infer(tensor)
-            logits_np = logits.detach().cpu().numpy()
+            logits_np = logits.detach().float().cpu().numpy()
             if internal_noise_pending:
                 internal_noise_pending = False
                 # The first batch holds only the root.
                 logits_np = self._with_root_noise(engine, root, root_native_state, logits_np)
-            values_np = values.detach().cpu().numpy().reshape(-1, 1)
+            values_np = values.detach().float().cpu().numpy().reshape(-1, 1)
             return logits_np, values_np
 
         visits = engine._native_engine.run_mcts_batch_encoded(

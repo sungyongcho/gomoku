@@ -144,7 +144,7 @@ def test_no_noise_was_requested_keeps_the_uniform_root() -> None:
     assert max(priors) == pytest.approx(min(priors))
 
 
-def _top_visits_lost_position(batch: int) -> int:
+def _top_visits_lost_position(batch: int) -> tuple[int, int]:
     core = gomoku_cpp.GomokuCore(SIZE, True, False, 0, 5, 0)
     engine = gomoku_cpp.MctsEngine(core, 2.0, True)
 
@@ -158,11 +158,13 @@ def _top_visits_lost_position(batch: int) -> int:
         return np.zeros((len(batch_features), core.action_size)), values(batch_features)
 
     visits = engine.run_mcts_batch_encoded(core.initial_state(), 200, batch, evaluator)
-    return max(count for _, count in visits)
+    return max(visits, key=lambda item: item[1])
 
 
-def test_batched_parent_fpu_still_finds_the_better_move() -> None:
-    assert _top_visits_lost_position(8) > 50
+def test_batched_search_concentrates_on_the_better_move() -> None:
+    move, count = _top_visits_lost_position(8)
+    assert move == 1 + 1 * SIZE
+    assert count > 50
 
 
 def test_random_openings_repeat_for_the_same_seed() -> None:
