@@ -453,10 +453,12 @@ def run_ray(
 
     log(f"[Main] Self-play events log: {debug_log_path}")
     log(f"[Main] Evaluation events log: {eval_log_path}")
+    # GMK_CLUSTER_YAML names the cluster file this run uses; v5 first, then the v4 file.
     cluster_yaml_candidates = [
-        "cluster_elo1800.yaml",
-        os.path.join("infra", "cluster_elo1800.yaml"),
-        os.path.join("infra", "training", "cluster", "cluster_elo1800.yaml"),
+        path
+        for name in (os.environ.get("GMK_CLUSTER_YAML"), "cluster_v5.yaml", "cluster_elo1800.yaml")
+        if name
+        for path in (name, os.path.join("infra", "training", "cluster", name))
     ]
     cluster_yaml_path = next(
         (path for path in cluster_yaml_candidates if os.path.exists(path)),
@@ -470,7 +472,7 @@ def run_ray(
     current_workers_conf = params.parallel.ray_local_num_workers
     if current_workers_conf is not None and int(current_workers_conf) == -1:
         # Detect target from cluster YAML if available, otherwise fallback to cluster_resources
-        yaml_path = cluster_yaml_path or "cluster_elo1800.yaml"
+        yaml_path = cluster_yaml_path or "cluster_v5.yaml"
         num_workers = None
         if os.path.exists(yaml_path):
             try:

@@ -1,5 +1,5 @@
-# v5: small model self-play from scratch on the v4 Ray cluster in
-# infra/training/cluster/cluster_elo1800.yaml (g2-standard-16 head with 1 L4, 10 c4-standard-8 workers).
+# v5: small model self-play from scratch on the Ray cluster in
+# infra/training/cluster/cluster_v5.yaml (g2-standard-16 head with 1 L4, 9 c4d-standard-8 workers).
 # No opening rules, teacher or old replay. Replay and checkpoints go to the GCS bucket in run_prefix,
 # which must match GCP_BUCKET_NAME. Runtime sizes follow v4; measure one iteration before changing them.
 # To change settings mid-run, stop the run and resume with a copy under a new name

@@ -5,8 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLUSTER_DIR="${SCRIPT_DIR}"
 ALPHAZERO_ROOT="$(cd "${CLUSTER_DIR}/../../.." && pwd)"
 REPO_ROOT="$(cd "${ALPHAZERO_ROOT}/.." && pwd)"
-CLUSTER_TEMPLATE="${CLUSTER_DIR}/cluster_elo1800.yaml"
-CLUSTER_RESOLVED="${CLUSTER_DIR}/.cluster_elo1800.resolved.yaml"
+CLUSTER_TEMPLATE="${CLUSTER_YAML_SOURCE:-${CLUSTER_DIR}/cluster_v5.yaml}"
+CLUSTER_RESOLVED="${CLUSTER_DIR}/.$(basename "${CLUSTER_TEMPLATE}" .yaml).resolved.yaml"
 
 DOTENV_PATH="${DOTENV_PATH:-${REPO_ROOT}/.env}"
 if [ -f "${DOTENV_PATH}" ]; then
@@ -103,7 +103,7 @@ target.write_text(text, encoding="utf-8")
 PY
 }
 
-TMP_RESOLVED="$(mktemp "${CLUSTER_DIR}/.cluster_elo1800.resolved.yaml.tmp.XXXXXX")"
+TMP_RESOLVED="$(mktemp "${CLUSTER_RESOLVED}.tmp.XXXXXX")"
 cleanup_tmp() {
   rm -f "${TMP_RESOLVED}" 2>/dev/null || true
 }

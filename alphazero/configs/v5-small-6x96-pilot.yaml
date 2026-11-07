@@ -1,0 +1,103 @@
+# v5 pilot: v5-small-6x96.yaml at small scale on cluster_v5-pilot.yaml (3 C4D workers), to check the
+# GPU path, GCS storage, resume and speed before the full run. Run 1 iteration, stop, resume to 2.
+# Start with GMK_CLUSTER_YAML=cluster_v5-pilot.yaml so the worker count matches.
+# v5: small model self-play from scratch on the Ray cluster in
+# infra/training/cluster/cluster_v5.yaml (g2-standard-16 head with 1 L4, 9 c4d-standard-8 workers).
+# No opening rules, teacher or old replay. Replay and checkpoints go to the GCS bucket in run_prefix,
+# which must match GCP_BUCKET_NAME. Runtime sizes follow v4; measure one iteration before changing them.
+# To change settings mid-run, stop the run and resume with a copy under a new name
+# (for example v5-small-6x96-fpu005.yaml). The manifest records only config names, so editing this
+# file in place would lose which values each iteration used.
+
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 96
+  num_resblocks: 6
+
+mcts:
+  C: 2.0
+  num_searches: 400
+  fpu_from_parent: true
+  fpu_reduction: 0.1 # measured 2026-11-07: 0 leaves targets near uniform, 0.2+ narrows to about 8 moves
+  exploration_turns: 8
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.03
+  batch_infer_size: 8
+  min_batch_size: 1
+  max_batch_wait_ms: 0
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 2
+  num_selfplay_iterations: 240
+  num_epochs: 2
+  batch_size: 512
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 250000
+  min_samples_to_train: 2000
+  random_play_ratio: 0.0
+  random_opening_turns: 0
+  dataloader_num_workers: 4
+  use_channels_last: true
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 8
+  eval_every_iters: 1
+  promotion_win_rate: 0.55
+  eval_num_searches: 400
+  eval_random_opening_plies: 4
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  use_sprt: false
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 192
+    games_per_actor: 80
+    max_chunk_size: 1
+  inference:
+    actor_num_gpus: 0.08
+    num_actors: 12
+    actor_num_cpus: 1.0
+    use_local_inference: false
+  evaluation:
+    num_workers: 4 # fits the pilot's 24 worker vCPUs
+
+paths:
+  use_gcs: true
+  run_prefix: "gomoku-v5-training"
+  run_id: "v5-pilot"
+
+parallel:
+  ray_local_num_workers: -1 # follow the cluster's selfplay resources
+  mp_num_workers: 1
+  num_parallel_games: 1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache
