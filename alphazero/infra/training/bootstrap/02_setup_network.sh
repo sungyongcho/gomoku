@@ -7,8 +7,10 @@ source "${SCRIPT_DIR}/env_config.sh"
 
 export NETWORK="default"
 export SUBNET="default" # Change this if your subnet name differs.
-export ROUTER="${NETWORK}-router-ew4"
-export NAT="${NETWORK}-nat-ew4"
+# Short region code for names, for example europe-west4 -> ew4.
+REGION_CODE="$(sed -E 's/^([a-z])[a-z]*-([a-z])[a-z]*([0-9]+)$/\1\2\3/' <<<"${REGION}")"
+export ROUTER="${NETWORK}-router-${REGION_CODE}"
+export NAT="${NETWORK}-nat-${REGION_CODE}"
 
 echo "Using Project: $PROJECT_ID, Region: $REGION"
 
@@ -32,7 +34,16 @@ if ! gcloud compute firewall-rules describe ray-allow-internal --project=${PROJE
         --target-tags=ray-node
     echo "  - Created ray-allow-internal"
 else
-    echo "  - ray-allow-internal already exists"
+    RANGES=$(gcloud compute firewall-rules describe ray-allow-internal --project=${PROJECT_ID} \
+        --format='value(sourceRanges.list())')
+    if [[ ",${RANGES}," != *",${SUBNET_RANGE},"* ]]; then
+        gcloud compute firewall-rules update ray-allow-internal \
+            --project=${PROJECT_ID} \
+            --source-ranges="${RANGES},${SUBNET_RANGE}"
+        echo "  - Added ${SUBNET_RANGE} to ray-allow-internal"
+    else
+        echo "  - ray-allow-internal already covers ${SUBNET_RANGE}"
+    fi
 fi
 
 echo "Step 3: Creating Firewall Rules for Home IP..."
@@ -65,10 +76,36 @@ if ! gcloud compute firewall-rules describe ray-allow-iap-ssh --project=${PROJEC
         --action=ALLOW \
         --rules=tcp:22 \
         --source-ranges=35.235.240.0/20 \
-        --target-tags=ray-head
+        --target-tags=ray-node
     echo "  - Created ray-allow-iap-ssh"
 else
-    echo "  - ray-allow-iap-ssh already exists"
+    gcloud compute firewall-rules update ray-allow-iap-ssh \
+        --project=${PROJECT_ID} \
+        --target-tags=ray-node
+    echo "  - ray-allow-iap-ssh already exists (targets ray-node)"
+fi
+
+# The default network opens SSH and RDP to the internet. Ray needs only the rules above.
+for rule in default-allow-ssh default-allow-rdp; do
+    if gcloud compute firewall-rules describe "${rule}" --project=${PROJECT_ID} >/dev/null 2>&1; then
+        gcloud compute firewall-rules delete "${rule}" --project=${PROJECT_ID} --quiet
+        echo "  - Deleted ${rule}"
+    fi
+done
+
+# The head node needs an external IP. An organization can deny external IPs for every VM;
+# allow them in this project only. Workers stay private because their config has no accessConfigs.
+# Revert after training: gcloud resource-manager org-policies delete compute.vmExternalIpAccess --project=${PROJECT_ID}
+EXT_IP_POLICY=$(gcloud resource-manager org-policies describe compute.vmExternalIpAccess \
+    --project=${PROJECT_ID} --effective --format='value(listPolicy.allValues)' 2>/dev/null || true)
+if [[ "${EXT_IP_POLICY}" == "DENY" ]]; then
+    POLICY_FILE="$(mktemp)"
+    printf 'constraint: constraints/compute.vmExternalIpAccess\nlistPolicy:\n  allValues: ALLOW\n' > "${POLICY_FILE}"
+    gcloud resource-manager org-policies set-policy "${POLICY_FILE}" --project=${PROJECT_ID} >/dev/null
+    rm -f "${POLICY_FILE}"
+    echo "  - Allowed external IPs in ${PROJECT_ID} (organization denies them)"
+else
+    echo "  - External IPs allowed in ${PROJECT_ID}"
 fi
 
 
