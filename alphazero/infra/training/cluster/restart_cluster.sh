@@ -239,6 +239,9 @@ fi
 # 4. Ray Up (Re-deploy)
 if [ "${DO_RESTART}" = true ]; then
   log "Step 4: Running 'ray up' to restart containers..."
+  # Ray 2.50+ makes `ray up` start autoscaler v2 by default. Keep v1, which this GCP Docker
+  # setup ran on before the 2.60 upgrade; export RAY_UP_enable_autoscaler_v2=1 to try v2.
+  export RAY_UP_enable_autoscaler_v2="${RAY_UP_enable_autoscaler_v2:-0}"
   # --no-config-cache guarantees it checks the cloud state and updates
   ray up -y "${CLUSTER_YAML}" --no-config-cache
 else

@@ -14,10 +14,10 @@ WORKDIR /app
 SHELL ["/bin/bash", "-lc"]
 
 # 2) pip 최신화 및 Ray/기본 파이썬 의존 설치
-#    - 운영 안정성을 위해 Ray 버전을 로그에 맞춰 고정 권장 (예: 2.49.2)
+#    - 운영 안정성을 위해 Ray 버전을 로그에 맞춰 고정 권장 (예: 2.60.0)
 RUN python -m pip install -U pip \
 	&& python -m pip install --prefer-binary --only-binary=:all: \
-	"ray[default]==2.49.2" fsspec gcsfs pyarrow tqdm PyYAML \
+	"ray[default]==2.60.0" fsspec gcsfs pyarrow tqdm PyYAML \
 	google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib cryptography
 
 # 3) (선택) 추가 의존성

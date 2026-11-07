@@ -22,8 +22,12 @@ docker:
   head_image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPO}/gmk-ray:${GCP_GPU_TAG}
   worker_image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GCP_REPO}/gmk-ray:${GCP_CPU_TAG}
 
+  # Ray 2.59+ turns on token auth for `ray start --head` whenever a token file exists, and
+  # workers started without the token cannot join. Pin the mode so every node agrees
+  # (Ray appends head_run_options to run_options, so the head gets it too).
   run_options:
     - --ipc=host
+    - -e RAY_AUTH_MODE=disabled
     - --ulimit nofile=65536:65536
     - --shm-size=2g
     - -e OMP_NUM_THREADS=1

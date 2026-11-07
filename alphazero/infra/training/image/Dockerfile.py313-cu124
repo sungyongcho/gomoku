@@ -65,7 +65,7 @@ RUN python -m pip install --upgrade pip wheel setuptools
 ENV CMAKE_BUILD_PARALLEL_LEVEL=1
 RUN --mount=type=cache,target=/root/.cache/pip \
 	python -m pip install --prefer-binary --only-binary=:all: \
-	"ray[default]==2.49.2" fsspec gcsfs pyarrow tqdm PyYAML \
+	"ray[default]==2.60.0" fsspec gcsfs pyarrow tqdm PyYAML \
 	google-api-python-client google-auth google-auth-httplib2 google-auth-oauthlib cryptography
 
 # PyTorch CUDA 12.4

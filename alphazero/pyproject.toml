@@ -34,7 +34,7 @@ serve = [
   "onnxscript==0.7.2",
 ]
 ray = [
-  "ray==2.49.2",
+  "ray==2.60.0",
   "pyarrow==21.0.0",
   "gcsfs==2025.9.0",
   "google-api-python-client",
