@@ -38,13 +38,15 @@ class RaySelfPlayWorker:
         use_local_inference = getattr(inference_rt, "use_local_inference", False)
 
         if use_local_inference:
-            # Workers run inference locally on CPU
-            # Optimization: Restrict torch threads to 1 to avoid contention in many-worker scenario
+            # Workers run inference in-process: on the GPU when Ray assigned this worker a GPU
+            # share (head workers), otherwise on CPU. One torch thread avoids contention.
             torch.set_num_threads(1)
-            device = "cpu"
+            device = "cuda" if torch.cuda.is_available() else "cpu"
             self.model = PolicyValueNet(self.game, cfg.model, device=device)
-            self.client = LocalInference(self.model)
-            self.logger.info("Using LocalInference (CPU) on worker.")
+            self.client = LocalInference(
+                self.model, dtype=getattr(inference_rt, "local_dtype", "float32")
+            )
+            self.logger.info(f"Using LocalInference ({device}) on worker.")
         else:
             self.client = RayInferenceClient(
                 actors=inference_actors, max_batch_size=cfg.mcts.batch_infer_size
@@ -239,7 +241,9 @@ class RaySelfPlayWorker:
                     self.past_opponent_path, device="cpu"
                 )
                 past_model.load_state_dict(past_state)
-                past_client = LocalInference(past_model)
+                past_client = LocalInference(
+                    past_model, dtype=getattr(inference_rt, "local_dtype", "float32")
+                )
 
                 self.past_agent = AlphaZeroAgent(
                     game=self.game,

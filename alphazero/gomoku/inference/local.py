@@ -7,9 +7,25 @@ __all__ = ["LocalInference"]
 
 
 class LocalInference(InferenceClient):
-    """Local inference wrapper that respects the provided device."""
+    """Local inference wrapper that respects the provided device.
 
-    def __init__(self, model: nn.Module, device: torch.device | str | None = None):
+    ``prefers_sync`` tells the native search to call ``infer`` directly: the
+    async path would round-trip every batch through the Ray object store.
+
+    With ``dtype="bfloat16"`` the forward pass runs under bf16 autocast on the
+    model's device: about twice as fast as float32 on CPUs with native bf16, and
+    on tensor cores on the GPU. Outputs are returned as float32 so callers can
+    convert them to numpy.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        device: torch.device | str | None = None,
+        dtype: str = "float32",
+    ):
+        if dtype not in ("float32", "bfloat16"):
+            raise ValueError(f"Unsupported local inference dtype: {dtype}")
         target_device: torch.device
         if device is not None:
             target_device = torch.device(device)
@@ -24,6 +40,9 @@ class LocalInference(InferenceClient):
         self._model = model.to(target_device)
         self._device = target_device
         self._model.eval()
+        self._bf16 = dtype == "bfloat16"
+
+    prefers_sync = True
 
     @property
     def device(self) -> torch.device:
@@ -59,7 +78,12 @@ class LocalInference(InferenceClient):
         inputs = inputs.to(self._device)
 
         with torch.inference_mode():
-            policy, value = self._model(inputs)
+            if self._bf16:
+                with torch.autocast(device_type=self._device.type, dtype=torch.bfloat16):
+                    policy, value = self._model(inputs)
+                policy, value = policy.float(), value.float()
+            else:
+                policy, value = self._model(inputs)
 
         if squeeze_output:
             policy = policy.squeeze(0)

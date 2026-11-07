@@ -1,5 +1,5 @@
 import time
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 import yaml
@@ -193,6 +193,10 @@ class SelfPlayRuntimeConfig(BaseConfig):
     random_num_searches: int | None = None
     max_chunk_size: int | None = None
     random_max_chunk_size: int | None = None
+    # Extra self-play workers on the GPU node, each with its own model on the GPU.
+    # Needs inference.use_local_inference; they split gpu_worker_gpu_total between them.
+    gpu_workers: int = 0
+    gpu_worker_gpu_total: float = 0.9
 
 
 class InferenceRuntimeConfig(BaseConfig):
@@ -203,6 +207,8 @@ class InferenceRuntimeConfig(BaseConfig):
     actor_num_cpus: float | None = 1.0
     num_servers: int | None = None
     use_local_inference: bool = False
+    # Dtype for use_local_inference on CPU workers: "float32" or "bfloat16".
+    local_dtype: Literal["float32", "bfloat16"] = "float32"
 
 
 class EvaluationRuntimeConfig(BaseConfig):

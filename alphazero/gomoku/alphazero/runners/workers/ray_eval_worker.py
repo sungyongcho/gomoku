@@ -45,13 +45,19 @@ class RayEvalWorker:
             self.challenger_model = PolicyValueNet(self.game, cfg.model, device="cpu")
             if challenger_weights:
                 self.challenger_model.load_state_dict(challenger_weights)
-            self.challenger_client = LocalInference(self.challenger_model)
+            self.challenger_client = LocalInference(
+                self.challenger_model,
+                dtype=getattr(inference_rt, "local_dtype", "float32"),
+            )
 
             # Champion
             self.champion_model = PolicyValueNet(self.game, cfg.model, device="cpu")
             if champion_weights:
                 self.champion_model.load_state_dict(champion_weights)
-            self.champion_client = LocalInference(self.champion_model)
+            self.champion_client = LocalInference(
+                self.champion_model,
+                dtype=getattr(inference_rt, "local_dtype", "float32"),
+            )
 
         else:
             # Initialize inference clients (Remote)

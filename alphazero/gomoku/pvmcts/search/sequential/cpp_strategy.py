@@ -46,7 +46,9 @@ class CppSearchStrategy(SearchStrategy):
         batch_size = engine.params.batch_infer_size
 
         if batch_size > 1:
-            if hasattr(engine.inference, "infer_async"):
+            if hasattr(engine.inference, "infer_async") and not getattr(
+                engine.inference, "prefers_sync", False
+            ):
                 self._run_async_mcts(engine, root, root_native_state, sims, batch_size, noise_pending)
             else:
                 self._run_sync_batch_mcts(engine, root, root_native_state, sims, batch_size, noise_pending)
