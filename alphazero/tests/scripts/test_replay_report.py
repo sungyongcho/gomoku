@@ -72,4 +72,32 @@ def test_report_groups_by_iteration_and_measures_targets(tmp_path: Path) -> None
     assert third.early_one_hot / third.early_rows == pytest.approx(0.5)
     assert np.mean(third.entropy[PLAYER_1]) == pytest.approx(0.0, abs=1e-6)
     assert np.mean(third.entropy[PLAYER_2]) == pytest.approx(np.log(81), abs=0.01)
+    assert third.draws == 0
+    assert np.mean(third.width[PLAYER_1]) == 1
+    assert np.mean(third.width[PLAYER_2]) == 81
     assert "mean_plies=4.0" in third.summary()
+    assert sorted(replay_report.collect(str(tmp_path), last=1)) == [4]
+
+
+def test_value_saturation_reads_a_checkpoint(tmp_path: Path) -> None:
+    import torch
+    import yaml
+
+    from gomoku.model.policy_value_net import PolicyValueNet
+    from gomoku.utils.config.loader import load_and_parse_config
+
+    raw = yaml.safe_load(Path("configs/small-6x96-selfplay.yaml").read_text())
+    raw["board"].update(num_lines=9, enable_doublethree=False, enable_capture=False, history_length=1)
+    raw["model"].update(num_hidden=8, num_resblocks=1)
+    config = tmp_path / "small.yaml"
+    config.write_text(yaml.safe_dump(raw))
+    cfg = load_and_parse_config(str(config))
+    game = Gomoku(cfg.board)
+    checkpoint = tmp_path / "model.pt"
+    torch.save({"model_state_dict": PolicyValueNet(game, cfg.model, torch.device("cpu")).state_dict()}, checkpoint)
+    replay = tmp_path / "replay"
+    save_records_to_parquet_shard([_record(game, True)], str(replay / "shard-iter0001-1-local.parquet"))
+
+    saturated, empty_value = replay_report.value_saturation(str(replay), str(checkpoint), str(config))
+    assert 0.0 <= saturated <= 1.0
+    assert -1.0 <= empty_value <= 1.0

@@ -1,6 +1,10 @@
-# v5: small model self-play from scratch on one Google Cloud GPU VM (g2-standard-12: 12 vCPU, 1 L4).
+# v5: small model self-play from scratch on the v4 Ray cluster in
+# infra/training/cluster/cluster_elo1800.yaml (g2-standard-16 head with 1 L4, 10 c4-standard-8 workers).
 # No opening rules, teacher or old replay. Replay and checkpoints go to the GCS bucket in run_prefix,
-# which must match GCP_BUCKET_NAME. Measure one iteration before raising games or searches.
+# which must match GCP_BUCKET_NAME. Runtime sizes follow v4; measure one iteration before changing them.
+# To change settings mid-run, stop the run and resume with a copy under a new name
+# (for example v5-small-6x96-fpu005.yaml). The manifest records only config names, so editing this
+# file in place would lose which values each iteration used.
 
 board:
   num_lines: 19
@@ -32,25 +36,25 @@ mcts:
 
 training:
   num_iterations: 50
-  num_selfplay_iterations: 400
-  num_epochs: 1
+  num_selfplay_iterations: 1200
+  num_epochs: 2
   batch_size: 512
   learning_rate: 0.001
   weight_decay: 0.0001
   temperature: 1.0
-  replay_buffer_size: 60000
+  replay_buffer_size: 250000
   min_samples_to_train: 2000
   random_play_ratio: 0.0
   random_opening_turns: 0
-  dataloader_num_workers: 2
-  use_channels_last: false
+  dataloader_num_workers: 4
+  use_channels_last: true
   opponent_rates:
     random_bot_ratio: 0.0
     prev_bot_ratio: 0.0
 
 evaluation:
   num_eval_games: 40
-  eval_every_iters: 5
+  eval_every_iters: 2
   promotion_win_rate: 0.55
   eval_num_searches: 400
   eval_random_opening_plies: 4
@@ -70,15 +74,16 @@ evaluation:
 runtime:
   selfplay:
     actor_num_cpus: 1.0
-    inflight_per_actor: 32
-    games_per_actor: 16
+    inflight_per_actor: 192
+    games_per_actor: 80
+    max_chunk_size: 1
   inference:
-    actor_num_gpus: 1.0
-    num_actors: 1
+    actor_num_gpus: 0.08
+    num_actors: 12
     actor_num_cpus: 1.0
     use_local_inference: false
   evaluation:
-    num_workers: 8 # whole pairs per worker keep colours balanced
+    num_workers: 40 # 40 games: each worker plays one opening pair
 
 paths:
   use_gcs: true
@@ -86,7 +91,7 @@ paths:
   run_id: "v5-small-6x96"
 
 parallel:
-  ray_local_num_workers: 9 # 12 vCPU: 9 workers, 1 inference actor, driver
+  ray_local_num_workers: -1 # follow the cluster's selfplay resources
   mp_num_workers: 1
   num_parallel_games: 1
 
