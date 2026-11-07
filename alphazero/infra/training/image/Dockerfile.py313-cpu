@@ -1,5 +1,6 @@
-# 헤드 노드와 동일한 Python 패치 버전(현재 3.13.11)로 고정
-FROM python:3.13.11-slim
+# Ray needs the same Python patch version on every node. The GPU head image installs the newest
+# deadsnakes python3.13 at build time (3.13.18 on 2026-11-07), so match it here after a GPU rebuild.
+FROM python:3.13.18-slim
 
 # 1) 런타임 유틸 설치 (필수: rsync, openssh-client)
 #    권장: iproute2, curl, procps, tzdata
