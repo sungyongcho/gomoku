@@ -551,7 +551,14 @@ def run_ray(
     inf_cfg = params.runtime.inference if params.runtime else None
     inf_num_actors_conf = getattr(inf_cfg, "num_actors", None) if inf_cfg else None
 
-    if inf_num_actors_conf is not None and int(inf_num_actors_conf) == -1:
+    use_local_inference = bool(
+        getattr(getattr(getattr(params, "runtime", None), "inference", None), "use_local_inference", False)
+    )
+    if use_local_inference:
+        # Workers run the model in-process, so inference actors would only hold head CPU and GPU.
+        num_inf_actors = 0
+        log("[Cluster] Local inference: no inference actors")
+    elif inf_num_actors_conf is not None and int(inf_num_actors_conf) == -1:
         # Auto-detect: Use (Head Node CPUs / 4)
         head_cpus = 0
         for node in ray.nodes():

@@ -3,6 +3,8 @@
 # Adds a reference match: every 10 iterations the champion plays the v4 champion (iteration 222,
 # 12x128) at 400 searches per move, 40 colour-swapped games. On 2026-11-08 iteration 24 lost 4-36.
 # training.num_iterations is the run's total: the trainer subtracts the iterations already done.
+# With local inference the runner no longer creates inference actors, which frees one head CPU
+# for a 13th GPU self-play worker.
 board:
   num_lines: 19
   enable_doublethree: true
@@ -82,11 +84,11 @@ runtime:
     inflight_per_actor: 192
     games_per_actor: 80
     max_chunk_size: 1
-    gpu_workers: 12 # head: 16 vCPU = 12 workers + 1 inference actor + driver
-    gpu_worker_gpu_total: 0.9
+    gpu_workers: 13 # head: 16 vCPU = 13 workers + driver; local inference needs no inference actors
+    gpu_worker_gpu_total: 0.95
   inference:
     actor_num_gpus: 0.05
-    num_actors: 1 # still created by the runner; unused for self-play
+    num_actors: 0 # ignored with use_local_inference: the runner creates no inference actors
     actor_num_cpus: 1.0
     use_local_inference: true
     local_dtype: bfloat16

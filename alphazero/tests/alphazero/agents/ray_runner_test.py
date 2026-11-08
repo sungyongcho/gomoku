@@ -820,3 +820,20 @@ def test_gpu_workers_need_local_inference(monkeypatch: pytest.MonkeyPatch) -> No
 
     with pytest.raises(ValueError):
         runner._create_workers([])
+
+
+def test_zero_inference_actors_creates_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    created: list[dict] = []
+    monkeypatch.setattr(ray_runner_mod, "RayInferenceActor", _recording_worker_class(created))
+    monkeypatch.setattr(ray_runner_mod, "_build_model_fn", lambda cfg, device: lambda: None)
+    monkeypatch.setattr(ray_runner_mod.ray, "cluster_resources", lambda: {"CPU": 16, "GPU": 1, "head": 1})
+    monkeypatch.setattr(ray_runner_mod.ray, "available_resources", lambda: {"CPU": 16, "GPU": 1, "head": 1})
+    cfg = MagicMock()
+    cfg.runtime = SimpleNamespace(
+        inference=SimpleNamespace(actor_num_cpus=1.0, actor_num_gpus=0.05, use_local_inference=True),
+        selfplay=None,
+    )
+    runner = ray_runner_mod.RayAsyncRunner(cfg=cfg, num_actors=0, num_workers=1)
+
+    assert runner._create_actors() == []
+    assert created == []
