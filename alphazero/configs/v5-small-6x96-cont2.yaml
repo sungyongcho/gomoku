@@ -1,0 +1,130 @@
+# v5 second continuation: same run (run_id v5-small-6x96), replay and weights as
+# v5-small-6x96-cont.yaml, switched in after iteration 51.
+# Why: at iteration 50, 96% of self-play games opened on one point (5,2 and its mirrors) and almost
+# no stone was ever placed 7 or more points from the edge. Against v4 from random openings the
+# network missed fours on unfamiliar parts of the board: 27 of its 40 games were lost, median 10 plies.
+# Changes from v5-small-6x96-cont.yaml:
+#   - random_opening_turns cycles 1, 2, 3, 4, 0 from iteration 52: the first N plies of every game
+#     in that iteration are uniform random over the whole board and are not policy targets. 0 keeps
+#     empty-board positions in the replay. Training only: the serving engine has no opening rule.
+#   - learning_rate stays 0.001 to iteration 80: the network has to learn most of the board.
+#   - exploration_turns 16 (8 before).
+# training.num_iterations is the run's total: the trainer subtracts the iterations already done.
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 96
+  num_resblocks: 6
+
+mcts:
+  C: 2.0
+  num_searches: 800 # 400 in iterations 1-37; deeper search to defend against early double threats
+  fpu_from_parent: true
+  fpu_reduction: 0.1 # measured 2026-11-07: 0 leaves targets near uniform, 0.2+ narrows to about 8 moves
+  exploration_turns: 16
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.03
+  batch_infer_size: 8
+  min_batch_size: 1
+  max_batch_wait_ms: 0
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 100 # total target: runs iterations 52-100
+  num_selfplay_iterations: 1200
+  num_epochs: 2
+  batch_size: 512
+  learning_rate: # 0.001 until the board is covered, then decays
+    - { until: 80, value: 0.001 }
+    - { until: 92, value: 0.0005 }
+    - { until: 100, value: 0.0002 }
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 250000
+  min_samples_to_train: 2000
+  random_play_ratio: 0.0
+  random_opening_turns: [ # cycles every iteration, see the header
+    { until: 51, value: 0 }, # played without random openings
+    { until: 52, value: 1 }, { until: 53, value: 2 }, { until: 54, value: 3 }, { until: 55, value: 4 }, { until: 56, value: 0 },
+    { until: 57, value: 1 }, { until: 58, value: 2 }, { until: 59, value: 3 }, { until: 60, value: 4 }, { until: 61, value: 0 },
+    { until: 62, value: 1 }, { until: 63, value: 2 }, { until: 64, value: 3 }, { until: 65, value: 4 }, { until: 66, value: 0 },
+    { until: 67, value: 1 }, { until: 68, value: 2 }, { until: 69, value: 3 }, { until: 70, value: 4 }, { until: 71, value: 0 },
+    { until: 72, value: 1 }, { until: 73, value: 2 }, { until: 74, value: 3 }, { until: 75, value: 4 }, { until: 76, value: 0 },
+    { until: 77, value: 1 }, { until: 78, value: 2 }, { until: 79, value: 3 }, { until: 80, value: 4 }, { until: 81, value: 0 },
+    { until: 82, value: 1 }, { until: 83, value: 2 }, { until: 84, value: 3 }, { until: 85, value: 4 }, { until: 86, value: 0 },
+    { until: 87, value: 1 }, { until: 88, value: 2 }, { until: 89, value: 3 }, { until: 90, value: 4 }, { until: 91, value: 0 },
+    { until: 92, value: 1 }, { until: 93, value: 2 }, { until: 94, value: 3 }, { until: 95, value: 4 }, { until: 96, value: 0 },
+    { until: 97, value: 1 }, { until: 98, value: 2 }, { until: 99, value: 3 }, { until: 100, value: 4 }
+  ]
+  dataloader_num_workers: 4
+  use_channels_last: true
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 2
+  promotion_win_rate: 0.55
+  eval_num_searches: 800 # matches self-play; the v4 reference match stays at 400
+  eval_random_opening_plies: 4
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  use_sprt: false
+  reference:
+    name: v4
+    checkpoint: gs://gomoku-v5-training/reference/v4-champion-222.pt
+    config: configs/deploy.yaml
+    every_iters: 10
+    num_games: 40
+    num_searches: 400
+    opening_plies: 2
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 192
+    games_per_actor: 80
+    max_chunk_size: 1
+    gpu_workers: 13 # head: 16 vCPU = 13 workers + driver; local inference needs no inference actors
+    gpu_worker_gpu_total: 0.95
+  inference:
+    actor_num_gpus: 0.05
+    num_actors: 0 # ignored with use_local_inference: the runner creates no inference actors
+    actor_num_cpus: 1.0
+    use_local_inference: true
+    local_dtype: bfloat16
+  evaluation:
+    num_workers: 40 # 40 games: each worker plays one opening pair
+
+paths:
+  use_gcs: true
+  run_prefix: "gomoku-v5-training"
+  run_id: "v5-small-6x96"
+
+parallel:
+  ray_local_num_workers: 84 # CPU worker slots: 9 C4D x 8 + C4 8 + C4 4 (cluster_v5.yaml)
+  mp_num_workers: 1
+  num_parallel_games: 1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

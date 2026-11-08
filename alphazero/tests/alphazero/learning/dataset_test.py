@@ -12,6 +12,7 @@ import torch
 from gomoku.alphazero.learning.dataset import (
     GameSample,
     ReplayDataset,
+    _apply_translation,
     decode_board,
     decode_policy,
     flatten_game_records,
@@ -306,3 +307,124 @@ def test_decode_board_policy_bytes_and_array() -> None:
     print(f"[decode_policy] sum={decoded_policy.sum():.4f}")
     assert np.allclose(decoded_policy, policy.astype(np.float32))
     assert np.allclose(decoded_policy_arr, policy.astype(np.float32))
+
+
+def _make_open_game() -> Gomoku:
+    return Gomoku(
+        BoardConfig(
+            num_lines=9,
+            enable_doublethree=True,
+            enable_capture=True,
+            capture_goal=5,
+            gomoku_goal=5,
+            history_length=2,
+        )
+    )
+
+
+def _play(game: Gomoku, moves: list[tuple[int, int]]) -> GameState:
+    state = game.get_initial_state()
+    for xy in moves:
+        state = game.get_next_state(state, xy, int(state.next_player))
+    return state
+
+
+def _point(game: Gomoku, x: int, y: int) -> int:
+    return x + y * game.col_count
+
+
+def _force_draws(monkeypatch: pytest.MonkeyPatch, *draws: int) -> None:
+    values = iter(draws)
+    monkeypatch.setattr(np.random, "random", lambda: 0.0)
+    monkeypatch.setattr(np.random, "randint", lambda low, high: next(values))
+
+
+def test_translation_matches_the_encoding_of_the_moved_game(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Shifting an encoded position equals encoding the same game played elsewhere."""
+    game = _make_open_game()
+    moves = [(2, 2), (3, 3), (4, 2), (2, 4)]
+    dx, dy = 2, 1
+    encoded = game.get_encoded_state([_play(game, moves)])[0]
+    policy = np.zeros(game.action_size, dtype=np.float32)
+    policy[_point(game, 3, 2)] = 1.0
+
+    _force_draws(monkeypatch, dy, dx)
+    moved, target = _apply_translation(encoded, policy, game, 1.0)
+
+    played_there = _play(game, [(x + dx, y + dy) for x, y in moves])
+    np.testing.assert_array_equal(moved, game.get_encoded_state([played_there])[0])
+    assert target[_point(game, 5, 3)] == pytest.approx(1.0)
+
+
+def test_translation_drops_policy_mass_pushed_off_the_board(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mass that would wrap around is removed and the remainder sums to one."""
+    game = _make_open_game()
+    encoded = game.get_encoded_state([_play(game, [(3, 3)])])[0]
+    policy = np.zeros(game.action_size, dtype=np.float32)
+    policy[_point(game, 0, 0)] = 0.25
+    policy[_point(game, 4, 4)] = 0.75
+
+    _force_draws(monkeypatch, 0, -2)
+    _, target = _apply_translation(encoded, policy, game, 1.0)
+
+    assert target[_point(game, 2, 4)] == pytest.approx(1.0)
+    assert target.sum() == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("moves", [[], [(0, 4)], [(4, 8)]])
+def test_translation_leaves_empty_boards_and_stones_on_the_outer_line(
+    monkeypatch: pytest.MonkeyPatch, moves: list[tuple[int, int]]
+) -> None:
+    """Without a position that can move, the sample is returned unchanged."""
+    game = _make_open_game()
+    encoded = game.get_encoded_state([_play(game, moves)])[0]
+    policy = np.full(game.action_size, 1.0 / game.action_size, dtype=np.float32)
+
+    monkeypatch.setattr(np.random, "random", lambda: 0.0)
+    moved, target = _apply_translation(encoded, policy, game, 1.0)
+
+    assert moved is encoded and target is policy
+
+
+def test_translation_keeps_stones_off_the_outer_line() -> None:
+    """Every random shift keeps all stones on the board and away from its outer line."""
+    game = _make_open_game()
+    encoded = game.get_encoded_state([_play(game, [(2, 3), (4, 5), (5, 2)])])[0]
+    policy = np.full(game.action_size, 1.0 / game.action_size, dtype=np.float32)
+    np.random.seed(0)
+
+    for _ in range(200):
+        moved, target = _apply_translation(encoded, policy, game, 1.0)
+        stones = moved[0] + moved[1]
+        assert stones.sum() == 3
+        assert not stones[0].any() and not stones[-1].any()
+        assert not stones[:, 0].any() and not stones[:, -1].any()
+        assert target.sum() == pytest.approx(1.0)
+
+
+def test_translation_is_off_by_default_and_applied_by_the_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The dataset only moves positions when asked to, after applying the symmetry."""
+    game = _make_open_game()
+    state = _play(game, [(3, 3), (4, 4)])
+    policy = np.zeros(game.action_size, dtype=np.float32)
+    policy[_point(game, 5, 5)] = 1.0
+    samples = [GameSample(state=state, policy_probs=policy, value=0.0)]
+
+    monkeypatch.setattr(np.random, "randint", lambda low, high: 0)
+    plain = ReplayDataset(samples=samples, game=game, include_priority=False)
+    _, policy_t, _ = plain[0]
+    assert int(policy_t.argmax()) == _point(game, 5, 5)
+
+    moving = ReplayDataset(
+        samples=samples, game=game, include_priority=False, translation_prob=1.0
+    )
+    _force_draws(monkeypatch, 0, 1, -1)
+    state_t, policy_t, _ = moving[0]
+    assert int(policy_t.argmax()) == _point(game, 4, 6)
+    assert state_t.numpy()[3][5, 3] == 1.0

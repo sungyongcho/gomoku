@@ -81,6 +81,8 @@ class TrainingConfig(BaseConfig):
     #   중·종반 품질에 영향 없음. opening 고착 해소에 적합.
     random_play_ratio: ScheduledFloat | None = None
     random_opening_turns: ScheduledFloat | None = None
+    # Share of training positions moved to a random place on the board (see dataset.py).
+    translation_prob: float = 0.0
     opponent_rates: OpponentConfig | None = None
     priority_replay: PriorityReplayConfig | None = None
     dataloader_num_workers: int = 1

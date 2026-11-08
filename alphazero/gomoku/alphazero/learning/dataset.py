@@ -60,6 +60,9 @@ def decode_policy(policy_field: object) -> np.ndarray:
     return arr.astype(np.float32)
 
 
+_ME_PLANE, _OPPONENT_PLANE, _FORBIDDEN_PLANE = 0, 1, 7
+
+
 def _apply_symmetry(
     encoded_state: np.ndarray, policy: np.ndarray, game: Gomoku
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -86,6 +89,50 @@ def _apply_symmetry(
     return obs, pi_flat
 
 
+def _apply_translation(
+    encoded_state: np.ndarray, policy: np.ndarray, game: Gomoku, probability: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Move the stones to a random place on the board with the given probability.
+
+    Tactics seen in one area then reach the rest of the board, which symmetries cannot
+    do. Empty boards and positions with a stone on the outer line stay put. Policy mass
+    pushed off the board is dropped and the rest renormalised.
+    """
+    h, w = game.row_count, game.col_count
+    if probability <= 0.0 or policy.size != h * w or np.random.random() >= probability:
+        return encoded_state, policy
+
+    stones = encoded_state[_ME_PLANE] + encoded_state[_OPPONENT_PLANE]
+    rows = np.flatnonzero(stones.any(axis=1))
+    cols = np.flatnonzero(stones.any(axis=0))
+    if rows.size == 0 or rows[0] == 0 or cols[0] == 0:
+        return encoded_state, policy
+    if rows[-1] == h - 1 or cols[-1] == w - 1:
+        return encoded_state, policy
+
+    dy = int(np.random.randint(1 - rows[0], h - 1 - rows[-1]))
+    dx = int(np.random.randint(1 - cols[0], w - 1 - cols[-1]))
+    moved = np.roll(encoded_state, (dy, dx), axis=(1, 2))
+    target = np.roll(policy.reshape(h, w), (dy, dx), axis=(0, 1))
+
+    crossed = np.zeros((h, w), dtype=bool)
+    if dy > 0:
+        crossed[:dy] = True
+    elif dy < 0:
+        crossed[dy:] = True
+    if dx > 0:
+        crossed[:, :dx] = True
+    elif dx < 0:
+        crossed[:, dx:] = True
+    target[crossed] = 0.0
+    moved[_FORBIDDEN_PLANE][crossed] = 0.0
+
+    kept = float(target.sum())
+    if kept <= 0.0:
+        return encoded_state, policy
+    return moved, (target / kept).reshape(-1)
+
+
 class GameSample(NamedTuple):
     """Flattened training sample at a single turn."""
 
@@ -103,6 +150,7 @@ class ReplayDataset(Dataset):
     game: Gomoku
     include_priority: bool = True
     return_index: bool = False
+    translation_prob: float = 0.0
     priorities: list[float] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -121,6 +169,9 @@ class ReplayDataset(Dataset):
         encoded_state = self.game.get_encoded_state([sample.state])[0]
         policy_np = np.asarray(sample.policy_probs, dtype=np.float32)
         aug_state, aug_policy = _apply_symmetry(encoded_state, policy_np, self.game)
+        aug_state, aug_policy = _apply_translation(
+            aug_state, aug_policy, self.game, self.translation_prob
+        )
         state_tensor = torch.tensor(aug_state, dtype=torch.float32)
         policy_tensor = torch.tensor(aug_policy, dtype=torch.float32)
         value_tensor = torch.tensor(sample.value, dtype=torch.float32).unsqueeze(0)

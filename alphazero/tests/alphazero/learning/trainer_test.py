@@ -295,3 +295,16 @@ def test_decode_board_policy_bytes_and_array() -> None:
     print(f"[decode_policy] sum={decoded_policy.sum():.4f}")
     assert np.allclose(decoded_policy, policy.astype(np.float32))
     assert np.allclose(decoded_policy_arr, policy.astype(np.float32))
+
+
+def test_trainer_passes_the_translation_share_to_its_dataset() -> None:
+    """The configured translation probability reaches the replay dataset."""
+    train_cfg, game = _make_cfg_and_game()
+    train_cfg = train_cfg.model_copy(update={"translation_prob": 0.5})
+    model = torch.nn.Linear(1, 1)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    trainer = AlphaZeroTrainer(
+        train_cfg=train_cfg, model=model, optimizer=optimizer, game=game
+    )
+
+    assert trainer._make_dataset(_make_samples(game)).translation_prob == 0.5

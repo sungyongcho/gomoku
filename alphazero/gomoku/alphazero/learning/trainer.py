@@ -45,7 +45,11 @@ class AlphaZeroTrainer:
         """Wrap input into a dataset if it is not already one."""
         if isinstance(samples, Dataset):
             return samples
-        return ReplayDataset(samples=samples, game=self.game)
+        return ReplayDataset(
+            samples=samples,
+            game=self.game,
+            translation_prob=self.train_cfg.translation_prob,
+        )
 
     def _make_loader(
         self, dataset: Dataset, sampler: WeightedRandomSampler | None = None
