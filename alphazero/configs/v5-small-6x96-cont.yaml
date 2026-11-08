@@ -5,6 +5,9 @@
 # training.num_iterations is the run's total: the trainer subtracts the iterations already done.
 # With local inference the runner no longer creates inference actors, which frees one head CPU
 # for a 13th GPU self-play worker.
+# Strength changes from iteration 51 (2026-11-08, after iteration 28 lost 6-34 to v4 at 400
+# searches: v4 builds double threats a few moves ahead): 800 searches for self-play and promotion,
+# and the learning rate decays to 0.0005 at 51 and 0.0002 at 76. Expect about twice the self-play time.
 board:
   num_lines: 19
   enable_doublethree: true
@@ -19,7 +22,7 @@ model:
 
 mcts:
   C: 2.0
-  num_searches: 400
+  num_searches: 800 # 400 in iterations 1-50; deeper search to defend against early double threats
   fpu_from_parent: true
   fpu_reduction: 0.1 # measured 2026-11-07: 0 leaves targets near uniform, 0.2+ narrows to about 8 moves
   exploration_turns: 8
@@ -38,7 +41,10 @@ training:
   num_selfplay_iterations: 1200
   num_epochs: 2
   batch_size: 512
-  learning_rate: 0.001
+  learning_rate: # constant 0.001 in iterations 1-50, then decays
+    - { until: 50, value: 0.001 }
+    - { until: 75, value: 0.0005 }
+    - { until: 100, value: 0.0002 }
   weight_decay: 0.0001
   temperature: 1.0
   replay_buffer_size: 250000
@@ -55,7 +61,7 @@ evaluation:
   num_eval_games: 40
   eval_every_iters: 2
   promotion_win_rate: 0.55
-  eval_num_searches: 400
+  eval_num_searches: 800 # matches self-play; the v4 reference match stays at 400
   eval_random_opening_plies: 4
   eval_opening_turns: 0
   eval_temperature: 0.0
