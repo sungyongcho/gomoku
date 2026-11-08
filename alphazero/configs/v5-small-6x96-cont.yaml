@@ -1,13 +1,17 @@
-# v5 continuation: same run (run_id v5-small-6x96) and settings as v5-small-6x96.yaml, resumed after
-# its 50 iterations under a new name so the manifest keeps which config each iteration used.
-# Adds a reference match: every 10 iterations the champion plays the v4 champion (iteration 222,
-# 12x128) at 400 searches per move, 40 colour-swapped games. On 2026-11-08 iteration 24 lost 4-36.
+# v5 continuation: same run (run_id v5-small-6x96) and replay as v5-small-6x96.yaml, switched in
+# mid-run on 2026-11-08 after iteration 36 (or 38 if iteration 36 was still promoted), when two
+# promotion evaluations in a row had failed. The manifest records which config each iteration used.
+# Changes from v5-small-6x96.yaml:
+#   - 800 searches for self-play and promotion (400 before). Iteration 28 lost 6-34 to the v4
+#     champion at 400 searches: v4 builds double threats a few moves ahead.
+#   - The learning rate stays 0.001 to iteration 50, then 0.0005 to 75 and 0.0002 to 100.
+#   - 13 GPU self-play workers on the head: with local inference the runner creates no
+#     inference actors, which frees one head CPU.
+#   - Every 10 iterations the champion plays the v4 champion (iteration 222, 12x128) at 400
+#     searches, 40 colour-swapped games (iteration 24 lost 4-36, iteration 28 lost 6-34).
+# Openings: White's first self-play reply moved next to Black's first stone from iteration 29
+# (within 2 points: 2-4% before, 53-68% after); replay_report prints it as reply_near.
 # training.num_iterations is the run's total: the trainer subtracts the iterations already done.
-# With local inference the runner no longer creates inference actors, which frees one head CPU
-# for a 13th GPU self-play worker.
-# Strength changes from iteration 51 (2026-11-08, after iteration 28 lost 6-34 to v4 at 400
-# searches: v4 builds double threats a few moves ahead): 800 searches for self-play and promotion,
-# and the learning rate decays to 0.0005 at 51 and 0.0002 at 76. Expect about twice the self-play time.
 board:
   num_lines: 19
   enable_doublethree: true
