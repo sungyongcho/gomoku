@@ -85,6 +85,7 @@ def play_game(
     black: str,
     opening_seed: int,
     opening_plies: int,
+    max_plies: int = 200,
 ) -> dict[str, Any]:
     """Play one game; ``sides`` maps CHAMPION/REFERENCE to (model config, mcts config, weights)."""
     torch.set_num_threads(1)
@@ -95,7 +96,7 @@ def play_game(
     state = game.get_initial_state()
     winner = None
     plies = 0
-    for _ in range(game.action_size * 2):
+    for _ in range(max_plies):
         mover = int(state.next_player)
         if plies < opening_plies:
             game.get_legal_moves(state)
@@ -113,8 +114,8 @@ def play_game(
 
 
 @ray.remote(num_cpus=1)
-def _play_game_task(board, sides, black, opening_seed, opening_plies):
-    return play_game(board, sides, black, opening_seed, opening_plies)
+def _play_game_task(board, sides, black, opening_seed, opening_plies, max_plies):
+    return play_game(board, sides, black, opening_seed, opening_plies, max_plies)
 
 
 def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
@@ -165,7 +166,7 @@ def run_reference_match(
     start = time.monotonic()
     futures = [
         _play_game_task.options(**options).remote(
-            board, sides_ref, black, iteration * 1000 + pair, ref_cfg.opening_plies
+            board, sides_ref, black, iteration * 1000 + pair, ref_cfg.opening_plies, ref_cfg.max_plies
         )
         for pair in range(pairs)
         for black in (CHAMPION, REFERENCE)

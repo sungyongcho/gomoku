@@ -151,6 +151,8 @@ class ReferenceMatchConfig(BaseConfig):
     num_games: int = 40  # played as colour-swapped pairs on the same random opening
     num_searches: int = 400
     opening_plies: int = 2
+    # Captures empty points, so a game may never fill the board; beyond this it counts as a draw.
+    max_plies: int = 200
 
 
 class EvaluationConfig(BaseConfig):

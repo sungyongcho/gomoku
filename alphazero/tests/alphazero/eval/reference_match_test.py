@@ -122,3 +122,10 @@ def test_evaluation_config_accepts_a_reference_block():
     }
     parsed = parse_config(raw).evaluation.reference
     assert parsed.name == "v4" and parsed.every_iters == 10 and parsed.num_games == 40
+
+
+def test_game_stops_at_the_move_limit_as_a_draw():
+    sides = {rm.CHAMPION: _side(0), rm.REFERENCE: _side(1)}
+    result = rm.play_game(_board(), sides, rm.CHAMPION, opening_seed=3, opening_plies=2, max_plies=4)
+    assert result["plies"] == 4
+    assert result["winner"] is None
