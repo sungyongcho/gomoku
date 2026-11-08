@@ -159,3 +159,35 @@ def test_tactics_finds_win_and_block_positions(tmp_path: Path) -> None:
     assert t["win_positions"] >= 1 and 0.0 <= t["win_top1"] <= 1.0 and 0.0 <= t["win_mass"] <= 1.0
     assert t["block_positions"] >= 1 and 0.0 <= t["block_top1"] <= 1.0
     assert t["forbidden_positions"] == 0  # double-three is off in this config
+
+
+def _row(black: list[int], white: list[int], mover: int, value: float, history: tuple[int, ...]) -> dict:
+    board = np.zeros(81, dtype=np.int8)
+    board[black] = PLAYER_1
+    board[white] = PLAYER_2
+    target = np.zeros(81, dtype=np.float16)
+    target[0] = 1.0
+    return {
+        "board": board.tobytes(),
+        "policy_probs": target.tobytes(),
+        "value": value,
+        "next_player": mover,
+        "p1_pts": 0,
+        "p2_pts": 0,
+        "history": list(history),
+    }
+
+
+def test_games_with_random_openings_are_counted_from_their_first_stored_position() -> None:
+    stats = replay_report.IterationStats()
+    # A finished game with a full move history, then one random stone: White replies at distance 1.
+    stats.add(_row([1, 2, 3], [10, 11, 12], PLAYER_1, 1.0, (12, 3, 11, 2, 10)))
+    stats.add(_row([40], [], PLAYER_2, -1.0, (40,)))
+    stats.add(_row([40], [41], PLAYER_1, 1.0, (41, 40)))
+    # Two random stones: nothing the search chose, so no reply distance.
+    stats.add(_row([20], [70], PLAYER_1, 1.0, (70, 20)))
+    stats.add(_row([20, 30], [70], PLAYER_2, -1.0, (30, 70, 20)))
+
+    assert stats.games == 3
+    assert stats.first_player_wins == 3
+    assert stats.reply_distance == [1]

@@ -23,7 +23,7 @@ import pyarrow.parquet as pq
 
 EARLY_STONES = 4
 SATURATED = 0.95
-COLUMNS = ["board", "policy_probs", "value", "next_player", "p1_pts", "p2_pts"]
+COLUMNS = ["board", "policy_probs", "value", "next_player", "p1_pts", "p2_pts", "history"]
 CAPTURE_GOAL = 5  # v5 board rules; a mover one capture short most likely won by capture
 
 
@@ -45,6 +45,7 @@ class IterationStats:
     reply_distance: list[int] = field(default_factory=list)
     _last: dict | None = None
     _ply: int = 0  # position index within the current game
+    _start_stones: int = 0  # stones on the board at the game's first stored position
 
     def end_game(self) -> None:
         """Classify the finished game from its last stored position (the final mover to play)."""
@@ -60,6 +61,15 @@ class IterationStats:
         else:
             self.five_wins += 1
 
+    def _starts_game(self, row: dict, stones: int) -> bool:
+        """Whether this row opens a new game; random opening plies are not stored as positions."""
+        if stones == 0 or self._last is None:
+            return True
+        history, previous = tuple(row.get("history") or ()), tuple(self._last.get("history") or ())
+        if not history:  # shards without move history: only an empty board marks a new game
+            return False
+        return len(history) < len(previous) or history[1:] != previous[: len(history) - 1]
+
     def add(self, row: dict) -> None:
         board = np.frombuffer(row["board"], dtype=np.int8)
         target = np.frombuffer(row["policy_probs"], dtype=np.float16).astype(np.float64)
@@ -69,16 +79,18 @@ class IterationStats:
         self.rows += 1
         self.entropy[player].append(float(-(support * np.log(support)).sum()))
         self.width[player].append(int(support.size))
-        if stones == 0:
+        if self._starts_game(row, stones):
             self.end_game()
             self.games += 1
-            self.first_player_wins += int(row["value"] > 0)
+            # The value is from the mover's side, and a random opening can leave White to move.
+            self.first_player_wins += int(row["value"] * (1 if player == 1 else -1) > 0)
             self.draws += int(row["value"] == 0)
             self._ply = 0
+            self._start_stones = stones
         else:
             self._ply += 1
-        if self._ply == 2 and stones == 2:
-            # Third position of a game: White's first reply next to Black's first stone.
+        if self._start_stones < 2 and stones == 2 and self._ply == 2 - self._start_stones:
+            # White's first reply next to Black's first stone, when the search chose it.
             # (Later positions can also hold two stones after captures.)
             size = int(round(np.sqrt(board.size)))
             black, white = int(np.flatnonzero(board == 1)[0]), int(np.flatnonzero(board == 2)[0])
