@@ -42,7 +42,9 @@ class IterationStats:
     five_wins: int = 0
     capture_wins: int = 0
     ended_draws: int = 0
+    reply_distance: list[int] = field(default_factory=list)
     _last: dict | None = None
+    _ply: int = 0  # position index within the current game
 
     def end_game(self) -> None:
         """Classify the finished game from its last stored position (the final mover to play)."""
@@ -72,6 +74,17 @@ class IterationStats:
             self.games += 1
             self.first_player_wins += int(row["value"] > 0)
             self.draws += int(row["value"] == 0)
+            self._ply = 0
+        else:
+            self._ply += 1
+        if self._ply == 2 and stones == 2:
+            # Third position of a game: White's first reply next to Black's first stone.
+            # (Later positions can also hold two stones after captures.)
+            size = int(round(np.sqrt(board.size)))
+            black, white = int(np.flatnonzero(board == 1)[0]), int(np.flatnonzero(board == 2)[0])
+            self.reply_distance.append(
+                max(abs(black % size - white % size), abs(black // size - white // size))
+            )
         if stones < EARLY_STONES:
             self.early_rows += 1
             self.early_one_hot += int(target.max() > 0.999)
@@ -89,7 +102,9 @@ class IterationStats:
             f"width_p1={np.mean(self.width[1] or [0]):.0f} "
             f"width_p2={np.mean(self.width[2] or [0]):.0f} "
             f"five_win={self.five_wins / games:.2f} "
-            f"capture_win={self.capture_wins / games:.2f}"
+            f"capture_win={self.capture_wins / games:.2f} "
+            f"reply_near={np.mean([d <= 2 for d in self.reply_distance] or [0]):.2f} "
+            f"reply_dist={np.median(self.reply_distance or [0]):.0f}"
         )
 
 

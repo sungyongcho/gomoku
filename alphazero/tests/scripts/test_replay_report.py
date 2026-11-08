@@ -79,6 +79,9 @@ def test_report_groups_by_iteration_and_measures_targets(tmp_path: Path) -> None
     # Short test games end with a decisive label and no captures, so they count as five wins.
     assert (third.five_wins, third.capture_wins, third.ended_draws) == (2, 0, 0)
     assert "five_win=1.00" in third.summary()
+    # Test games put Black at (0,0) and White at (1,0): the reply touches the first stone.
+    assert third.reply_distance == [1, 1]
+    assert "reply_near=1.00" in third.summary()
     assert sorted(replay_report.collect(str(tmp_path), last=1)) == [4]
 
 
