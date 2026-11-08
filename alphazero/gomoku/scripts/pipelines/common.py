@@ -61,7 +61,8 @@ def load_resume_state(
     tuple[int, str, list[str]]
         ``(completed_iterations, champion_path, replay_shards)`` where
         `completed_iterations` is the number of iterations already finished,
-        `champion_path` is the current champion checkpoint path, and
+        `champion_path` is the current champion checkpoint path (the model weights come
+        from the last finished iteration when its checkpoint exists), and
         `replay_shards` is the list of existing replay shard paths (may be empty).
 
     """
@@ -94,7 +95,17 @@ def load_resume_state(
             f"Checkpoint to load not found. Checked manifest and: {champion_path}"
         )
 
-    state_dict = load_state_dict_from_fs(fs, champion_path, torch.device(model.device))
+    # Training never rolls back to the champion after a rejected evaluation: self-play and
+    # training continue from the latest model. Resume from the last finished iteration so a
+    # stop/resume does not discard that progress; the champion stays the evaluation opponent.
+    weights_path = champion_path
+    if completed_before > 0:
+        latest_path = iteration_ckpt_path(params.paths, completed_before)
+        if latest_path != champion_path and fs.exists(latest_path):
+            weights_path = latest_path
+            print(f"[Resume] Training continues from {latest_path}; champion stays {champion_path}")
+
+    state_dict = load_state_dict_from_fs(fs, weights_path, torch.device(model.device))
     resized, missing, dropped = align_state_dict_to_model(
         state_dict, model.state_dict()
     )
@@ -112,7 +123,7 @@ def load_resume_state(
     model.load_state_dict(state_dict, strict=False)
 
     # Try loading optimizer state if present
-    optim_path = champion_path + ".optim"
+    optim_path = weights_path + ".optim"
     if fs.exists(optim_path):
         try:
             optim_state = load_state_dict_from_fs(

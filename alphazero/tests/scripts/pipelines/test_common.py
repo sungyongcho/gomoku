@@ -400,3 +400,33 @@ def test_evaluate_and_promote(tmp_path: Path, monkeypatch) -> None:
     print(f"[EvalPromote] summary={summary}")
     assert new_champ == new_ckpt
     assert summary is not None and summary.get("promote") is True
+
+
+def test_resume_continues_from_the_latest_iteration_not_the_champion(tmp_path: Path) -> None:
+    fs = fsspec.filesystem("file")
+    params = _make_runner_params(tmp_path.as_posix())
+    model = DummyModel()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+
+    with torch.no_grad():
+        model.weight.fill_(1.0)
+    champion = common.save_checkpoint(fs, params, iteration=2, model=model, optimizer=optimizer)
+    with torch.no_grad():
+        model.weight.fill_(3.0)
+    latest = common.save_checkpoint(fs, params, iteration=4, model=model, optimizer=optimizer)
+
+    mpath = manifest_path(params.paths)
+    fs.makedirs(os.path.dirname(mpath), exist_ok=True)
+    with fs.open(mpath, "w", encoding="utf-8") as f:
+        json.dump(
+            {"champion_model_path": champion, "progress": {"completed_iterations": 4}, "status": "running"},
+            f,
+        )
+    with torch.no_grad():
+        model.weight.fill_(9.0)
+
+    completed, champion_path, _ = common.load_resume_state(params, fs, model, optimizer)
+    assert completed == 4
+    assert champion_path == champion  # still the evaluation opponent
+    assert latest != champion
+    assert torch.allclose(model.weight, torch.tensor([3.0]))  # weights from iteration 4
