@@ -1,0 +1,108 @@
+# v5 continuation: same run (run_id v5-small-6x96) and settings as v5-small-6x96.yaml, resumed after
+# its 50 iterations under a new name so the manifest keeps which config each iteration used.
+# Adds a reference match: every 10 iterations the champion plays the v4 champion (iteration 222,
+# 12x128) at 400 searches per move, 40 colour-swapped games. On 2026-11-08 iteration 24 lost 4-36.
+# training.num_iterations is the run's total: the trainer subtracts the iterations already done.
+board:
+  num_lines: 19
+  enable_doublethree: true
+  enable_capture: true
+  capture_goal: 5
+  gomoku_goal: 5
+  history_length: 5
+
+model:
+  num_hidden: 96
+  num_resblocks: 6
+
+mcts:
+  C: 2.0
+  num_searches: 400
+  fpu_from_parent: true
+  fpu_reduction: 0.1 # measured 2026-11-07: 0 leaves targets near uniform, 0.2+ narrows to about 8 moves
+  exploration_turns: 8
+  dirichlet_epsilon: 0.25
+  dirichlet_alpha: 0.03
+  batch_infer_size: 8
+  min_batch_size: 1
+  max_batch_wait_ms: 0
+  use_native: true
+  resign_enabled: false
+  resign_threshold: 0.95
+  min_moves_before_resign: 20
+
+training:
+  num_iterations: 100 # total target: runs iterations 51-100 after the first 50
+  num_selfplay_iterations: 1200
+  num_epochs: 2
+  batch_size: 512
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  temperature: 1.0
+  replay_buffer_size: 250000
+  min_samples_to_train: 2000
+  random_play_ratio: 0.0
+  random_opening_turns: 0
+  dataloader_num_workers: 4
+  use_channels_last: true
+  opponent_rates:
+    random_bot_ratio: 0.0
+    prev_bot_ratio: 0.0
+
+evaluation:
+  num_eval_games: 40
+  eval_every_iters: 2
+  promotion_win_rate: 0.55
+  eval_num_searches: 400
+  eval_random_opening_plies: 4
+  eval_opening_turns: 0
+  eval_temperature: 0.0
+  eval_dirichlet_epsilon: 0.0
+  elo_k_factor: 2.0
+  initial_blunder_rate: 0.0
+  initial_baseline_win_rate: 0.0
+  blunder_increase_limit: 1.0
+  baseline_wr_min: 0.0
+  num_baseline_games: 0
+  blunder_threshold: 0.5
+  random_play_ratio: 0.0
+  use_sprt: false
+  reference:
+    name: v4
+    checkpoint: gs://gomoku-v5-training/reference/v4-champion-222.pt
+    config: configs/deploy.yaml
+    every_iters: 10
+    num_games: 40
+    num_searches: 400
+    opening_plies: 2
+
+runtime:
+  selfplay:
+    actor_num_cpus: 1.0
+    inflight_per_actor: 192
+    games_per_actor: 80
+    max_chunk_size: 1
+    gpu_workers: 12 # head: 16 vCPU = 12 workers + 1 inference actor + driver
+    gpu_worker_gpu_total: 0.9
+  inference:
+    actor_num_gpus: 0.05
+    num_actors: 1 # still created by the runner; unused for self-play
+    actor_num_cpus: 1.0
+    use_local_inference: true
+    local_dtype: bfloat16
+  evaluation:
+    num_workers: 40 # 40 games: each worker plays one opening pair
+
+paths:
+  use_gcs: true
+  run_prefix: "gomoku-v5-training"
+  run_id: "v5-small-6x96"
+
+parallel:
+  ray_local_num_workers: 84 # CPU worker slots: 9 C4D x 8 + C4 8 + C4 4 (cluster_v5.yaml)
+  mp_num_workers: 1
+  num_parallel_games: 1
+
+io:
+  max_samples_per_shard: null
+  local_replay_cache: /tmp/gmk_replay_cache

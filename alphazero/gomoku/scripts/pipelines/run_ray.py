@@ -10,6 +10,7 @@ import fsspec
 import ray
 import torch
 
+from gomoku.alphazero.eval.reference_match import run_reference_match
 from gomoku.alphazero.learning.dataset import flatten_game_records
 from gomoku.alphazero.learning.trainer import AlphaZeroTrainer
 from gomoku.alphazero.runners.ray_eval_runner import RayEvalRunner
@@ -819,6 +820,39 @@ def run_ray(
                 priority_trigger_reason=None,
             )
             atomic_append_jsonl(fs, evaluation_log_path(params.paths), log_entry)
+
+        ref_cfg = getattr(eval_cfg, "reference", None) if eval_cfg else None
+        if ref_cfg is not None and global_iter % max(1, ref_cfg.every_iters) == 0:
+            # Absolute strength check against a fixed outside model. It only logs, so a
+            # failure here must not stop the run.
+            try:
+                if runner:
+                    runner.stop_workers()
+                champion_state = load_state_dict_from_fs(
+                    fs, champion_path or ckpt_path, torch.device("cpu")
+                )
+                if isinstance(champion_state, dict) and "model_state_dict" in champion_state:
+                    champion_state = champion_state["model_state_dict"]
+                log(f"[Reference] Iteration {global_iter}: champion vs {ref_cfg.name} "
+                    f"({ref_cfg.num_games} games, {ref_cfg.num_searches} searches)...")
+                ref_summary = run_reference_match(
+                    params.board, params.model, params.mcts, champion_state, ref_cfg, global_iter
+                )
+                ref_summary["champion_path"] = champion_path or ckpt_path
+                log(
+                    f"[Reference] vs {ref_cfg.name}: W{ref_summary['wins']}/L{ref_summary['losses']}"
+                    f"/D{ref_summary['draws']} score={ref_summary['score']:.3f} "
+                    f"(as black {ref_summary['wins_as_black']}/{ref_summary['games_as_black']}, "
+                    f"as white {ref_summary['wins_as_white']}/{ref_summary['games_as_white']}, "
+                    f"{ref_summary['mean_plies']:.1f} plies, {ref_summary['seconds']:.0f}s)"
+                )
+                reference_log = os.path.join(
+                    os.path.dirname(evaluation_log_path(params.paths)), "reference_log.jsonl"
+                )
+                atomic_append_jsonl(fs, reference_log, ref_summary)
+            except Exception as exc:  # noqa: BLE001
+                log(f"[Reference] Skipped at iteration {global_iter}: {exc!r}")
+
         status = "completed" if (it + 1) == num_iters else "running"
         (manifest_updater or update_manifest)(
             params,

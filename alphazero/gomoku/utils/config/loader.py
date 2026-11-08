@@ -137,6 +137,22 @@ class FastEvalConfig(BaseConfig):
     reject_threshold: float = 0.0
 
 
+class ReferenceMatchConfig(BaseConfig):
+    """Fixed outside opponent the champion plays every few iterations, to track absolute strength.
+
+    The reference keeps its own config (board rules must match; model size may differ).
+    Both sides search the same number of times with no time limit, noise or root batching.
+    """
+
+    name: str = "reference"
+    checkpoint: str  # local path or fsspec URL such as gs://bucket/reference/v4.pt
+    config: str  # YAML with the reference model and search settings
+    every_iters: int = 10
+    num_games: int = 40  # played as colour-swapped pairs on the same random opening
+    num_searches: int = 400
+    opening_plies: int = 2
+
+
 class EvaluationConfig(BaseConfig):
     num_eval_games: int
     eval_every_iters: int
@@ -161,6 +177,7 @@ class EvaluationConfig(BaseConfig):
     adjudication_win_prob: float | None = None
     adjudication_min_turns: int | None = None
     elo_k_factor: float = 2.0
+    reference: ReferenceMatchConfig | None = None
 
 
 class ParallelConfig(BaseConfig):
