@@ -239,6 +239,7 @@ def test_ray_async_runner_smoke_generates_records(
             prev_bot_rate: float = 0.0,
             past_opponent_path: str | None = None,
             random_opening_turns: int = 0,
+            external_bot_rate: float = 0.0,
         ) -> list[Any]:
             return [dummy_rec]
 
@@ -314,6 +315,7 @@ def test_ray_async_runner_broadcasts_worker_params(
             prev_bot_rate: float = 0.0,
             past_opponent_path: str | None = None,
             random_opening_turns: int = 0,
+            external_bot_rate: float = 0.0,
         ) -> list[Any]:
             return []
 
@@ -487,6 +489,7 @@ def test_worker_update_params_accepts_mapping_and_rebuilds(
         async_inflight_limit=3,
         reset=lambda: created.setdefault("reset_called", True),
     )
+    worker._external = None
 
     worker.update_params(
         training_cfg={"temperature": 0.5},

@@ -57,6 +57,7 @@ def test_ray_worker_prev_bot_warning(
     worker.agent = MagicMock()  # 메인 에이전트
     worker.past_agent = None
     worker.past_opponent_path = None
+    worker.external_agent = None
     worker._prev_bot_warned = False
     worker.runner = MagicMock()
     worker.runner.play_batch_games.return_value = []

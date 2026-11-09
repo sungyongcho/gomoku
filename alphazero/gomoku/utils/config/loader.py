@@ -57,10 +57,29 @@ class PriorityReplayConfig(BaseConfig):
     trigger_no_promotion_iters: int | None = None
 
 
+class ExternalOpponentConfig(BaseConfig):
+    """
+    Fixed outside model (for example the v4 champion) playing a share of the self-play.
+
+    Self-play against the run's own network only produces positions that network
+    reaches, so it never sees the ones it loses from. Games against an outside model add
+    those positions from both sides: the outside model's search results become policy
+    targets and the game results value targets. The outside model keeps its own config
+    (board rules must match; size may differ). Ray self-play only.
+    """
+
+    name: str = "external"
+    checkpoint: str  # local path or fsspec URL such as gs://bucket/reference/v4.pt
+    config: str  # YAML with the outside model's size
+    ratio: ScheduledFloat = 0.0  # share of the self-play games played against it
+    num_searches: int | None = None  # per move; the self-play budget when unset
+
+
 class OpponentConfig(BaseConfig):
     random_bot_ratio: ScheduledFloat = 0.0
     prev_bot_ratio: ScheduledFloat = 0.0
     past_model_window: int = 5
+    external: ExternalOpponentConfig | None = None
 
 
 class TrainingConfig(BaseConfig):
@@ -309,6 +328,16 @@ class RootConfig(BaseConfig):
                         self.training.opponent_rates.prev_bot_ratio,
                         "training.opponent_rates.prev_bot_ratio",
                     ),
+                    "external": self.training.opponent_rates.external.model_copy(
+                        update={
+                            "ratio": _schedule(
+                                self.training.opponent_rates.external.ratio,
+                                "training.opponent_rates.external.ratio",
+                            )
+                        }
+                    )
+                    if self.training.opponent_rates.external is not None
+                    else None,
                 }
             )
             if self.training.opponent_rates is not None
@@ -389,6 +418,10 @@ class RootConfig(BaseConfig):
             schedules_to_validate["training.opponent_rates.prev_bot_ratio"] = (
                 training.opponent_rates.prev_bot_ratio
             )
+            if training.opponent_rates.external is not None:
+                schedules_to_validate["training.opponent_rates.external.ratio"] = (
+                    training.opponent_rates.external.ratio
+                )
         if evaluation.eval_num_searches is not None:
             schedules_to_validate["evaluation.eval_num_searches"] = (
                 evaluation.eval_num_searches

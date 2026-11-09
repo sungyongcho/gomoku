@@ -17,7 +17,12 @@ from gomoku.inference.local import LocalInference
 from gomoku.inference.ray_client import RayInferenceClient, SlotInferenceClient
 from gomoku.model.policy_value_net import PolicyValueNet
 from gomoku.pvmcts.pvmcts import PVMCTS
-from gomoku.utils.config.loader import MctsConfig, RootConfig, TrainingConfig
+from gomoku.utils.config.loader import (
+    MctsConfig,
+    ModelConfig,
+    RootConfig,
+    TrainingConfig,
+)
 from gomoku.utils.ray.ray_logger import setup_actor_logging
 
 
@@ -73,6 +78,10 @@ class RaySelfPlayWorker:
         self.random_bot = RandomBot(self.game)
         self.past_opponent_path: str | None = None
         self.past_agent: AlphaZeroAgent | None = None
+        # Outside model (see ExternalOpponentConfig): its search budget and inference
+        # client, and the agent built from them with the current search settings.
+        self._external: tuple[int | None, LocalInference] | None = None
+        self.external_agent: AlphaZeroAgent | None = None
         self.logger.info("RaySelfPlayWorker initialized.")
 
     def set_weights(self, weights: dict[str, Any]) -> None:
@@ -166,6 +175,7 @@ class RaySelfPlayWorker:
             self.agent.engine_type = engine_type
             self.runner.mcts_cfg = mcts_params
             self.agent.reset()
+            self._build_external_agent()
 
         if past_opponent_path is not None:
             if past_opponent_path != self.past_opponent_path:
@@ -285,6 +295,62 @@ class RaySelfPlayWorker:
         except Exception as exc:
             self.logger.error(f"Failed to setup past opponent: {exc}")
 
+    def set_external_opponent(
+        self,
+        model_cfg: ModelConfig,
+        num_searches: int | None,
+        weights: Mapping[str, Any],
+    ) -> None:
+        """
+        Build the outside opponent from its own model config and weights, in-process.
+
+        The model runs on this worker's device, like the worker's own model, so it needs
+        no inference actors. ``num_searches`` None means the self-play search budget.
+        """
+        device = self.model.device if self.model is not None else torch.device("cpu")
+        runtime = getattr(self.cfg, "runtime", None)
+        inference_rt = getattr(runtime, "inference", None) if runtime else None
+        model = PolicyValueNet(self.game, model_cfg, device=device)
+        model.load_state_dict({k: torch.as_tensor(v) for k, v in weights.items()})
+        model.eval()
+        client = LocalInference(
+            model, dtype=getattr(inference_rt, "local_dtype", "float32")
+        )
+        self._external = (num_searches, client)
+        self._build_external_agent()
+        self.logger.info(
+            "External opponent ready: %sx%s on %s, %s searches per move",
+            model_cfg.num_resblocks,
+            model_cfg.num_hidden,
+            device,
+            num_searches or "self-play",
+        )
+
+    def _build_external_agent(self) -> None:
+        """Give the outside opponent the current search settings, without root noise."""
+        if self._external is None:
+            return
+        num_searches, client = self._external
+        updates: dict[str, Any] = {"dirichlet_epsilon": 0.0}
+        if num_searches:
+            updates["num_searches"] = float(num_searches)
+        mcts_cfg = self.agent.mcts_cfg.model_copy(update=updates)
+        self.external_agent = AlphaZeroAgent(
+            game=self.game,
+            mcts_cfg=mcts_cfg,
+            inference_client=client,
+            engine_type=self.agent.engine_type,
+            async_inflight_limit=self.agent.async_inflight_limit,
+        )
+        # The worker's own agent searches in "ray" mode whatever its engine type.
+        self.external_agent.mcts = PVMCTS(
+            self.game,
+            mcts_cfg,
+            client,
+            mode="ray",
+            async_inflight_limit=self.agent.async_inflight_limit,
+        )
+
     def run_games(
         self,
         batch_size: int,
@@ -294,6 +360,7 @@ class RaySelfPlayWorker:
         prev_bot_rate: float = 0.0,
         past_opponent_path: str | None = None,
         random_opening_turns: int = 0,
+        external_bot_rate: float = 0.0,
     ) -> list[GameRecord]:
         """Execute the requested number of self-play games."""
         start_wall = time.monotonic()
@@ -314,13 +381,16 @@ class RaySelfPlayWorker:
         #     "Starting self-play batch: games=%d, batch_size=%d", target_games, per_batch
         # )
         warn_prev = False
+        warn_external = False
         rnd_rate = max(0.0, float(random_bot_rate))
         prev_rate = max(0.0, float(prev_bot_rate))
-        total_rate = rnd_rate + prev_rate
+        ext_rate = max(0.0, float(external_bot_rate))
+        total_rate = rnd_rate + prev_rate + ext_rate
         if total_rate > 1.0:
             scale = 1.0 / total_rate
             rnd_rate *= scale
             prev_rate *= scale
+            ext_rate *= scale
 
         if (
             past_opponent_path is not None
@@ -336,6 +406,8 @@ class RaySelfPlayWorker:
                 tasks.append("random_bot")
             elif r < rnd_rate + prev_rate:
                 tasks.append("prev_bot")
+            elif r < rnd_rate + prev_rate + ext_rate:
+                tasks.append("external_bot")
             else:
                 tasks.append("self")
 
@@ -364,6 +436,16 @@ class RaySelfPlayWorker:
                         )
                         warn_prev = True
                     opp = None
+            elif opponent_type == "external_bot":
+                if self.external_agent is not None:
+                    opp = self.external_agent
+                    agent_first = random.choice([True, False])
+                elif not warn_external:
+                    self.logger.info(
+                        "external_bot_rate requested but external opponent unavailable;"
+                        " using self-play."
+                    )
+                    warn_external = True
             records.extend(
                 self.runner.play_batch_games(
                     agent=self.agent,

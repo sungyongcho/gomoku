@@ -5,16 +5,34 @@ import logging
 import ray
 import torch
 
+from gomoku.alphazero.eval.reference_match import load_state_dict
 from gomoku.alphazero.runners.workers.ray_worker import RaySelfPlayWorker
 from gomoku.alphazero.types import GameRecord
 from gomoku.core.gomoku import Gomoku
 from gomoku.inference.ray_client import RayInferenceActor
 from gomoku.model.policy_value_net import PolicyValueNet
-from gomoku.utils.config.loader import MctsConfig, RootConfig, TrainingConfig
+from gomoku.utils.config.loader import (
+    ExternalOpponentConfig,
+    MctsConfig,
+    ModelConfig,
+    RootConfig,
+    TrainingConfig,
+    load_and_parse_config,
+)
 from gomoku.utils.config.schedule_param import get_scheduled_value
 from gomoku.utils.progress import make_progress
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(slots=True)
+class ExternalOpponent:
+    """Outside model the workers play against: size, search budget, weights ref."""
+
+    name: str
+    model_cfg: ModelConfig
+    num_searches: int | None
+    weights_ref: object
 
 
 def _build_model_fn(cfg: RootConfig, device: str) -> Callable[[], PolicyValueNet]:
@@ -39,6 +57,7 @@ class RayAsyncRunner:
     past_weights_fn: Callable | None = None  # optional: hook for champion weights
     _actors: list[ray.actor.ActorHandle] = None
     _workers: list[ray.actor.ActorHandle] = None
+    _external: ExternalOpponent | None = None  # loaded once, sent to every new worker
 
     def _init_ray(self) -> None:
         """Initialize Ray if not already initialized."""
@@ -239,6 +258,7 @@ class RayAsyncRunner:
                 get_scheduled_value(train.random_opening_turns, iteration_idx)
             )
         if getattr(train, "opponent_rates", None) is not None:
+            external = getattr(train.opponent_rates, "external", None)
             train_updates["opponent_rates"] = train.opponent_rates.model_copy(
                 update={
                     "random_bot_ratio": get_scheduled_value(
@@ -247,6 +267,13 @@ class RayAsyncRunner:
                     "prev_bot_ratio": get_scheduled_value(
                         train.opponent_rates.prev_bot_ratio, iteration_idx
                     ),
+                    "external": external.model_copy(
+                        update={
+                            "ratio": get_scheduled_value(external.ratio, iteration_idx)
+                        }
+                    )
+                    if external is not None
+                    else None,
                 }
             )
 
@@ -317,6 +344,45 @@ class RayAsyncRunner:
             logger.info("Creating workers...")
             self._workers = self._create_workers(self._actors)
             logger.info(f"Started {len(self._workers)} workers.")
+            external = self._external_opponent()
+            if external is not None:
+                ray.get(
+                    [
+                        worker.set_external_opponent.remote(
+                            external.model_cfg,
+                            external.num_searches,
+                            external.weights_ref,
+                        )
+                        for worker in self._workers
+                    ]
+                )
+
+    def _external_opponent(self) -> ExternalOpponent | None:
+        """Load the outside opponent named in the config once; None when there is none."""
+        ext_cfg = getattr(
+            getattr(self.cfg.training, "opponent_rates", None), "external", None
+        )
+        if not isinstance(ext_cfg, ExternalOpponentConfig):
+            return None
+        if self._external is None:
+            reference = load_and_parse_config(ext_cfg.config)
+            if reference.board.model_dump() != self.cfg.board.model_dump():
+                raise ValueError(f"External opponent {ext_cfg.name}: board rules differ")
+            weights = load_state_dict(ext_cfg.checkpoint)
+            self._external = ExternalOpponent(
+                name=ext_cfg.name,
+                model_cfg=reference.model,
+                num_searches=ext_cfg.num_searches,
+                weights_ref=ray.put(weights),
+            )
+            logger.info(
+                "[SelfPlay] external opponent %s: %dx%d, %s searches per move",
+                ext_cfg.name,
+                reference.model.num_resblocks,
+                reference.model.num_hidden,
+                ext_cfg.num_searches or "self-play",
+            )
+        return self._external
 
     def stop_workers(self):
         """Stop only the self-play workers to release 'selfplay' resources."""
@@ -415,6 +481,18 @@ class RayAsyncRunner:
             )
             or 0.0
         )
+        external_bot_rate = float(
+            getattr(
+                getattr(
+                    getattr(resolved_training, "opponent_rates", None),
+                    "external",
+                    None,
+                ),
+                "ratio",
+                0.0,
+            )
+            or 0.0
+        )
         random_ratio = (
             getattr(resolved_training, "random_play_ratio", 0.0)
             if resolved_training is not None
@@ -435,6 +513,7 @@ class RayAsyncRunner:
                 prev_bot_rate,
                 past_opponent_path,
                 random_opening_turns,
+                external_bot_rate,
             )
 
         # Workers differ in speed (GPU-node workers, CPU workers) and games differ in length,
