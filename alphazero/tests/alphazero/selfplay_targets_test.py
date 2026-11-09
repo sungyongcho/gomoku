@@ -6,14 +6,17 @@ import numpy as np
 import pytest
 import torch
 
+from gomoku.alphazero.agent import AlphaZeroAgent
 from gomoku.alphazero.eval import arena
 from gomoku.alphazero.eval.match import _random_opening
 from gomoku.alphazero.runners.common import SelfPlaySample, build_game_record, sample_action
 from gomoku.alphazero.runners.selfplay import SelfPlayRunner
+from gomoku.alphazero.runners.vectorize_runner import VectorizeRunner
 from gomoku.alphazero.types import greedy_action
 from gomoku.core.gomoku import Gomoku
 from gomoku.cpp_ext import gomoku_cpp
 from gomoku.pvmcts.pvmcts import PVMCTS
+import gomoku.pvmcts.search.engine as search_engine
 from gomoku.utils.config.loader import (
     BoardConfig,
     EvaluationConfig,
@@ -218,3 +221,133 @@ def test_without_fpu_reduction_equal_values_spread_the_search() -> None:
 
 def test_fpu_reduction_revisits_tried_moves_when_values_are_equal() -> None:
     assert _top_visits_with_equal_values(0.2) > 1
+
+
+def _count_noise_draws(monkeypatch: pytest.MonkeyPatch) -> list[int]:
+    draws = [0]
+    original = search_engine._safe_dirichlet_noise
+
+    def counted(*args, **kwargs):
+        draws[0] += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(search_engine, "_safe_dirichlet_noise", counted)
+    return draws
+
+
+def _native_agent(game: Gomoku) -> AlphaZeroAgent:
+    return AlphaZeroAgent(
+        game, _mcts(batch_infer_size=8), _UniformInference(), engine_type="sequential"
+    )
+
+
+def _stones(state) -> int:
+    return int((state.board != 0).sum())
+
+
+def test_batched_self_play_draws_root_noise_on_every_searched_move(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    game = Gomoku(_board(), use_native=True)
+    draws = _count_noise_draws(monkeypatch)
+    runner = VectorizeRunner(game, _mcts(batch_infer_size=8), _train_cfg())
+
+    records = runner.play_batch_games(
+        _native_agent(game), batch_size=1, add_noise=True, random_opening_turns=2
+    )
+
+    searched = len(records[0].moves)
+    assert searched > 2
+    assert _stones(records[0].states_raw[0]) == 2
+    assert draws[0] == searched
+
+
+def _spy_on_searches(agent: AlphaZeroAgent) -> list[int]:
+    """Record the stone count of every position the agent is asked to search."""
+    searched: list[int] = []
+    original = agent.get_action_probs_batch
+
+    def spy(states_raw, temperature, add_noise_flags, active_indices=None):
+        active = range(len(states_raw)) if active_indices is None else active_indices
+        searched.extend(_stones(states_raw[i]) for i in active)
+        return original(states_raw, temperature, add_noise_flags, active_indices)
+
+    agent.get_action_probs_batch = spy
+    return searched
+
+
+@pytest.mark.parametrize("agent_first", [True, False])
+def test_random_opening_covers_both_sides_and_is_not_searched(
+    agent_first: bool,
+) -> None:
+    game = Gomoku(_board(), use_native=True)
+    agent, opponent = _native_agent(game), _native_agent(game)
+    agent_searches = _spy_on_searches(agent)
+    opponent_searches = _spy_on_searches(opponent)
+    runner = VectorizeRunner(game, _mcts(batch_infer_size=8), _train_cfg())
+
+    record = runner.play_batch_games(
+        agent,
+        batch_size=1,
+        add_noise=False,
+        random_opening_turns=4,
+        opponent=opponent,
+        agent_first=agent_first,
+        opponent_tag="external_bot",
+    )[0]
+
+    assert agent_searches and opponent_searches
+    assert min(agent_searches + opponent_searches) == 4
+    assert _stones(record.states_raw[0]) == 4
+    assert record.opponent == "external_bot"
+    assert record.agent_player == (1 if agent_first else 2)
+
+
+def test_sequential_random_opening_covers_the_opponent_too() -> None:
+    game = Gomoku(_board())
+    asked: list[int] = []
+
+    class _RecordingOpponent(_FirstMoveAgent):
+        def get_action_probs(self, state, temperature, add_noise=False):
+            asked.append(_stones(state))
+            return super().get_action_probs(state, temperature, add_noise)
+
+    runner = SelfPlayRunner(game, _mcts(use_native=False), _train_cfg())
+    record = runner.play_one_game(
+        _FirstMoveAgent(game),
+        temperature=1.0,
+        add_noise=False,
+        random_opening_turns=4,
+        opponent=_RecordingOpponent(game),
+        opponent_tag="prev_bot",
+    )
+
+    assert asked and min(asked) >= 4
+    assert _stones(record.states_raw[0]) == 4
+    assert (record.opponent, record.agent_player) == ("prev_bot", 1)
+
+
+@pytest.mark.parametrize(
+    ("final_value", "last_player", "winner"), [(1.0, 2, 2), (-1.0, 2, 1), (0.0, 1, 0)]
+)
+def test_game_record_names_the_winner_and_the_opponent(
+    final_value: float, last_player: int, winner: int
+) -> None:
+    game = Gomoku(_board())
+    pi = np.zeros(game.action_size, dtype=np.float32)
+    memory = [SelfPlaySample(game.get_initial_state(), pi, 0, last_player)]
+
+    record = build_game_record(
+        memory, final_value, last_player, opponent="external_bot", agent_player=1
+    )
+
+    assert record.winner == winner
+    assert (record.opponent, record.agent_player) == ("external_bot", 1)
+
+
+def test_self_play_records_carry_no_opponent() -> None:
+    game = Gomoku(_board())
+    pi = np.zeros(game.action_size, dtype=np.float32)
+    memory = [SelfPlaySample(game.get_initial_state(), pi, 0, 1)]
+    record = build_game_record(memory, 1.0, 1)
+    assert (record.opponent, record.agent_player, record.winner) == ("self", 0, 1)

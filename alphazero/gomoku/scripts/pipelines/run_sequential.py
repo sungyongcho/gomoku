@@ -202,6 +202,7 @@ def run_sequential(
                     random_opening_turns=sched["rnd_opening"],
                     opponent=random_bot,
                     agent_first=agent_first,
+                    opponent_tag="random_bot",
                 )
             elif task == "prev" and past_agent is not None:
                 agent_first = (idx % 2) == 0
@@ -213,6 +214,7 @@ def run_sequential(
                     random_opening_turns=sched["rnd_opening"],
                     opponent=past_agent,
                     agent_first=agent_first,
+                    opponent_tag="prev_bot",
                 )
             else:
                 record = selfplay.play_one_game(

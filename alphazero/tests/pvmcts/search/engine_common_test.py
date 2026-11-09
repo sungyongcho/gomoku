@@ -321,3 +321,29 @@ def test_backup_value_propagation_and_sign_flip(
     assert root.value_sum == pytest.approx(value), (
         "Root accumulates flipped again (+value)."
     )
+
+
+def test_root_noise_gives_a_reused_root_children_for_moves_it_lacked(
+    sequential_engine: SequentialEngine,
+) -> None:
+    """A reused root gets a child for every move the noise reaches."""
+    game = sequential_engine.game
+    root = TreeNode(game.get_initial_state())
+    only_move = (0, 0)
+    root.children[only_move] = TreeNode(
+        state=game.get_next_state(root.state, only_move, root.state.next_player),
+        parent=root,
+        action_taken=only_move,
+        prior=1.0,
+    )
+    np.random.seed(0)
+
+    sequential_engine._ensure_root_noise(root)
+
+    assert root.noise_applied
+    assert len(root.children) > 1
+    assert all(child.parent is root for child in root.children.values())
+    assert all(child.prior > 0 for child in root.children.values())
+    total_prior = sum(child.prior for child in root.children.values())
+    assert total_prior == pytest.approx(1.0, abs=1e-4)
+    assert root.children[only_move].prior < 1.0

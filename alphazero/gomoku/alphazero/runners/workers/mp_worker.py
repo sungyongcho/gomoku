@@ -83,13 +83,16 @@ def _worker_selfplay_loop(
     for _ in range(games_per_worker):
         r = random.random()
         opponent = None
+        opponent_tag = None
         agent_first = True
         if r < rnd_bot_rate:
             opponent = random_bot
+            opponent_tag = "random_bot"
             agent_first = random.choice([True, False])
         elif r < rnd_bot_rate + prev_bot_rate:
             if past_agent is not None:
                 opponent = past_agent
+                opponent_tag = "prev_bot"
                 agent_first = random.choice([True, False])
             else:
                 if not warned_prev:
@@ -106,5 +109,6 @@ def _worker_selfplay_loop(
             random_opening_turns=getattr(cfg.training, "random_opening_turns", 0),
             opponent=opponent,
             agent_first=agent_first,
+            opponent_tag=opponent_tag,
         )
         record_q.put(record)

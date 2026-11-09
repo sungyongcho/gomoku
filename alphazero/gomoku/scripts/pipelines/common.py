@@ -676,6 +676,48 @@ def build_selfplay_summary(
     return summary
 
 
+def summarize_opponent_games(records: Sequence[Any]) -> dict[str, dict[str, Any]]:
+    """
+    Count the agent's results against each opponent kind in a batch of game records.
+
+    Self-play games are left out: the agent holds both sides there. Returns, per
+    opponent kind, games, wins, losses, draws, score (draws count half) and the same
+    wins and games split by the agent's colour (player 1 is black).
+    """
+    summary: dict[str, dict[str, Any]] = {}
+    for rec in records:
+        agent_player = int(getattr(rec, "agent_player", 0) or 0)
+        if agent_player == 0:
+            continue
+        entry = summary.setdefault(
+            str(getattr(rec, "opponent", "opponent")),
+            {
+                "games": 0,
+                "wins": 0,
+                "losses": 0,
+                "draws": 0,
+                "games_as_black": 0,
+                "wins_as_black": 0,
+                "games_as_white": 0,
+                "wins_as_white": 0,
+            },
+        )
+        colour = "black" if agent_player == 1 else "white"
+        winner = int(getattr(rec, "winner", 0) or 0)
+        entry["games"] += 1
+        entry[f"games_as_{colour}"] += 1
+        if winner == agent_player:
+            entry["wins"] += 1
+            entry[f"wins_as_{colour}"] += 1
+        elif winner == 0:
+            entry["draws"] += 1
+        else:
+            entry["losses"] += 1
+    for entry in summary.values():
+        entry["score"] = (entry["wins"] + 0.5 * entry["draws"]) / entry["games"]
+    return summary
+
+
 def format_training_metrics(
     metrics: dict,
     *,

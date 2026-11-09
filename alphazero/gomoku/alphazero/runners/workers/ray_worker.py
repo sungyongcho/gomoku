@@ -457,6 +457,7 @@ class RaySelfPlayWorker:
                     random_opening_turns=int(random_opening_turns),
                     opponent=opp,
                     agent_first=agent_first,
+                    opponent_tag=opponent_type,
                 )
             )
         elapsed = time.monotonic() - start_wall

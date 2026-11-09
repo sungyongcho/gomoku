@@ -26,12 +26,12 @@ def test_run_batch_games_returns_correct_count(
     assert len(records) == 4
 
 
-def test_noise_flag_only_on_turn_zero(
+def test_noise_is_requested_on_every_move(
     vectorize_components: tuple[
         RootConfig, Gomoku, AlphaZeroAgent, VectorizeRunner, LocalInference
     ],
 ) -> None:
-    """리필 이후에도 turn 0 슬롯만 노이즈가 켜지는지 검증한다."""
+    """Root noise is requested for every slot on every move, not only on move one."""
     _, game, agent, runner, _ = vectorize_components
 
     noise_history: list[list[bool]] = []
@@ -79,8 +79,7 @@ def test_noise_flag_only_on_turn_zero(
 
     print(f"[noise_history] {noise_history}")
     assert len(noise_history) >= 2
-    assert noise_history[0] == [True, True]
-    assert [True, False] in noise_history
+    assert all(flags and all(flags) for flags in noise_history)
 
 
 def test_finished_games_are_removed_correctly(
@@ -433,12 +432,12 @@ def test_temperature_pass_through_batch(
     assert passed_temp == temp
 
 
-def test_noise_group_split_behavior(
+def test_no_noise_is_requested_when_it_is_turned_off(
     vectorize_components: tuple[
         RootConfig, Gomoku, AlphaZeroAgent, VectorizeRunner, LocalInference
     ],
 ) -> None:
-    """노이즈 on/off 섞일 때 플래그 패턴이 기대대로 전달되는지 확인한다."""
+    """With add_noise off, no slot asks for root noise on any move."""
     _, game, agent, runner, _ = vectorize_components
     runner.mcts_cfg = runner.mcts_cfg.model_copy(update={"exploration_turns": 0})
 
@@ -446,8 +445,7 @@ def test_noise_group_split_behavior(
     flags_history: list[list[bool]] = []
 
     def _spy(states_raw, temperature, add_noise_flags, active_indices=None):
-        flags = list(add_noise_flags)
-        flags_history.append(flags)
+        flags_history.append([bool(add_noise_flags)] * len(states_raw))
         return [policy for _ in states_raw]
 
     call_counter = {"n": 0}
@@ -470,11 +468,11 @@ def test_noise_group_split_behavior(
         side_effect=_fake_get_value_and_terminated
     )
 
-    runner.play_batch_games(agent, batch_size=2, add_noise=True, target_games=2)
+    runner.play_batch_games(agent, batch_size=2, add_noise=False, target_games=2)
 
-    print(f"[noise_split] flags_history={flags_history}")
-    assert flags_history[0] == [True, True]
-    assert any(flags in flags_history[1:] for flags in ([True, False], [False, True]))
+    print(f"[noise_off] flags_history={flags_history}")
+    assert len(flags_history) >= 2
+    assert not any(flag for flags in flags_history for flag in flags)
 
 
 def test_partial_games_continue(

@@ -42,6 +42,7 @@ class SelfPlayRunner:
         random_opening_turns: int = 0,
         opponent: Any = None,
         agent_first: bool = True,
+        opponent_tag: str | None = None,
     ) -> GameRecord:
         """
         Play a full self-play game and return its training record.
@@ -53,17 +54,20 @@ class SelfPlayRunner:
         temperature :
             Sampling temperature. Falls back to training config when None.
         add_noise :
-            Whether to apply Dirichlet noise to the root on the first move.
+            Whether to apply Dirichlet noise at the root of every agent search.
         random_opening_turns :
             Number of initial turns to play uniformly random moves (opening
-            diversification). Unlike ``random_ratio`` which applies stochastically
-            to all turns, this deterministically forces the first N moves to be
-            uniform random.
+            diversification), whoever is to move. Unlike ``random_ratio`` which
+            applies stochastically to all turns, this deterministically forces the
+            first N moves to be uniform random. They are not searched and are not
+            training targets.
         opponent :
             Optional opponent. When ``None``, the agent plays both sides.
             When provided, agent plays as the first player by default.
         agent_first :
             Whether the agent moves first when an opponent is provided.
+        opponent_tag :
+            Opponent kind stored on the record when an opponent is given.
 
         Returns
         -------
@@ -85,6 +89,9 @@ class SelfPlayRunner:
         rnd_opening = max(0, int(random_opening_turns))
         opponent_bot = opponent
         agent_player = 1 if agent_first else 2
+        record_opponent = (
+            "self" if opponent_bot is None else (opponent_tag or "opponent")
+        )
         if opponent_bot is not None and hasattr(opponent_bot, "reset"):
             opponent_bot.reset()
 
@@ -105,37 +112,28 @@ class SelfPlayRunner:
 
             # 2. Query actor policy
             is_training_target = True
-            if is_agent_turn:
-                # 3. Choose action: random opening -> random ratio -> explore -> argmax
-                if rnd_opening > 0 and turn < rnd_opening:
-                    # Deterministic random opening: skip MCTS, play uniform random
+            # 3. Choose action: random opening -> random ratio -> explore -> argmax
+            # Random opening plies skip the search and apply to whoever is to move.
+            opening_idx = (
+                random_legal_action(self.game, state) if turn < rnd_opening else None
+            )
+            if opening_idx is not None:
+                action = opening_idx
+                is_training_target = False
+                board_size = self.game.col_count * self.game.row_count
+                pi = np.zeros(board_size, dtype=np.float32)
+                pi[action] = 1.0
+            elif is_agent_turn:
+                pi = agent.get_action_probs(state, temp, add_noise=add_noise)
+                if rnd_ratio > 0.0 and np.random.rand() < rnd_ratio:
                     random_idx = random_legal_action(self.game, state)
-                    if random_idx is not None:
-                        action = random_idx
-                        is_training_target = False
-                        board_size = self.game.col_count * self.game.row_count
-                        pi = np.zeros(board_size, dtype=np.float32)
-                        pi[action] = 1.0
-                    else:
-                        pi = agent.get_action_probs(state, temp, add_noise=add_noise)
-                        action = sample_action(
-                            pi, turn, self.mcts_cfg.exploration_turns
-                        )
+                    action = (
+                        random_idx
+                        if random_idx is not None
+                        else sample_action(pi, turn, self.mcts_cfg.exploration_turns)
+                    )
                 else:
-                    pi = agent.get_action_probs(state, temp, add_noise=add_noise)
-                    if rnd_ratio > 0.0 and np.random.rand() < rnd_ratio:
-                        random_idx = random_legal_action(self.game, state)
-                        action = (
-                            random_idx
-                            if random_idx is not None
-                            else sample_action(
-                                pi, turn, self.mcts_cfg.exploration_turns
-                            )
-                        )
-                    else:
-                        action = sample_action(
-                            pi, turn, self.mcts_cfg.exploration_turns
-                        )
+                    action = sample_action(pi, turn, self.mcts_cfg.exploration_turns)
             else:
                 pi = actor.get_action_probs(state, temperature=1.0, add_noise=False)
                 random_idx = None
@@ -183,5 +181,11 @@ class SelfPlayRunner:
                         is_terminal = True
 
             if is_terminal:
-                return build_game_record(memory, float(value), current_player)
+                return build_game_record(
+                    memory,
+                    float(value),
+                    current_player,
+                    opponent=record_opponent,
+                    agent_player=agent_player if opponent_bot is not None else 0,
+                )
 

@@ -3,6 +3,7 @@ from typing import NamedTuple
 import numpy as np
 
 from gomoku.alphazero.types import Action, GameRecord, greedy_action
+from gomoku.core.game_config import opponent_player
 from gomoku.core.gomoku import GameState
 
 
@@ -59,7 +60,11 @@ def random_legal_action(game, state) -> Action | None:
 
 
 def build_game_record(
-    memory: list[SelfPlaySample], final_value: float, last_player: int
+    memory: list[SelfPlaySample],
+    final_value: float,
+    last_player: int,
+    opponent: str = "self",
+    agent_player: int = 0,
 ) -> GameRecord:
     """Convert buffered turn data into a ``GameRecord``.
 
@@ -71,6 +76,10 @@ def build_game_record(
         Terminal value from the perspective of the player who just moved.
     last_player : int
         Player id of the last mover (aligns outcomes with perspective).
+    opponent : str
+        Who the agent played: ``"self"`` or the opponent kind.
+    agent_player : int
+        Player id the agent held against an opponent; 0 in self-play.
 
     Returns
     -------
@@ -94,6 +103,13 @@ def build_game_record(
         players.append(int(sample.player))
         outcomes.append(int(outcome))
 
+    if final_value > 0:
+        winner = int(last_player)
+    elif final_value < 0:
+        winner = opponent_player(int(last_player))
+    else:
+        winner = 0
+
     return GameRecord(
         states_raw=states_raw,
         policies=np.stack(policies) if policies else np.empty((0, 0), dtype=np.float32),
@@ -101,4 +117,7 @@ def build_game_record(
         players=np.asarray(players, dtype=np.int8),
         outcomes=np.asarray(outcomes, dtype=np.int8),
         config_snapshot=None,
+        opponent=opponent,
+        agent_player=int(agent_player),
+        winner=winner,
     )

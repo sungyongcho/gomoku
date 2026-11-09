@@ -290,6 +290,19 @@ class SearchEngine(ABC):
                         + child.action_taken[1] * self.game.col_count
                     )
                     child.prior = float(noisy_policy[idx])
+            # A move whose prior was exactly 0 has no child: without one, the
+            # noise drawn for it would be lost and the move would stay unreachable.
+            next_player = root.state.next_player
+            col_count = self.game.col_count
+            for idx in np.nonzero(noisy_policy)[0]:
+                action = (int(idx) % col_count, int(idx) // col_count)
+                if action not in root.children:
+                    root.children[action] = TreeNode(
+                        state=self.game.get_next_state(root.state, action, next_player),
+                        parent=root,
+                        action_taken=action,
+                        prior=float(noisy_policy[idx]),
+                    )
 
         root.noise_applied = True
 

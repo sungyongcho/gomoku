@@ -26,6 +26,7 @@ from gomoku.scripts.pipelines.common import (
     log_iteration_header,
     save_checkpoint,
     select_past_checkpoint,
+    summarize_opponent_games,
     update_manifest,
     warm_start_replay_buffer,
 )
@@ -737,6 +738,18 @@ def run_ray(
             f"Saved replay shard (async): {shard_path} (games={len(records)}, samples={len(samples)})"
         )
         log(f"[SelfPlay] Iteration {global_iter}: completed in {selfplay_sec:.1f}s")
+        # Results against other opponents give a trend from one iteration to the next.
+        # They are not a strength measure: the agent plays them with self-play
+        # exploration (root noise, sampled early moves, random opening plies).
+        opponent_summary = summarize_opponent_games(records)
+        for opponent_kind, result in sorted(opponent_summary.items()):
+            log(
+                f"[SelfPlay] vs {opponent_kind} (with self-play exploration): "
+                f"W{result['wins']}/L{result['losses']}/D{result['draws']} "
+                f"score={result['score']:.3f} "
+                f"(as black {result['wins_as_black']}/{result['games_as_black']}, "
+                f"as white {result['wins_as_white']}/{result['games_as_white']})"
+            )
         log("")  # Spacing requested by user
         selfplay_summary = build_selfplay_summary(samples)
 
@@ -828,6 +841,35 @@ def run_ray(
             )
             atomic_append_jsonl(fs, evaluation_log_path(params.paths), log_entry)
 
+        # Logged here, not after self-play, so a repeated iteration leaves one entry.
+        if opponent_summary:
+            atomic_append_jsonl(
+                fs,
+                os.path.join(
+                    os.path.dirname(evaluation_log_path(params.paths)),
+                    "selfplay_opponent_log.jsonl",
+                ),
+                {
+                    "iteration": global_iter,
+                    "num_searches": sched["num_searches"],
+                    "random_opening_turns": sched["rnd_opening"],
+                    "opponents": opponent_summary,
+                },
+            )
+
+        # The iteration is complete once it is evaluated. Recording it before the
+        # reference match keeps a stop during that match from repeating the iteration.
+        status = "completed" if (it + 1) == num_iters else "running"
+        (manifest_updater or update_manifest)(
+            params,
+            fs,
+            completed_iterations=global_iter,
+            status=status,
+            champion_path=champion_path or ckpt_path,
+            eval_summary=eval_summary,
+            prefix="[Ray] ",
+        )
+
         ref_cfg = getattr(eval_cfg, "reference", None) if eval_cfg else None
         if ref_cfg is not None and global_iter % max(1, ref_cfg.every_iters) == 0:
             # Absolute strength check against a fixed outside model. It only logs, so a
@@ -859,16 +901,5 @@ def run_ray(
                 atomic_append_jsonl(fs, reference_log, ref_summary)
             except Exception as exc:  # noqa: BLE001
                 log(f"[Reference] Skipped at iteration {global_iter}: {exc!r}")
-
-        status = "completed" if (it + 1) == num_iters else "running"
-        (manifest_updater or update_manifest)(
-            params,
-            fs,
-            completed_iterations=global_iter,
-            status=status,
-            champion_path=champion_path or ckpt_path,
-            eval_summary=eval_summary,
-            prefix="[Ray] ",
-        )
 
     ray.shutdown()

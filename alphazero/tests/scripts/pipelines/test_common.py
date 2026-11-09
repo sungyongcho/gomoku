@@ -430,3 +430,39 @@ def test_resume_continues_from_the_latest_iteration_not_the_champion(tmp_path: P
     assert champion_path == champion  # still the evaluation opponent
     assert latest != champion
     assert torch.allclose(model.weight, torch.tensor([3.0]))  # weights from iteration 4
+
+
+def test_opponent_games_are_counted_per_opponent_and_colour() -> None:
+    from types import SimpleNamespace as Rec
+
+    records = [
+        Rec(opponent="self", agent_player=0, winner=1),
+        Rec(opponent="external_bot", agent_player=1, winner=1),
+        Rec(opponent="external_bot", agent_player=1, winner=2),
+        Rec(opponent="external_bot", agent_player=2, winner=2),
+        Rec(opponent="external_bot", agent_player=2, winner=0),
+        Rec(opponent="random_bot", agent_player=2, winner=2),
+    ]
+
+    summary = common.summarize_opponent_games(records)
+
+    assert set(summary) == {"external_bot", "random_bot"}
+    assert summary["external_bot"] == {
+        "games": 4,
+        "wins": 2,
+        "losses": 1,
+        "draws": 1,
+        "games_as_black": 2,
+        "wins_as_black": 1,
+        "games_as_white": 2,
+        "wins_as_white": 1,
+        "score": 0.625,
+    }
+    assert summary["random_bot"]["score"] == 1.0
+
+
+def test_self_play_alone_gives_no_opponent_summary() -> None:
+    from types import SimpleNamespace as Rec
+
+    records = [Rec(opponent="self", agent_player=0, winner=1)]
+    assert common.summarize_opponent_games(records) == {}

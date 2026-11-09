@@ -42,6 +42,12 @@ class GameRecord:
         Value targets from each turn player's perspective ``(T,)``.
     config_snapshot :
         Optional snapshot of configuration at data creation time.
+    opponent :
+        Who the agent played: ``"self"`` or the opponent kind (``"external_bot"`` ...).
+    agent_player :
+        Player id the agent held against an opponent; 0 in self-play.
+    winner :
+        Player id that won the game; 0 for a draw.
     """
 
     states_raw: list[RawState]
@@ -50,3 +56,6 @@ class GameRecord:
     players: np.ndarray
     outcomes: np.ndarray
     config_snapshot: ConfigSnapshot = None
+    opponent: str = "self"
+    agent_player: int = 0
+    winner: int = 0

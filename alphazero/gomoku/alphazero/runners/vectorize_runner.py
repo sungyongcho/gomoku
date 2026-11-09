@@ -51,6 +51,7 @@ class VectorizeRunner:
         random_opening_turns: int = 0,
         opponent: Any = None,
         agent_first: bool = True,
+        opponent_tag: str | None = None,
     ) -> list[GameRecord]:
         """
         Generate multiple self-play games concurrently using batch MCTS.
@@ -64,14 +65,19 @@ class VectorizeRunner:
         temperature :
             Sampling temperature. Defaults to training config when None.
         add_noise :
-            Whether to apply Dirichlet noise on the first move of each game.
+            Whether to apply Dirichlet noise at the root of every agent search.
         target_games :
             Number of completed games to return. Defaults to ``batch_size``.
+        random_opening_turns :
+            Number of opening plies played uniformly at random, whoever is to move.
+            They are not searched and are not training targets.
         opponent :
             Optional opponent; when provided, agent only moves for its color.
             Opponent is expected to expose ``get_action_probs``.
         agent_first :
             Agent plays as player 1 when True, player 2 otherwise.
+        opponent_tag :
+            Opponent kind stored on each record when an opponent is given.
 
         Returns
         -------
@@ -97,6 +103,7 @@ class VectorizeRunner:
         rnd_ratio = max(0.0, float(random_ratio))
         rnd_opening = max(0, int(random_opening_turns))
         agent_player = 1 if agent_first else 2
+        record_opponent = "self" if opponent is None else (opponent_tag or "opponent")
 
         finished_records: list[GameRecord] = []
         progress = make_progress(
@@ -121,21 +128,34 @@ class VectorizeRunner:
             slot_to_root_idx = {slot_idx: i for i, slot_idx in enumerate(alive_indices)}
 
             # 1. Identify which indices belong to the agent vs opponent
+            agent_turns = [
+                opponent is None or int(slot.state.next_player) == agent_player
+                for slot in alive_slots
+            ]
+            # Random opening plies are drawn up front, for either side, so that neither
+            # the agent nor the opponent spends a search on a move that is thrown away.
+            opening_actions: dict[int, Action] = {}
+            for i, slot in enumerate(alive_slots):
+                if slot.turn < rnd_opening:
+                    random_idx = random_legal_action(self.game, slot.state)
+                    if random_idx is not None:
+                        opening_actions[i] = random_idx
             agent_indices = [
-                i for i, slot in enumerate(alive_slots)
-                if opponent is None or int(slot.state.next_player) == agent_player
+                i
+                for i, is_agent in enumerate(agent_turns)
+                if is_agent and i not in opening_actions
             ]
             opp_indices = [
-                i for i, slot in enumerate(alive_slots)
-                if opponent is not None and int(slot.state.next_player) != agent_player
+                i
+                for i, is_agent in enumerate(agent_turns)
+                if not is_agent and i not in opening_actions
             ]
 
-            # 2. Agent Batch Inference
-            agent_noise = [(add_noise and slot.turn == 0) for slot in alive_slots]
+            # 2. Agent Batch Inference: root noise, when on, goes into every search
             agent_policies = agent.get_action_probs_batch(
                 states_raw=alive_states,
                 temperature=temp,
-                add_noise_flags=agent_noise,
+                add_noise_flags=bool(add_noise),
                 active_indices=agent_indices,
             )
 
@@ -158,7 +178,8 @@ class VectorizeRunner:
 
             actions_alive: list[Action] = []
             for i, slot in enumerate(alive_slots):
-                if i in agent_indices:
+                is_agent_turn = agent_turns[i]
+                if is_agent_turn:
                     pi = agent_policies[i]
                 else:
                     pi = opp_policies[i]
@@ -166,21 +187,14 @@ class VectorizeRunner:
                         # Safety fallback
                         pi = np.zeros(self.game.action_size, dtype=np.float32)
 
-                is_agent_turn = i in agent_indices
                 is_training_target = True
-                if is_agent_turn:
-                    if rnd_opening > 0 and slot.turn < rnd_opening:
-                        random_idx = random_legal_action(self.game, slot.state)
-                        if random_idx is not None:
-                            action = random_idx
-                            is_training_target = False
-                            pi = np.zeros_like(pi)
-                            pi[action] = 1.0
-                        else:
-                            action = sample_action(
-                                pi, slot.turn, self.mcts_cfg.exploration_turns
-                            )
-                    elif rnd_ratio > 0.0 and np.random.rand() < rnd_ratio:
+                if i in opening_actions:
+                    action = opening_actions[i]
+                    is_training_target = False
+                    pi = np.zeros(self.game.action_size, dtype=np.float32)
+                    pi[action] = 1.0
+                elif is_agent_turn:
+                    if rnd_ratio > 0.0 and np.random.rand() < rnd_ratio:
                         random_idx = random_legal_action(self.game, slot.state)
                         action = (
                             random_idx
@@ -235,7 +249,13 @@ class VectorizeRunner:
 
                 last_player = slot.memory[-1].player
 
-                record = build_game_record(slot.memory, float(value), last_player)
+                record = build_game_record(
+                    slot.memory,
+                    float(value),
+                    last_player,
+                    opponent=record_opponent,
+                    agent_player=agent_player if opponent is not None else 0,
+                )
                 finished_records.append(record)
                 progress.update(1)
 
