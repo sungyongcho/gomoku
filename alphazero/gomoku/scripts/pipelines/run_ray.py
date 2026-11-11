@@ -10,7 +10,8 @@ import fsspec
 import ray
 import torch
 
-from gomoku.alphazero.eval.reference_match import run_reference_match
+from gomoku.alphazero.eval.ladder import run_ladder
+from gomoku.alphazero.eval.reference_match import match_mcts, run_reference_match
 from gomoku.alphazero.learning.dataset import flatten_game_records
 from gomoku.alphazero.learning.trainer import AlphaZeroTrainer
 from gomoku.alphazero.runners.ray_eval_runner import RayEvalRunner
@@ -30,15 +31,18 @@ from gomoku.scripts.pipelines.common import (
     update_manifest,
     warm_start_replay_buffer,
 )
-from gomoku.utils.config.loader import RunnerParams
+from gomoku.utils.config.loader import LadderConfig, RunnerParams
 from gomoku.utils.io_helpers import atomic_append_jsonl, save_as_parquet_shard
 from gomoku.utils.paths import (
     evaluation_log_path,
     format_path,
+    iteration_ckpt_path,
     load_state_dict_from_fs,
     new_replay_shard_path,
+    save_state,
 )
 from gomoku.utils.serialization import to_savable_sample
+from gomoku.utils.state_dict_utils import average_state_dicts
 
 
 class DebugLogger:
@@ -223,6 +227,70 @@ def _log_cluster_state(debug_logger: DebugLogger | None) -> None:
             debug_logger,
             f"[Cluster] Node {host} [{state}] | {res_line or 'no resources'}",
         )
+
+
+def run_iteration_ladder(
+    params: RunnerParams,
+    fs: fsspec.AbstractFileSystem,
+    ladder_cfg: LadderConfig,
+    iteration: int,
+    current_state: dict[str, torch.Tensor],
+) -> dict:
+    """Rank the latest model, the mean of the last iterations and the anchor iterations.
+
+    The averaged weights are saved to ``averaged/average_NNNN.pt`` beside the checkpoint
+    folder, so a model that ranks first can be served as it is.
+    """
+
+    def load(it: int) -> dict[str, torch.Tensor] | None:
+        path = iteration_ckpt_path(params.paths, it)
+        if not fs.exists(path):
+            return None
+        state = load_state_dict_from_fs(fs, path, torch.device("cpu"))
+        if isinstance(state, dict) and "model_state_dict" in state:
+            state = state["model_state_dict"]
+        return {key: value.cpu() for key, value in state.items()}
+
+    mcts = match_mcts(params.mcts, ladder_cfg.num_searches)
+    players = {f"it{iteration:04d}": (params.model, mcts, current_state)}
+    for anchor in ladder_cfg.anchors:
+        state = load(anchor) if anchor != iteration else None
+        if state is not None:
+            players[f"it{anchor:04d}"] = (params.model, mcts, state)
+
+    averaged_from: list[int] = []
+    average_path = None
+    if ladder_cfg.average_last > 1:
+        earlier = range(max(1, iteration - ladder_cfg.average_last + 1), iteration)
+        loaded = [(it, load(it)) for it in earlier]
+        states = [state for _, state in loaded if state is not None]
+        if states:
+            averaged_from = [it for it, state in loaded if state is not None] + [iteration]
+            averaged = average_state_dicts([*states, current_state])
+            ckpt_dir = os.path.dirname(iteration_ckpt_path(params.paths, iteration))
+            average_path = os.path.join(
+                os.path.dirname(ckpt_dir), "averaged", f"average_{iteration:04d}.pt"
+            )
+            save_state(fs, averaged, average_path)
+            players[f"avg{iteration:04d}"] = (params.model, mcts, averaged)
+
+    summary = run_ladder(
+        params.board,
+        players,
+        pairs=ladder_cfg.pairs,
+        opening_plies=ladder_cfg.opening_plies,
+        max_plies=ladder_cfg.max_plies,
+        seed=iteration * 1000,
+    )
+    summary.update(
+        {
+            "iteration": iteration,
+            "num_searches": ladder_cfg.num_searches,
+            "averaged_from": averaged_from,
+            "average_path": average_path,
+        }
+    )
+    return summary
 
 
 def distributed_evaluate_and_promote(
@@ -901,5 +969,40 @@ def run_ray(
                 atomic_append_jsonl(fs, reference_log, ref_summary)
             except Exception as exc:  # noqa: BLE001
                 log(f"[Reference] Skipped at iteration {global_iter}: {exc!r}")
+
+        ladder_cfg = getattr(eval_cfg, "ladder", None) if eval_cfg else None
+        if ladder_cfg is not None and global_iter % max(1, ladder_cfg.every_iters) == 0:
+            # Strength on one scale across the run. It only logs, so a failure here
+            # must not stop the run.
+            try:
+                if runner:
+                    runner.stop_workers()
+                log(
+                    f"[Ladder] Iteration {global_iter}: round-robin with anchors "
+                    f"{ladder_cfg.anchors} ({ladder_cfg.num_searches} searches)..."
+                )
+                ladder_start = time.monotonic()
+                current_state = {
+                    key: value.detach().cpu() for key, value in model.state_dict().items()
+                }
+                ladder = run_iteration_ladder(
+                    params, fs, ladder_cfg, global_iter, current_state
+                )
+                ladder["seconds"] = round(time.monotonic() - ladder_start, 1)
+                for name, rating in sorted(
+                    ladder["ratings"].items(), key=lambda item: -item[1]
+                ):
+                    points, count = ladder["points"][name]
+                    log(f"[Ladder] {name}: {rating:+7.1f}  ({points:.1f}/{count:.0f})")
+                log(
+                    f"[Ladder] {ladder['games']} games in {ladder['seconds']:.0f}s, "
+                    f"mean {ladder['mean_plies']:.1f} plies"
+                )
+                ladder_log = os.path.join(
+                    os.path.dirname(evaluation_log_path(params.paths)), "ladder_log.jsonl"
+                )
+                atomic_append_jsonl(fs, ladder_log, ladder)
+            except Exception as exc:  # noqa: BLE001
+                log(f"[Ladder] Skipped at iteration {global_iter}: {exc!r}")
 
     ray.shutdown()

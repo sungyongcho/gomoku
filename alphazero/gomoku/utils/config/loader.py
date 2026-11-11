@@ -174,6 +174,24 @@ class ReferenceMatchConfig(BaseConfig):
     opening_plies: int = 2
 
 
+class LadderConfig(BaseConfig):
+    """Round-robin between this run's own checkpoints every few iterations.
+
+    Players are the latest model, the mean of the last ``average_last`` iterations and
+    the ``anchors`` (earlier iterations of the same run), so ratings from different
+    iterations share fixed opponents. It only logs: ratings go to ladder_log.jsonl and
+    the averaged weights are saved beside the iteration checkpoints.
+    """
+
+    every_iters: int = 5
+    anchors: list[int] = []  # iteration numbers whose checkpoints stay in every ladder
+    average_last: int = 5  # 0 or 1 leaves the averaged model out
+    pairs: int = 10  # openings per pairing, each played twice with colours swapped
+    num_searches: int = 800
+    opening_plies: int = 4
+    max_plies: int = 400  # a longer game counts as a draw
+
+
 class EvaluationConfig(BaseConfig):
     num_eval_games: int
     eval_every_iters: int
@@ -199,6 +217,7 @@ class EvaluationConfig(BaseConfig):
     adjudication_min_turns: int | None = None
     elo_k_factor: float = 2.0
     reference: ReferenceMatchConfig | None = None
+    ladder: LadderConfig | None = None
 
 
 class ParallelConfig(BaseConfig):

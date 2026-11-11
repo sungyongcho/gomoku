@@ -18,7 +18,7 @@ import torch
 from gomoku.alphazero.runners.common import SelfPlaySample, build_game_record
 from gomoku.core.gomoku import Gomoku
 from gomoku.scripts.pipelines import run_ray as run_ray_mod
-from gomoku.utils.config.loader import ReferenceMatchConfig
+from gomoku.utils.config.loader import LadderConfig, ReferenceMatchConfig
 from gomoku.utils.paths import ensure_run_dirs, manifest_path
 from tests.scripts.pipelines.test_common import DummyModel, _make_runner_params
 
@@ -123,3 +123,34 @@ def test_iteration_is_recorded_before_the_reference_match(
     entries = [json.loads(line) for line in opponent_log.read_text().splitlines()]
     assert [entry["iteration"] for entry in entries] == [1]
     assert entries[0]["opponents"]["external_bot"]["wins_as_black"] == 1
+
+
+def test_ladder_ranks_latest_average_and_anchors_and_saves_the_average(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fs = fsspec.filesystem("file")
+    params = _make_runner_params(tmp_path.as_posix())
+    ensure_run_dirs(params, fs)
+    ckpt_dir = Path(manifest_path(params.paths)).parent / "ckpt"
+    for iteration, value in ((2, 2.0), (4, 4.0), (5, 5.0)):
+        torch.save({"weight": torch.tensor([value])}, ckpt_dir / f"iteration_{iteration:04d}.pt")
+    seen: dict[str, Any] = {}
+
+    def fake_run_ladder(board, players, **kwargs):
+        seen["players"] = {name: side[2]["weight"].item() for name, side in players.items()}
+        seen["kwargs"] = kwargs
+        return {"games": 0, "ratings": {}, "points": {}, "pairs": {}, "mean_plies": 0.0}
+
+    monkeypatch.setattr(run_ray_mod, "run_ladder", fake_run_ladder)
+    ladder_cfg = LadderConfig(anchors=[2, 9], average_last=3, pairs=4, num_searches=16)
+
+    summary = run_ray_mod.run_iteration_ladder(
+        params, fs, ladder_cfg, 6, {"weight": torch.tensor([6.0])}
+    )
+
+    assert seen["players"] == {"it0006": 6.0, "it0002": 2.0, "avg0006": 5.0}
+    assert seen["kwargs"]["pairs"] == 4 and seen["kwargs"]["seed"] == 6000
+    assert summary["averaged_from"] == [4, 5, 6]
+    saved = torch.load(summary["average_path"])
+    assert saved["weight"].item() == 5.0
+    assert Path(summary["average_path"]).parent.name == "averaged"

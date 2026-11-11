@@ -36,3 +36,30 @@ def align_state_dict_to_model(
         state_dict.pop(key, None)
 
     return resized_keys, missing_keys, dropped_keys
+
+
+def average_state_dicts(
+    states: list[dict[str, torch.Tensor]],
+) -> dict[str, torch.Tensor]:
+    """Mean of the floating-point tensors; other tensors come from the last state.
+
+    Late in a run the weights wander around a good region from one iteration to the
+    next, and their mean is often stronger than any single checkpoint. Batch-norm
+    running statistics are averaged with the weights; integer buffers such as batch
+    counters are taken from the last state.
+    """
+    if not states:
+        raise ValueError("no checkpoints to average")
+    keys = list(states[-1])
+    for state in states:
+        if list(state) != keys:
+            raise ValueError("checkpoints do not share the same tensors")
+    averaged = {}
+    for key in keys:
+        last = states[-1][key]
+        if last.is_floating_point():
+            stacked = torch.stack([state[key].to(torch.float64) for state in states])
+            averaged[key] = stacked.mean(dim=0).to(last.dtype)
+        else:
+            averaged[key] = last.clone()
+    return averaged
