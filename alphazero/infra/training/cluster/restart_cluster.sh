@@ -209,17 +209,26 @@ else
 fi
 
 # 3. Clean Running Nodes (Docker RM)
-log "Step 3: Cleaning up containers on running nodes..."
+# Removing a node's container kills whatever runs in it, a training job included, so this
+# step belongs to a restart only: a build-and-push run (DO_RESTART=false) leaves nodes alone.
+NODE_NAMES=()
+if [ "${DO_RESTART}" = true ]; then
+  log "Step 3: Cleaning up containers on running nodes..."
 
-# Find instances belonging to this cluster
-mapfile -t NODE_NAMES < <(
-  gcloud compute instances list \
-    --project "${PROJECT}" \
-    --filter="name~^ray-${CLUSTER_NAME}- AND zone:${ZONE} AND status=RUNNING" \
-    --format="value(name)"
-)
+  # Find instances belonging to this cluster
+  mapfile -t NODE_NAMES < <(
+    gcloud compute instances list \
+      --project "${PROJECT}" \
+      --filter="name~^ray-${CLUSTER_NAME}- AND zone:${ZONE} AND status=RUNNING" \
+      --format="value(name)"
+  )
+else
+  log "Step 3: Skipping container cleanup (no restart requested)"
+fi
 
-if [ "${#NODE_NAMES[@]}" -eq 0 ]; then
+if [ "${DO_RESTART}" != true ]; then
+  :
+elif [ "${#NODE_NAMES[@]}" -eq 0 ]; then
   log " -> No running nodes found. Skipping cleanup."
 else
   # Command to kill/remove container and prune images
