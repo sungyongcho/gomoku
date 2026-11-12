@@ -5,6 +5,7 @@ from typing import Any
 import fsspec
 import torch
 
+from gomoku.alphazero.learning.optimizer import build_optimizer
 from gomoku.core.gomoku import Gomoku
 from gomoku.model.policy_value_net import PolicyValueNet
 from gomoku.scripts.pipelines.common import load_resume_state
@@ -62,9 +63,7 @@ def build_model_and_optimizer(
     if getattr(cfg.training, "use_channels_last", False):
         model = model.to(memory_format=torch.channels_last)
     init_lr = get_scheduled_value(cfg.training.learning_rate, 0)
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=init_lr, weight_decay=cfg.training.weight_decay
-    )
+    optimizer = build_optimizer(model, cfg.training, init_lr)
     return model, optimizer
 
 

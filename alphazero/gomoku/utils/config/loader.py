@@ -89,6 +89,9 @@ class TrainingConfig(BaseConfig):
     batch_size: int
     learning_rate: ScheduledFloat
     weight_decay: float
+    # "adam" adds the decay to the gradient; "adamw" decays weights directly and leaves
+    # normalization parameters and biases alone (see learning/optimizer.py).
+    optimizer: Literal["adam", "adamw"] = "adam"
     temperature: ScheduledFloat
     replay_buffer_size: int
     min_samples_to_train: int
@@ -162,7 +165,9 @@ class ReferenceMatchConfig(BaseConfig):
     """Fixed outside opponent the champion plays every few iterations, to track absolute strength.
 
     The reference keeps its own config (board rules must match; model size may differ).
-    Both sides search the same number of times with no time limit, noise or root batching.
+    Both sides search with no time limit, noise or root batching. ``reference_searches``
+    gives the reference its own budget, so nets of different speed can meet at equal
+    thinking time; ``player`` picks which of this run's models plays it.
     """
 
     name: str = "reference"
@@ -171,6 +176,8 @@ class ReferenceMatchConfig(BaseConfig):
     every_iters: int = 10
     num_games: int = 40  # played as colour-swapped pairs on the same random opening
     num_searches: int = 400
+    reference_searches: int | None = None  # the reference's budget; num_searches when unset
+    player: Literal["champion", "latest"] = "champion"
     opening_plies: int = 2
 
 

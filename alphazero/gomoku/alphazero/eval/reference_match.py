@@ -88,6 +88,8 @@ def play_game(
 ) -> dict[str, Any]:
     """Play one game; ``sides`` maps CHAMPION/REFERENCE to (model config, mcts config, weights)."""
     torch.set_num_threads(1)
+    # Weights decayed to denormals make float32 inference about 20 times slower on Intel CPUs.
+    torch.set_flush_denormal(True)
     game = Gomoku(board, use_native=True)
     searches = {name: _player(game, *spec) for name, spec in sides.items()}
     seat = {1: black, 2: REFERENCE if black == CHAMPION else CHAMPION}
@@ -155,7 +157,7 @@ def run_reference_match(
         CHAMPION: (model_cfg, match_mcts(mcts, ref_cfg.num_searches), champion_state),
         REFERENCE: (
             reference.model,
-            match_mcts(reference.mcts, ref_cfg.num_searches),
+            match_mcts(reference.mcts, ref_cfg.reference_searches or ref_cfg.num_searches),
             load_state_dict(ref_cfg.checkpoint),
         ),
     }

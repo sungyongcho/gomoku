@@ -39,14 +39,16 @@ def _fake_ray() -> SimpleNamespace:
     )
 
 
+@pytest.mark.parametrize("player", ["champion", "latest"])
 def test_iteration_is_recorded_before_the_reference_match(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, player: str
 ) -> None:
     fs = fsspec.filesystem("file")
     params = _make_runner_params(tmp_path.as_posix())
     reference = ReferenceMatchConfig(
-        checkpoint="v4.pt", config="v4.yaml", every_iters=1, num_games=2, num_searches=1
-    )
+        checkpoint="v4.pt", config="v4.yaml", every_iters=1, num_games=2, num_searches=1,
+        player=player,
+    )  # fmt: skip
     params = params.model_copy(
         update={"evaluation": params.evaluation.model_copy(update={"reference": reference})}
     )
@@ -105,7 +107,11 @@ def test_iteration_is_recorded_before_the_reference_match(
     monkeypatch.setattr(
         run_ray_mod,
         "distributed_evaluate_and_promote",
-        lambda *_args, **kwargs: (kwargs["ckpt_path"], None),
+        # With player "latest" the champion's file is never read, so it need not exist.
+        lambda *_args, **kwargs: (
+            kwargs["ckpt_path"] if player == "champion" else "missing/champion.pt",
+            None,
+        ),
     )
 
     model = DummyModel()

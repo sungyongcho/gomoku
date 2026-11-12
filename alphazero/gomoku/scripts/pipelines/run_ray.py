@@ -945,17 +945,23 @@ def run_ray(
             try:
                 if runner:
                     runner.stop_workers()
-                champion_state = load_state_dict_from_fs(
-                    fs, champion_path or ckpt_path, torch.device("cpu")
+                # A gate that rarely promotes leaves the champion far behind the latest model.
+                player_path = (
+                    ckpt_path if ref_cfg.player == "latest" else champion_path or ckpt_path
                 )
+                champion_state = load_state_dict_from_fs(fs, player_path, torch.device("cpu"))
                 if isinstance(champion_state, dict) and "model_state_dict" in champion_state:
                     champion_state = champion_state["model_state_dict"]
-                log(f"[Reference] Iteration {global_iter}: champion vs {ref_cfg.name} "
-                    f"({ref_cfg.num_games} games, {ref_cfg.num_searches} searches)...")
+                ref_searches = ref_cfg.reference_searches or ref_cfg.num_searches
+                log(f"[Reference] Iteration {global_iter}: {ref_cfg.player} vs {ref_cfg.name} "
+                    f"({ref_cfg.num_games} games, {ref_cfg.num_searches} searches against "
+                    f"{ref_searches})...")
                 ref_summary = run_reference_match(
                     params.board, params.model, params.mcts, champion_state, ref_cfg, global_iter
                 )
-                ref_summary["champion_path"] = champion_path or ckpt_path
+                ref_summary["champion_path"] = player_path
+                ref_summary["player"] = ref_cfg.player
+                ref_summary["reference_searches"] = ref_searches
                 log(
                     f"[Reference] vs {ref_cfg.name}: W{ref_summary['wins']}/L{ref_summary['losses']}"
                     f"/D{ref_summary['draws']} score={ref_summary['score']:.3f} "

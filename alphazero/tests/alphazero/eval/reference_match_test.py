@@ -122,3 +122,42 @@ def test_evaluation_config_accepts_a_reference_block():
     }
     parsed = parse_config(raw).evaluation.reference
     assert parsed.name == "v4" and parsed.every_iters == 10 and parsed.num_games == 40
+
+
+def test_reference_can_search_on_its_own_budget(tmp_path, monkeypatch):
+    raw = minimal_raw_config()
+    raw["board"] = _board().model_dump()
+    path = tmp_path / "reference.yaml"
+    path.write_text(yaml.safe_dump(raw))
+    model_cfg, mcts, weights = _side(0)
+    seen = {}
+
+    class _Task:
+        def options(self, **_options):
+            return self
+
+        def remote(self, _board_cfg, sides, black, *_rest):
+            seen["searches"] = {name: side[1].num_searches for name, side in sides.items()}
+            return {"black": black, "winner": rm.CHAMPION, "plies": 9}
+
+    class _Ray:
+        put = staticmethod(lambda value: value)
+        get = staticmethod(lambda values: values)
+        cluster_resources = staticmethod(dict)
+
+    monkeypatch.setattr(rm, "ray", _Ray)
+    monkeypatch.setattr(rm, "_play_game_task", _Task())
+    monkeypatch.setattr(rm, "load_state_dict", lambda _path: weights)
+    cfg = ReferenceMatchConfig(
+        checkpoint="unused.pt", config=str(path), num_games=2, num_searches=6, reference_searches=15
+    )
+
+    summary = rm.run_reference_match(_board(), model_cfg, mcts, weights, cfg, iteration=5)
+
+    assert seen["searches"] == {rm.CHAMPION: 6.0, rm.REFERENCE: 15.0}
+    assert summary["wins"] == 2
+
+
+def test_reference_block_defaults_to_the_champion_on_equal_searches():
+    cfg = ReferenceMatchConfig(checkpoint="unused.pt", config="unused.yaml")
+    assert cfg.player == "champion" and cfg.reference_searches is None
