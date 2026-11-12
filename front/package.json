@@ -20,7 +20,7 @@
     "@vueuse/core": "^12.2.0",
     "better-sqlite3": "^12.6.2",
     "lodash-es": "^4.17.21",
-    "nuxt": "^3.15.0",
+    "nuxt": "^3.21.11",
     "pinia": "^2.3.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.2.5",
