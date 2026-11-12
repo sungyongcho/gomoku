@@ -114,8 +114,9 @@ class PolicyValueNet(nn.Module):
             nn.ReLU(),
         )
 
+        mid_channels = config.resblock_mid_channels or [num_hidden] * num_resblocks
         self.res_blocks = nn.ModuleList(
-            [ResBlock(num_hidden) for i in range(num_resblocks)]
+            [ResBlock(num_hidden, mid_channels[i]) for i in range(num_resblocks)]
         )
 
         self.policy_head = nn.Sequential(
@@ -149,19 +150,24 @@ class PolicyValueNet(nn.Module):
 
 
 class ResBlock(nn.Module):
-    """Residual block with two 3x3 convolutions and skip connection."""
+    """Residual block with two 3x3 convolutions and skip connection.
 
-    def __init__(self, num_hidden: int):
+    ``mid_channels`` is the width between the two convolutions; the block's input and
+    output stay ``num_hidden`` wide so the skip connection still adds up.
+    """
+
+    def __init__(self, num_hidden: int, mid_channels: int | None = None):
         super().__init__()
+        mid_channels = mid_channels or num_hidden
         self.conv1 = nn.Conv2d(
             num_hidden,
-            num_hidden,
+            mid_channels,
             kernel_size=RESBLOCK_KERNEL_SIZE,
             padding=RESBLOCK_PADDING,
         )
-        self.bn1 = nn.BatchNorm2d(num_hidden)
+        self.bn1 = nn.BatchNorm2d(mid_channels)
         self.conv2 = nn.Conv2d(
-            num_hidden,
+            mid_channels,
             num_hidden,
             kernel_size=RESBLOCK_KERNEL_SIZE,
             padding=RESBLOCK_PADDING,

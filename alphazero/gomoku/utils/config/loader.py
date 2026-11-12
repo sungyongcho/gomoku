@@ -44,8 +44,20 @@ class ModelConfig(BaseConfig):
     num_planes: int | None = None
     num_hidden: int | None = None
     num_resblocks: int | None = None
+    # Channels between the two convolutions of each residual block; num_hidden when unset.
+    # scripts/prune_channels.py narrows the blocks of a trained network and reports this list.
+    resblock_mid_channels: list[int] | None = None
     policy_channels: int = POLICY_CHANNELS
     value_channels: int = VALUE_CHANNELS
+
+    @model_validator(mode="after")
+    def _one_mid_width_per_block(self) -> "ModelConfig":
+        mids = self.resblock_mid_channels
+        if mids is not None and (len(mids) != self.num_resblocks or min(mids) < 1):
+            raise ValueError(
+                "[ConfigError] resblock_mid_channels needs one positive width per residual block."
+            )
+        return self
 
 
 class PriorityReplayConfig(BaseConfig):
