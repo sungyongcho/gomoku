@@ -1,0 +1,35 @@
+# AlphaZero engine on the Oracle A1 host. 02_deploy_alphazero.sh syncs alphazero/ into
+# ./src next to this file, puts the checkpoint at ./src/models/champion.pt and builds the
+# image on the instance (aarch64), so no registry is involved. Plain WebSocket on the
+# published port; TLS terminates at Cloudflare and the Worker reaches http://<ip>:<port>.
+services:
+  alphazero:
+    build:
+      context: ./src
+      dockerfile: infra/image/Dockerfile.prod
+    image: gomoku-alphazero:local
+    container_name: gomoku-alphazero
+    environment:
+      ALPHAZERO_CONFIG: "${ALPHAZERO_CONFIG:?set by 02_deploy_alphazero.sh}"
+      ALPHAZERO_CHECKPOINT: models/champion.pt
+      ALPHAZERO_DEVICE: cpu
+      # The search is cut off by time, so inference speed decides how many searches fit:
+      # static int8 on both cores, see alphazero_oracle_env_config.sh.
+      ALPHAZERO_INFER_BACKEND: "${ALPHAZERO_INFER_BACKEND:-onnx-static}"
+      ALPHAZERO_INFER_THREADS: "${ALPHAZERO_THREADS:-2}"
+      OMP_NUM_THREADS: "${ALPHAZERO_THREADS:-2}"
+      TORCH_NUM_THREADS: "${ALPHAZERO_THREADS:-2}"
+    ports:
+      - "${ALPHAZERO_PORT:-8080}:8080"
+    restart: unless-stopped
+    init: true
+    # The instance runs nothing else, so the engine gets every core. Memory stays capped
+    # well inside the instance's 12 GB.
+    mem_limit: 4g
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

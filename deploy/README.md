@@ -5,6 +5,7 @@ Each service deploys on its own. Nothing here depends on another service's scrip
 | Directory | Deploys | Where |
 | --- | --- | --- |
 | [`alphazero/`](alphazero) | AlphaZero engine | GCP VM |
+| [`alphazero-oracle/`](alphazero-oracle/README.md) | AlphaZero engine | Oracle Cloud A1 |
 | [`minimax/`](minimax/README.md) | Minimax engine | Oracle Cloud A1 |
 | [`cloudflare/`](cloudflare/README.md) | Worker routing and backend DNS records | Cloudflare |
 
