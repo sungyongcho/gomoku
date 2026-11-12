@@ -88,6 +88,59 @@ ssh -N -L 18080:127.0.0.1:8080 ubuntu@<host> &
 cd alphazero && .venv/bin/python ../deploy/alphazero-oracle/smoke_game.py --url ws://127.0.0.1:18080/ws
 ```
 
+### Searches kept between moves and searched while the opponent thinks
+
+`configs/deploy-v5-pruned.yaml` turns on two switches of the native search, both off unless a
+config sets them:
+
+- `mcts.reuse_tree`: each WebSocket connection keeps its search tree. After answering, the
+  engine keeps the subtree of the move it played; when the next request is that position or
+  the position one move below it (the whole state is compared: board, capture points, side to
+  move, last move, empty count and the last five moves), the search goes on from that subtree.
+  Any other position, a `reset` message or a new connection starts a new tree.
+- `mcts.ponder`: after answering, the engine searches the position it played into until the
+  next move request arrives on any connection, the connection closes, `ponder_time_limit_s`
+  (120 s) passes or all kept trees together reach `ponder_max_nodes` (50,000, 4 to 5 KB each).
+  One background search runs at a time. A move request stops it before its own search starts
+  and the time that takes comes out of the 2.5-second search limit, not out of the answer.
+
+The answer's `search` field reports the searches carried over and the new ones. To measure a
+game as an opponent sees it, give each colour its own connection and the opponent a thinking
+time (one connection asked for both colours keeps the whole subtree of the engine's own move,
+which no game against an opponent does):
+
+```sh
+.venv/bin/python ../deploy/alphazero-oracle/smoke_game.py --url ws://127.0.0.1:18080/ws \
+  --connections 2 --think-s 5
+```
+
+Measured on the A1 instance (v5 iteration 144 pruned, static int8, 2 threads), one full game
+per row, medians over the moves after each connection's first. A new tree gets 668 searches in
+2.5 s (`03_bench_search.sh`):
+
+| Setting | Searches behind a move | carried over | new | Answer mean / max | Container memory peak |
+| --- | --- | --- | --- | --- | --- |
+| no kept tree | 668 (the benchmark's median) | 0 | 668 | 2.52 s / 2.59 s | 262 MB |
+| `reuse_tree` | 1,468 | 646 | 812 | 2.42 s / 2.53 s | 262 MB |
+| `reuse_tree` + `ponder`, opponent answers at once | 1,468 | 651 | 799 | 2.42 s / 2.56 s | 263 MB |
+| `reuse_tree` + `ponder`, opponent thinks 5 s | 6,363 | 5,303 | 1,044 | 2.51 s / 2.53 s | 307 MB |
+| `reuse_tree` + `ponder`, opponent thinks 15 s | 13,859 | 12,484 | 977 | 2.51 s / 2.51 s | 415 MB |
+
+Reading the table:
+
+- The opponent in these games is the same engine, so its replies are the ones the kept tree
+  expects far more often than a person's would be, and the carried-over numbers are an upper
+  range for real games. An unexpected reply still keeps whatever was searched below it.
+- The new searches are not fewer with `ponder` on (early moves: 704, 683, 684, 707 with it,
+  721, 709, 681, 701 without), because the background search is stopped before the timed one
+  starts.
+- Late in a game most searches end at finished positions without evaluating the network, so
+  the counts there run into the tens of thousands; that is why the table uses medians.
+- With the opponent thinking for 130 s the background search ran 120 s on both cores (33,623
+  searches), then stopped with the connection still open; the second connection's search
+  stopped after about 55 s at the shared node cap. The container peaked at 461 MB. Memory freed by a
+  closed connection is reused for later trees but not returned to the system.
+
 ## 6. Cut over the Cloudflare routing
 
 `alphazero-api.<domain>` follows `DEPLOY_ALPHAZERO_IP`. Set it to the instance's address and

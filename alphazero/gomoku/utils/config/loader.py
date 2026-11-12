@@ -137,6 +137,17 @@ class MctsConfig(BaseConfig):
     use_native: bool = False
     # Serving only: stop the native search after this many seconds (None = no limit).
     time_limit_s: float | None = None
+    # Serving only, native search: keep each connection's search tree between moves and go on
+    # from the subtree of the position that comes back, instead of starting a new tree.
+    reuse_tree: bool = False
+    # Serving only: search the position after the engine's move while the opponent thinks.
+    # Needs reuse_tree. One background search runs at a time and a move request ends it.
+    ponder: bool = False
+    # Background search stops once all kept trees together hold this many nodes (a node is
+    # one searched position, 4 to 5 KB on a 19x19 board) ...
+    ponder_max_nodes: int = 50_000
+    # ... or after this many seconds, so a connection left open stops using the processor.
+    ponder_time_limit_s: float = 120.0
     # Native search: score unvisited moves with the parent's mean value instead of 0.
     fpu_from_parent: bool = False
     # Subtracted from the parent value for unvisited moves; needs fpu_from_parent.
@@ -148,6 +159,16 @@ class MctsConfig(BaseConfig):
     resign_threshold: float = 0.95
     resign_enabled: bool = True
     min_moves_before_resign: int = 10
+
+    @model_validator(mode="after")
+    def _check_pondering(self) -> "MctsConfig":
+        if self.ponder and not self.reuse_tree:
+            raise ValueError("mcts.ponder needs mcts.reuse_tree")
+        if self.ponder_max_nodes <= 0 or self.ponder_time_limit_s <= 0:
+            raise ValueError(
+                "mcts.ponder_max_nodes and mcts.ponder_time_limit_s must be positive"
+            )
+        return self
 
 
 class SPRTConfig(BaseConfig):

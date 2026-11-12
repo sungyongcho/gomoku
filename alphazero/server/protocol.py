@@ -180,9 +180,13 @@ def build_move_response(
     new_state: GameState,
     captured_indices: list[int],
     execution_time_ns: int,
+    search: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """
     Build SocketMoveResponse compatible with frontend/minimax payload shape.
+
+    ``search`` (searches carried over, new and in total) is added when the tree was kept
+    between moves; the frontend ignores it and the deployment's game check reads it.
     """
     board_size = int(new_state.board.shape[0])
     x, y = index_to_xy(action, board_size)
@@ -196,7 +200,7 @@ def build_move_response(
     elapsed_s = execution_time_ns / 1_000_000_000.0
     elapsed_ms = execution_time_ns / 1_000_000.0
 
-    return {
+    response: dict[str, Any] = {
         "type": "move",
         "status": "success",
         "lastPlay": {"coordinate": {"x": int(x), "y": int(y)}, "stone": stone},
@@ -212,3 +216,6 @@ def build_move_response(
         ],
         "executionTime": {"s": elapsed_s, "ms": elapsed_ms, "ns": int(execution_time_ns)},
     }
+    if search is not None:
+        response["search"] = search
+    return response

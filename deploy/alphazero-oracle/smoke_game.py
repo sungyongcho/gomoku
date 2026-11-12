@@ -8,6 +8,15 @@ move came back within the time limit. Run it from alphazero/ with the project vi
     ssh -N -L 18080:127.0.0.1:8080 ubuntu@<host> &        # the port is not public
     python ../deploy/alphazero-oracle/smoke_game.py --url ws://127.0.0.1:18080/ws
 
+With ``mcts.reuse_tree`` the answers also say how many searches stand behind each move:
+those carried over in the kept tree plus the new ones. Asking for both colours on one
+connection keeps the whole subtree of the engine's own move, which no real game does. To
+measure what a game against a person gets, use two connections, one per colour, so each
+sees its own move followed by the opponent's reply, and give the opponent a thinking time
+for ``mcts.ponder`` to use:
+
+    python ../deploy/alphazero-oracle/smoke_game.py --url ... --connections 2 --think-s 5
+
 Exits non-zero when an answer is wrong or late.
 """
 
@@ -15,7 +24,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from contextlib import AsyncExitStack
 import json
+import statistics
 import time
 
 import websockets
@@ -53,17 +64,32 @@ def request_for(state, game: Gomoku, moves: list[int]) -> dict:
     return payload
 
 
-async def play(url: str, config: str, limit_s: float, max_plies: int) -> int:
+async def play(
+    url: str,
+    config: str,
+    limit_s: float,
+    max_plies: int,
+    connections: int = 1,
+    think_s: float = 0.0,
+) -> int:
     cfg = load_and_parse_config(config)
     game = Gomoku(cfg.board, use_native=False)
     state = game.get_initial_state()
     moves: list[int] = []
     times: list[float] = []
+    searches: list[dict] = []
     problems: list[str] = []
     result = "no result"
-    async with websockets.connect(url, open_timeout=20) as socket:
+    async with AsyncExitStack() as stack:
+        sockets = [
+            await stack.enter_async_context(websockets.connect(url, open_timeout=20))
+            for _ in range(connections)
+        ]
         for ply in range(max_plies):
             mover = int(state.next_player)
+            socket = sockets[ply % connections]
+            if ply and think_s > 0:
+                await asyncio.sleep(think_s)  # the side to move "thinks"
             start = time.monotonic()
             await socket.send(json.dumps(request_for(state, game, moves)))
             answer = json.loads(await asyncio.wait_for(socket.recv(), timeout=limit_s + 10))
@@ -72,6 +98,8 @@ async def play(url: str, config: str, limit_s: float, max_plies: int) -> int:
             if answer.get("type") != "move":
                 problems.append(f"ply {ply + 1}: unexpected answer {answer}")
                 break
+            if "search" in answer:
+                searches.append(answer["search"])
             coordinate = answer["lastPlay"]["coordinate"]
             x, y = int(coordinate["x"]), int(coordinate["y"])
             action = x + y * game.col_count
@@ -100,6 +128,23 @@ async def play(url: str, config: str, limit_s: float, max_plies: int) -> int:
             f"first move {times[0]:.2f}s"
         )
     print(f"captures: X {int(state.p1_pts)}, O {int(state.p2_pts)}")
+    # A connection's first answer has no kept tree yet, so it is left out. Medians, because
+    # near the end of a game most searches stop at finished positions without evaluating
+    # the network and the counts grow a hundredfold.
+    kept = searches[connections:]
+    if kept:
+
+        def median(key: str) -> float:
+            return statistics.median(item[key] for item in kept)
+
+        print(
+            f"searches per move after each connection's first: median {median('total'):.0f} "
+            f"({median('carried'):.0f} carried over, {median('new'):.0f} new), "
+            f"min {min(item['total'] for item in kept)}; "
+            f"searched while waiting: median {median('pondered'):.0f}"
+        )
+        for key in ("carried", "new", "pondered"):
+            print(f"{key} per move:", " ".join(str(item[key]) for item in searches))
     for problem in problems:
         print("PROBLEM", problem)
     return 1 if problems else 0
@@ -111,8 +156,29 @@ def main() -> None:
     parser.add_argument("--config", default="configs/deploy-v5-pruned.yaml", help="board rules")
     parser.add_argument("--limit-s", type=float, default=3.0, help="longest answer allowed")
     parser.add_argument("--max-plies", type=int, default=200)
+    parser.add_argument(
+        "--connections",
+        type=int,
+        choices=(1, 2),
+        default=1,
+        help="2 gives each colour its own connection, as in a game against an opponent",
+    )
+    parser.add_argument(
+        "--think-s", type=float, default=0.0, help="wait this long before asking for each move"
+    )
     args = parser.parse_args()
-    raise SystemExit(asyncio.run(play(args.url, args.config, args.limit_s, args.max_plies)))
+    raise SystemExit(
+        asyncio.run(
+            play(
+                args.url,
+                args.config,
+                args.limit_s,
+                args.max_plies,
+                connections=args.connections,
+                think_s=args.think_s,
+            )
+        )
+    )
 
 
 if __name__ == "__main__":

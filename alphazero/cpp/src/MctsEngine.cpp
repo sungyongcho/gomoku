@@ -9,6 +9,29 @@
 
 namespace {
 constexpr int kWinLength = 5;
+
+int CountNodes(const MctsNode *node)
+{
+	if (node == nullptr) {
+		return 0;
+	}
+	int count = 1;
+	for (const auto *child : node->children) {
+		count += CountNodes(child);
+	}
+	return count;
+}
+
+bool SameState(const GomokuState &a, const GomokuState &b)
+{
+	return a.next_player == b.next_player
+		&& a.last_move_idx == b.last_move_idx
+		&& a.p1_pts == b.p1_pts
+		&& a.p2_pts == b.p2_pts
+		&& a.empty_count == b.empty_count
+		&& a.board == b.board
+		&& a.history == b.history;
+}
 }  // namespace
 
 MctsNode::~MctsNode()
@@ -36,8 +59,101 @@ MctsEngine::MctsEngine(GomokuCore *core, float c_puct, bool fpu_from_parent, flo
 
 MctsEngine::~MctsEngine()
 {
+	ClearTree();
+}
+
+void MctsEngine::ClearTree()
+{
 	delete root_;
 	root_ = nullptr;
+	node_count_ = 0;
+}
+
+void MctsEngine::ResetRoot(const GomokuState &root_state)
+{
+	if (static_cast<int>(root_state.board.size()) != action_size_) {
+		throw std::invalid_argument("root_state size mismatch");
+	}
+	ClearTree();
+	root_ = new MctsNode();
+	root_->player_to_play = root_state.next_player;
+	root_state_ = root_state;
+	node_count_ = 1;
+}
+
+std::vector<std::pair<int, int>> MctsEngine::ChildVisits() const
+{
+	std::vector<std::pair<int, int>> visits;
+	if (root_ == nullptr) {
+		return visits;
+	}
+	visits.reserve(root_->moves.size());
+	for (std::size_t i = 0; i < root_->moves.size(); ++i) {
+		const MctsNode *child = root_->children.empty() ? nullptr : root_->children[i];
+		visits.emplace_back(static_cast<int>(root_->moves[i]), child != nullptr ? child->visit_count : 0);
+	}
+	return visits;
+}
+
+void MctsEngine::AdvanceToChild(std::size_t index, GomokuState next_state)
+{
+	MctsNode *child = root_->children.empty() ? nullptr : root_->children[index];
+	if (child == nullptr) {
+		child = new MctsNode();
+		child->move_idx = static_cast<int>(root_->moves[index]);
+		child->prior = root_->priors[index];
+		child->player_to_play = 3 - root_->player_to_play;
+	} else {
+		root_->children[index] = nullptr;
+	}
+	delete root_;
+	child->parent = nullptr;
+	root_ = child;
+	root_state_ = std::move(next_state);
+	node_count_ = CountNodes(root_);
+}
+
+bool MctsEngine::AdvanceRoot(int move_idx)
+{
+	if (root_ == nullptr) {
+		return false;
+	}
+	for (std::size_t i = 0; i < root_->moves.size(); ++i) {
+		if (static_cast<int>(root_->moves[i]) != move_idx) {
+			continue;
+		}
+		AdvanceToChild(
+			i,
+			core_->apply_move(root_state_, move_idx % board_size_, move_idx / board_size_, root_->player_to_play)
+		);
+		return true;
+	}
+	return false;
+}
+
+int MctsEngine::AlignRoot(const GomokuState &target)
+{
+	if (root_ == nullptr) {
+		return -1;
+	}
+	if (SameState(root_state_, target)) {
+		return root_->visit_count;
+	}
+	const int move_idx = target.last_move_idx;
+	for (std::size_t i = 0; i < root_->moves.size(); ++i) {
+		if (static_cast<int>(root_->moves[i]) != move_idx) {
+			continue;
+		}
+		GomokuState next = core_->apply_move(
+			root_state_, move_idx % board_size_, move_idx / board_size_, root_->player_to_play
+		);
+		if (!SameState(next, target)) {
+			return -1;
+		}
+		AdvanceToChild(i, std::move(next));
+		return root_->visit_count;
+	}
+	return -1;
 }
 
 std::vector<std::pair<int, int>> MctsEngine::RunSimulation(
@@ -57,9 +173,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunSimulation(
 		throw std::invalid_argument("eval_func is null");
 	}
 
-	delete root_;
-	root_ = new MctsNode();
-	root_->player_to_play = root_state.next_player;
+	ResetRoot(root_state);
 
 	for (int i = 0; i < num_simulations; ++i) {
 		GomokuState state = root_state; // Copy
@@ -68,7 +182,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunSimulation(
 		path.push_back(root_);
 		MctsNode *leaf = root_;
 
-		while (leaf->is_expanded && !leaf->children.empty()) {
+		while (leaf->is_expanded && !leaf->moves.empty()) {
 			leaf = Select(leaf, state);
 			path.push_back(leaf);
 		}
@@ -122,12 +236,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunSimulation(
 		Backup(path, value);
 	}
 
-	std::vector<std::pair<int, int>> visits;
-	visits.reserve(root_->children.size());
-	for (const auto *child : root_->children) {
-		visits.emplace_back(child->move_idx, child->visit_count);
-	}
-	return visits;
+	return ChildVisits();
 }
 
 std::vector<std::pair<int, float>> MctsEngine::RootPriors() const
@@ -136,9 +245,9 @@ std::vector<std::pair<int, float>> MctsEngine::RootPriors() const
 	if (root_ == nullptr) {
 		return priors;
 	}
-	priors.reserve(root_->children.size());
-	for (const auto *child : root_->children) {
-		priors.emplace_back(child->move_idx, child->prior);
+	priors.reserve(root_->moves.size());
+	for (std::size_t i = 0; i < root_->moves.size(); ++i) {
+		priors.emplace_back(static_cast<int>(root_->moves[i]), root_->priors[i]);
 	}
 	return priors;
 }
@@ -146,7 +255,7 @@ std::vector<std::pair<int, float>> MctsEngine::RootPriors() const
 std::vector<std::pair<int, int>> MctsEngine::RunSimulationEncoded(
 	const GomokuState &root_state,
 	int num_simulations,
-	EvaluationCallbackEncoded eval_func,
+	const EvaluationCallbackEncoded &eval_func,
 	float time_limit_s
 )
 {
@@ -160,26 +269,48 @@ std::vector<std::pair<int, int>> MctsEngine::RunSimulationEncoded(
 		throw std::invalid_argument("eval_func is null");
 	}
 
-	delete root_;
-	root_ = new MctsNode();
-	root_->player_to_play = root_state.next_player;
+	ResetRoot(root_state);
+	return ContinueSimulationEncoded(num_simulations, eval_func, time_limit_s);
+}
 
+std::vector<std::pair<int, int>> MctsEngine::ContinueSimulationEncoded(
+	int num_simulations,
+	const EvaluationCallbackEncoded &eval_func,
+	float time_limit_s,
+	int max_nodes,
+	bool stoppable
+)
+{
+	if (root_ == nullptr) {
+		throw std::logic_error("no tree to continue: call ResetRoot first");
+	}
+	if (!eval_func) {
+		throw std::invalid_argument("eval_func is null");
+	}
+
+	last_simulations_ = 0;
 	const auto started = std::chrono::steady_clock::now();
 	for (int i = 0; i < num_simulations; ++i) {
-		if (i > 0 && time_limit_s > 0.0f) {
+		if (stoppable && stop_requested_.load(std::memory_order_relaxed)) {
+			break;
+		}
+		if (max_nodes > 0 && node_count_ >= max_nodes) {
+			break;
+		}
+		if (time_limit_s > 0.0f && (i > 0 || root_->is_expanded)) {
 			const std::chrono::duration<float> elapsed = std::chrono::steady_clock::now() - started;
 			if (elapsed.count() >= time_limit_s) {
 				break;
 			}
 		}
 
-		GomokuState state = root_state;
+		GomokuState state = root_state_;
 		std::vector<MctsNode *> path;
 		path.reserve(64);
 		path.push_back(root_);
 		MctsNode *leaf = root_;
 
-		while (leaf->is_expanded && !leaf->children.empty()) {
+		while (leaf->is_expanded && !leaf->moves.empty()) {
 			leaf = Select(leaf, state);
 			path.push_back(leaf);
 		}
@@ -214,14 +345,14 @@ std::vector<std::pair<int, int>> MctsEngine::RunSimulationEncoded(
 		}
 
 		Backup(path, value);
+		++last_simulations_;
+		if (leaf == root_ && (win_found || winner == 3)) {
+			// The game is over at the root: there is nothing below it to search.
+			break;
+		}
 	}
 
-	std::vector<std::pair<int, int>> visits;
-	visits.reserve(root_->children.size());
-	for (const auto *child : root_->children) {
-		visits.emplace_back(child->move_idx, child->visit_count);
-	}
-	return visits;
+	return ChildVisits();
 }
 
 std::vector<std::pair<int, int>> MctsEngine::RunBatchSimulation(
@@ -244,9 +375,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunBatchSimulation(
 		throw std::invalid_argument("batch_size must be positive");
 	}
 
-	delete root_;
-	root_ = new MctsNode();
-	root_->player_to_play = root_state.next_player;
+	ResetRoot(root_state);
 
 	int sims_completed = 0;
 
@@ -277,7 +406,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunBatchSimulation(
 			MctsNode *leaf = root_;
 
 			// UCB Selection with Virtual Loss
-			while (leaf->is_expanded && !leaf->children.empty()) {
+			while (leaf->is_expanded && !leaf->moves.empty()) {
 				leaf = Select(leaf, state);
 				path.push_back(leaf);
 			}
@@ -365,12 +494,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunBatchSimulation(
 		}
 	}
 
-	std::vector<std::pair<int, int>> visits;
-	visits.reserve(root_->children.size());
-	for (const auto *child : root_->children) {
-		visits.emplace_back(child->move_idx, child->visit_count);
-	}
-	return visits;
+	return ChildVisits();
 }
 
 std::vector<std::pair<int, int>> MctsEngine::RunAsyncSimulation(
@@ -396,9 +520,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunAsyncSimulation(
 		throw std::invalid_argument("batch_size must be positive");
 	}
 
-	delete root_;
-	root_ = new MctsNode();
-	root_->player_to_play = root_state.next_player;
+	ResetRoot(root_state);
 
 	int sims_completed = 0;   // Finished (Backed up)
 	int sims_dispatched = 0;  // Sent to inference or finished early (terminal)
@@ -437,7 +559,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunAsyncSimulation(
              MctsNode *leaf = root_;
 
              // Traverse
-             while (leaf->is_expanded && !leaf->children.empty()) {
+             while (leaf->is_expanded && !leaf->moves.empty()) {
                  leaf = Select(leaf, state);
                  path.push_back(leaf);
              }
@@ -550,12 +672,7 @@ std::vector<std::pair<int, int>> MctsEngine::RunAsyncSimulation(
         }
     }
 
-	std::vector<std::pair<int, int>> visits;
-	visits.reserve(root_->children.size());
-	for (const auto *child : root_->children) {
-		visits.emplace_back(child->move_idx, child->visit_count);
-	}
-	return visits;
+	return ChildVisits();
 }
 
 MctsNode *MctsEngine::Select(MctsNode *node, GomokuState &state)
@@ -563,22 +680,39 @@ MctsNode *MctsEngine::Select(MctsNode *node, GomokuState &state)
 	if (node == nullptr) {
 		throw std::invalid_argument("node is null");
 	}
-	if (node->children.empty()) {
+	if (node->moves.empty()) {
 		return node;
 	}
 
-	MctsNode *best_child = nullptr;
+	bool found = false;
+	std::size_t best_index = 0;
 	float best_score = -std::numeric_limits<float>::infinity();
-	for (auto *child : node->children) {
-		const float score = CalculateUcb(node, child);
+	const bool has_children = !node->children.empty();
+	for (std::size_t i = 0; i < node->moves.size(); ++i) {
+		const float score = CalculateUcb(node, has_children ? node->children[i] : nullptr, node->priors[i]);
 		if (score > best_score) {
 			best_score = score;
-			best_child = child;
+			best_index = i;
+			found = true;
 		}
 	}
 
-	if (best_child == nullptr) {
+	if (!found) {
 		throw std::runtime_error("Select failed to find a child");
+	}
+
+	if (!has_children) {
+		node->children.assign(node->moves.size(), nullptr);
+	}
+	MctsNode *best_child = node->children[best_index];
+	if (best_child == nullptr) {
+		best_child = new MctsNode();
+		best_child->move_idx = static_cast<int>(node->moves[best_index]);
+		best_child->prior = node->priors[best_index];
+		best_child->parent = node;
+		best_child->player_to_play = 3 - node->player_to_play;
+		node->children[best_index] = best_child;
+		++node_count_;
 	}
 
 	// Apply Move via Core!
@@ -647,13 +781,11 @@ void MctsEngine::ExpandAtLeaf(
 		}
 	}
 
+	leaf->moves.reserve(moves.size());
+	leaf->priors.reserve(moves.size());
 	for (const auto &mv : moves) {
-		auto *child = new MctsNode();
-		child->move_idx = mv.first;
-		child->prior = mv.second;
-		child->parent = leaf;
-		child->player_to_play = 3 - leaf->player_to_play;
-		leaf->children.push_back(child);
+		leaf->moves.push_back(static_cast<int16_t>(mv.first));
+		leaf->priors.push_back(mv.second);
 	}
 	leaf->is_expanded = true;
 }
@@ -672,22 +804,24 @@ void MctsEngine::Backup(std::vector<MctsNode *> &path, float leaf_value)
 	}
 }
 
-float MctsEngine::CalculateUcb(const MctsNode *parent, const MctsNode *child) const
+float MctsEngine::CalculateUcb(const MctsNode *parent, const MctsNode *child, float prior) const
 {
-	if (parent == nullptr || child == nullptr) {
-		throw std::invalid_argument("parent or child is null");
+	if (parent == nullptr) {
+		throw std::invalid_argument("parent is null");
 	}
+	const int child_visit_count = child != nullptr ? child->visit_count : 0;
+	const int child_virtual_loss = child != nullptr ? child->virtual_loss : 0;
 	const int parent_visits = parent->visit_count + parent->virtual_loss;
-	const int child_visits = child->visit_count + child->virtual_loss;
+	const int child_visits = child_visit_count + child_virtual_loss;
 	float q = 0.0f;
-	if (child->visit_count > 0) {
+	if (child_visit_count > 0) {
 		// Pending evaluations count as losses so batched selection spreads out.
-		q = -(child->value_sum + static_cast<float>(child->virtual_loss))
+		q = -(child->value_sum + static_cast<float>(child_virtual_loss))
 			/ static_cast<float>(child_visits);
 	} else if (fpu_from_parent_ && parent->visit_count > 0) {
 		q = parent->value_sum / static_cast<float>(parent->visit_count) - fpu_reduction_;
 	}
-	const float u = c_puct_ * child->prior
+	const float u = c_puct_ * prior
 		* std::sqrt(static_cast<float>(parent_visits + 1))
 		/ (1.0f + static_cast<float>(child_visits));
 	return q + u;

@@ -24,6 +24,15 @@ mcts:
   C: 2.0
   num_searches: 100000 # the time limit ends the search
   time_limit_s: 2.5 # stop searching in time for the 3-second move target
+  # Keep each connection's search tree between moves: when the next request is the position
+  # the tree expects (its root, or one move below it), the search goes on from that subtree.
+  reuse_tree: true
+  # Search the position after the engine's move while the opponent thinks (needs reuse_tree).
+  # A move request stops it first, so the timed search keeps both cores: measured on the A1
+  # instance, answers stayed at 2.51 s (max 2.53 s) and the new searches per move did not drop.
+  ponder: true
+  ponder_max_nodes: 50000 # all kept trees together; 4 to 5 KB a node, so about 250 MB
+  ponder_time_limit_s: 120 # a connection left open stops using the processor after this
   fpu_from_parent: true
   fpu_reduction: 0.1 # the value this network was trained and matched with
   exploration_turns: 0

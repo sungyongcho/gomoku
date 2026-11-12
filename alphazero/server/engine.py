@@ -23,6 +23,7 @@ from gomoku.pvmcts.pvmcts import PVMCTS
 from gomoku.pvmcts.treenode import TreeNode
 from gomoku.utils.config.loader import MctsConfig, load_and_parse_config
 from gomoku.utils.state_dict_utils import align_state_dict_to_model
+from server.session import Ponderer, SearchSession
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,47 @@ class AlphaZeroEngine:
         self.mcts_config: MctsConfig = config.mcts.model_copy(
             update={"use_native": native_enabled}
         )
+        # Kept trees need the native single-position search, which is the serving path.
+        self.reuse_tree = bool(
+            self.mcts_config.reuse_tree
+            and native_enabled
+            and self.mcts_config.batch_infer_size <= 1
+        )
+        if self.mcts_config.reuse_tree and not self.reuse_tree:
+            logger.warning(
+                "mcts.reuse_tree needs use_native and batch_infer_size 1; "
+                "every move starts a new search tree."
+            )
+        self.ponderer: Ponderer | None = None
+        if self.reuse_tree and self.mcts_config.ponder:
+            self.ponderer = Ponderer(
+                max_nodes=self.mcts_config.ponder_max_nodes,
+                time_limit_s=self.mcts_config.ponder_time_limit_s,
+            )
+        # uvicorn's logger, so the line shows in the container log like the request logs.
+        logging.getLogger("uvicorn.error").info(
+            "Search tree reuse: %s, search during the opponent's turn: %s",
+            "on" if self.reuse_tree else "off",
+            "on" if self.ponderer is not None else "off",
+        )
+
+    def open_session(self) -> SearchSession | None:
+        """Return a kept search tree for one connection, or None when tree reuse is off."""
+        if not self.reuse_tree:
+            return None
+        return SearchSession(self, self.ponderer)
+
+    def stop_pondering(self) -> None:
+        """End any background search so that a timed search gets every core."""
+        if self.ponderer is not None:
+            self.ponderer.stop()
+
+    def is_terminal(self, state: GameState, action: int) -> bool:
+        """Whether the game is over in ``state``, reached by playing ``action``."""
+        _, terminal = self.game.get_value_and_terminated(
+            state, action_to_xy(action, self.game.col_count)
+        )
+        return bool(terminal)
 
     def _calibration_positions(self, board_config, count: int = 100, seed: int = 7) -> np.ndarray:
         """Sample positions by walking games through the top network moves."""

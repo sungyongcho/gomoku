@@ -10,6 +10,7 @@ import torch
 
 from gomoku.core.game_config import PLAYER_1, PLAYER_2
 from server.engine import AlphaZeroEngine
+from server.session import SearchSession
 from server.protocol import (
     build_error_response,
     build_evaluate_response,
@@ -119,12 +120,26 @@ async def _handle_move(
     websocket: WebSocket,
     engine: AlphaZeroEngine,
     data: dict[str, Any],
+    session: SearchSession | None = None,
 ) -> bool:
     state = frontend_to_gamestate(data)
     stone = _stone_for_player(int(state.next_player))
 
     start_ns = time.perf_counter_ns()
-    action = engine.get_best_move(state, num_searches_override=NUM_SEARCHES_OVERRIDE)
+    # A timed search needs every core: end any search running for an opponent's turn first.
+    # The time that takes is inside the measured answer time and the search's time limit.
+    engine.stop_pondering()
+    stats = None
+    if session is None:
+        action = engine.get_best_move(
+            state, num_searches_override=NUM_SEARCHES_OVERRIDE
+        )
+    else:
+        action, stats = session.best_move(
+            state,
+            started=start_ns / 1_000_000_000.0,
+            num_searches_override=NUM_SEARCHES_OVERRIDE,
+        )
     new_state, captures = engine.apply_move(state, action)
     elapsed_ns = time.perf_counter_ns() - start_ns
     elapsed_s = elapsed_ns / 1_000_000_000.0
@@ -132,7 +147,14 @@ async def _handle_move(
     ai_x = int(action % engine.game.col_count)
     ai_y = int(action // engine.game.col_count)
 
-    response = build_move_response(action, stone, new_state, captures, elapsed_ns)
+    response = build_move_response(
+        action,
+        stone,
+        new_state,
+        captures,
+        elapsed_ns,
+        search=stats.as_payload() if stats is not None else None,
+    )
     logger.info("AI played: (%s, %s) by %s", ai_x, ai_y, stone)
     sent = await _safe_send_json(websocket, response)
     logger.info(
@@ -141,6 +163,21 @@ async def _handle_move(
         elapsed_ms,
         float(elapsed_ns),
     )
+    if stats is not None:
+        logger.info(
+            "Searches: %s carried over + %s new = %s (%s while waiting)",
+            stats.carried,
+            stats.new,
+            stats.total,
+            stats.pondered,
+        )
+    if session is not None:
+        # After the answer is out: keep the subtree of the move played and, when the game
+        # goes on and the client is still there, search it while the opponent thinks.
+        if sent and not engine.is_terminal(new_state, action):
+            session.commit_move(action)
+        else:
+            session.reset()
     return sent
 
 
@@ -197,10 +234,11 @@ async def _handle_payload(
     websocket: WebSocket,
     engine: AlphaZeroEngine,
     data: dict[str, Any],
+    session: SearchSession | None = None,
 ) -> bool:
     message_type = data.get("type")
     if message_type in {"move", "test"}:
-        return await _handle_move(websocket, engine, data)
+        return await _handle_move(websocket, engine, data, session)
 
     if message_type == "evaluate":
         return await _handle_evaluate(websocket, engine, data)
@@ -209,7 +247,9 @@ async def _handle_payload(
         return await _safe_send_json(websocket, {"type": "pong"})
 
     if message_type == "reset":
-        # Stateless on server side for now.
+        # A new game on this connection: drop the kept search tree, if there is one.
+        if session is not None:
+            session.reset()
         return True
 
     return await _safe_send_json(websocket, build_error_response("Unknown type"))
@@ -220,6 +260,21 @@ async def _serve(websocket: WebSocket) -> None:
     engine: AlphaZeroEngine = websocket.app.state.engine
     path = websocket.url.path
     logger.info("WebSocket `%s` connected!", path)
+    # One connection is one game: its search tree lives until the connection closes.
+    session = engine.open_session()
+    try:
+        await _serve_messages(websocket, engine, session)
+    finally:
+        if session is not None:
+            session.close()
+    logger.info("WebSocket connection closed.")
+
+
+async def _serve_messages(
+    websocket: WebSocket,
+    engine: AlphaZeroEngine,
+    session: SearchSession | None,
+) -> None:
     while True:
         try:
             data = await websocket.receive_json()
@@ -235,7 +290,7 @@ async def _serve(websocket: WebSocket) -> None:
             message_type = data.get("type")
             if message_type in {"move", "test"}:
                 _log_move_request(data)
-            sent = await _handle_payload(websocket, engine, data)
+            sent = await _handle_payload(websocket, engine, data, session)
             if not sent:
                 break
         except WebSocketDisconnect:
@@ -259,7 +314,6 @@ async def _serve(websocket: WebSocket) -> None:
             )
             if not sent:
                 break
-    logger.info("WebSocket connection closed.")
 
 
 @router.websocket("/ws")

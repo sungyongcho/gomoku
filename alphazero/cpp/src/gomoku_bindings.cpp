@@ -11,6 +11,48 @@
 
 namespace py = pybind11;
 
+namespace {
+// Wrap a Python evaluator(features, legal_indices) -> (policy, value) for the encoded search.
+EvaluationCallbackEncoded MakeEncodedCallback(MctsEngine &engine, py::function evaluator)
+{
+	return [&engine, evaluator](const GomokuState &s, int player, int last_move) {
+		(void) player;
+		(void) last_move;
+		// This runs inside the search loop, which has released the GIL.
+		py::gil_scoped_acquire gil;
+
+		GomokuCore* core = engine.core();
+		const int b = core->board_size();
+		const int total_channels = 8 + core->history_length();
+		const int plane = b * b;
+
+		auto *feature_buf = new std::vector<float>(static_cast<std::size_t>(total_channels * plane));
+		core->write_state_features(s, feature_buf->data());
+
+		// The capsule hands the buffer to Python.
+		py::capsule free_feat(feature_buf, [](void *ptr) {
+			delete static_cast<std::vector<float> *>(ptr);
+		});
+		const ssize_t f_shape[3] = {static_cast<ssize_t>(total_channels), b, b};
+		auto py_features = py::array_t<float>(f_shape, feature_buf->data(), free_feat);
+
+		std::vector<int16_t> legal_moves = core->get_legal_moves(s);
+		auto py_legal = py::array(py::cast(legal_moves));
+
+		py::object result = evaluator(py_features, py_legal);
+
+		if (!py::isinstance<py::tuple>(result)) {
+			throw std::runtime_error("evaluator must return (policy, value)");
+		}
+		const py::tuple tup = result.cast<py::tuple>();
+		const auto policy = tup[0].cast<std::vector<float>>();
+		const float value = tup[1].cast<float>();
+
+		return EvaluationResult{policy, value};
+	};
+}
+}  // namespace
+
 PYBIND11_MODULE(gomoku_cpp, m)
 {
 	m.doc() = "Gomoku core rules and encoding implemented in C++ (core-only)";
@@ -127,46 +169,7 @@ PYBIND11_MODULE(gomoku_cpp, m)
 		.def(
 			"run_mcts_encoded",
 			[](MctsEngine &engine, const GomokuState &state, int sims, py::function evaluator, float time_limit_s) {
-				// 1. Python Evaluator Wrapper for Encoded State
-				EvaluationCallbackEncoded callback = [&engine, evaluator](const GomokuState &s, int player, int last_move) {
-					// NOTE: This runs inside the MCTS loop (thread). We need GIL to call Python.
-					py::gil_scoped_acquire gil;
-
-					// 2. Encode features directly in C++ using the FULL GomokuState `s`
-					GomokuCore* core = engine.core();
-					const int b = core->board_size();
-					const int total_channels = 8 + core->history_length();
-					const int plane = b * b;
-
-					auto *feature_buf = new std::vector<float>(static_cast<std::size_t>(total_channels * plane));
-					core->write_state_features(s, feature_buf->data());
-
-					// Create Numpy array for features (transfer ownership to Python caps)
-					py::capsule free_feat(feature_buf, [](void *ptr) {
-						delete static_cast<std::vector<float> *>(ptr);
-					});
-					const ssize_t f_shape[3] = {static_cast<ssize_t>(total_channels), b, b};
-					auto py_features = py::array_t<float>(f_shape, feature_buf->data(), free_feat);
-
-					// 3. Get Legal Moves directly in C++
-					std::vector<int16_t> legal_moves = core->get_legal_moves(s);
-
-					// Create Numpy array for legal indices
-					auto py_legal = py::array(py::cast(legal_moves));
-
-					// 4. Call Python Evaluator: (features, legal_indices) -> (policy, value)
-					py::object result = evaluator(py_features, py_legal);
-
-					if (!py::isinstance<py::tuple>(result)) {
-						throw std::runtime_error("evaluator must return (policy, value)");
-					}
-					const py::tuple tup = result.cast<py::tuple>();
-					const auto policy = tup[0].cast<std::vector<float>>();
-					const float value = tup[1].cast<float>();
-
-					return EvaluationResult{policy, value};
-				};
-
+				EvaluationCallbackEncoded callback = MakeEncodedCallback(engine, evaluator);
 				py::gil_scoped_release release;
 				return engine.RunSimulationEncoded(state, sims, callback, time_limit_s);
 			},
@@ -175,8 +178,31 @@ PYBIND11_MODULE(gomoku_cpp, m)
 			py::arg("evaluator"),
 			py::arg("time_limit_s") = 0.0f,
 			"Run MCTS simulation with native feature encoding and legal move generation."
-			"Run MCTS simulation with native feature encoding and legal move generation."
 		)
+		.def(
+			"continue_mcts_encoded",
+			[](MctsEngine &engine, int sims, py::function evaluator, float time_limit_s, int max_nodes, bool stoppable) {
+				EvaluationCallbackEncoded callback = MakeEncodedCallback(engine, evaluator);
+				py::gil_scoped_release release;
+				return engine.ContinueSimulationEncoded(sims, callback, time_limit_s, max_nodes, stoppable);
+			},
+			py::arg("sims"),
+			py::arg("evaluator"),
+			py::arg("time_limit_s") = 0.0f,
+			py::arg("max_nodes") = 0,
+			py::arg("stoppable") = false,
+			"Add searches to the kept tree; stops on sims, time_limit_s, max_nodes or, when stoppable, request_stop()."
+		)
+		.def("reset_root", &MctsEngine::ResetRoot, py::arg("state"), "Drop the kept tree and start a new one at state.")
+		.def("clear_tree", &MctsEngine::ClearTree, "Drop the kept tree.")
+		.def("has_root", &MctsEngine::HasRoot)
+		.def("root_visits", &MctsEngine::RootVisits, "Searches that have passed through the root.")
+		.def("node_count", &MctsEngine::NodeCount, "Nodes in the kept tree.")
+		.def("last_simulations", &MctsEngine::LastSimulations, "Searches completed by the last continue_mcts_encoded call.")
+		.def("advance_root", &MctsEngine::AdvanceRoot, py::arg("move_idx"), "Make the root's child for move_idx the new root; False when it is not a move of the root.")
+		.def("align_root", &MctsEngine::AlignRoot, py::arg("state"), "Point the tree at state when it is the root position or one move below it; returns the searches carried over, or -1.")
+		.def("request_stop", &MctsEngine::RequestStop, "End a stoppable search from another thread; stays set until clear_stop().")
+		.def("clear_stop", &MctsEngine::ClearStop)
 		.def("root_priors", &MctsEngine::RootPriors, "(move_idx, prior) of the root children from the last search.")
 		.def(
 			"run_mcts_batch_encoded",

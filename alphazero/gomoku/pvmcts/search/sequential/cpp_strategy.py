@@ -17,6 +17,46 @@ class SearchStrategy(ABC):
     def search(self, engine: 'SequentialEngine', roots: List['TreeNode'], add_noise: bool) -> None:
         pass
 
+def make_encoded_evaluator(engine: 'SequentialEngine', noise_root: 'TreeNode | None' = None):
+    """Return the evaluator(features, legal_indices) -> (log policy, value) the native search calls.
+
+    With ``noise_root``, the first evaluation (the root's) gets Dirichlet noise and marks that
+    node; without it no noise is ever applied, which is what serving uses.
+    """
+    noise_pending = noise_root is not None
+
+    def native_evaluator_encoded(features: np.ndarray, legal_indices: np.ndarray) -> Tuple[List[float], float]:
+        nonlocal noise_pending
+        tensor = torch.from_numpy(features).unsqueeze(0).to(device=engine._inference_device, dtype=torch.float32)
+        logits, value_tensor = engine.inference.infer(tensor)
+        if logits.dim() == 1: logits = logits.unsqueeze(0)
+        legal_mask = torch.zeros(engine.game.action_size, dtype=torch.bool, device=logits.device)
+        if legal_indices.size > 0:
+            idx_t = torch.from_numpy(legal_indices).to(device=logits.device, dtype=torch.long)
+            legal_mask.index_fill_(0, idx_t, True)
+        apply_noise = False
+        if noise_pending:
+            apply_noise = True
+            noise_pending = False
+            noise_root.noise_applied = True
+        policy = engine._masked_policy_from_logits(logits, legal_mask, apply_dirichlet=apply_noise)
+        if policy.dim() > 1: policy = policy.squeeze(0)
+
+        # C++ expects LOGITS (it applies softmax). We computed PROBS (policy).
+        # To pass PROBS correctly (preserving Noise/Masking), we return LOG(PROBS).
+        # C++: Softmax(Log(P)) = P.
+        pol_np = policy.detach().cpu().numpy()
+
+        # Avoid log(0)
+        epsilon = 1e-30
+        log_policy = np.log(np.maximum(pol_np, epsilon))
+
+        value = float(value_tensor.squeeze().item())
+        return log_policy.tolist(), value
+
+    return native_evaluator_encoded
+
+
 class CppSearchStrategy(SearchStrategy):
     """C++ Native implementation of sequential MCTS with threaded async pipelining."""
 
@@ -154,41 +194,10 @@ class CppSearchStrategy(SearchStrategy):
         self._sync_visits(engine, root, visits)
 
     def _run_encoded_mcts(self, engine: 'SequentialEngine', root, root_native_state, sims, noise_pending):
-        internal_noise_pending = noise_pending
-
-        def native_evaluator_encoded(features: np.ndarray, legal_indices: np.ndarray) -> Tuple[List[float], float]:
-            nonlocal internal_noise_pending
-            tensor = torch.from_numpy(features).unsqueeze(0).to(device=engine._inference_device, dtype=torch.float32)
-            logits, value_tensor = engine.inference.infer(tensor)
-            if logits.dim() == 1: logits = logits.unsqueeze(0)
-            legal_mask = torch.zeros(engine.game.action_size, dtype=torch.bool, device=logits.device)
-            if legal_indices.size > 0:
-                idx_t = torch.from_numpy(legal_indices).to(device=logits.device, dtype=torch.long)
-                legal_mask.index_fill_(0, idx_t, True)
-            apply_noise = False
-            if internal_noise_pending:
-                apply_noise = True
-                internal_noise_pending = False
-                root.noise_applied = True
-            policy = engine._masked_policy_from_logits(logits, legal_mask, apply_dirichlet=apply_noise)
-            if policy.dim() > 1: policy = policy.squeeze(0)
-
-            # C++ expects LOGITS (it applies softmax). We computed PROBS (policy).
-            # To pass PROBS correctly (preserving Noise/Masking), we return LOG(PROBS).
-            # C++: Softmax(Log(P)) = P.
-            pol_np = policy.detach().cpu().numpy()
-
-            # Avoid log(0)
-            epsilon = 1e-30
-            log_policy = np.log(np.maximum(pol_np, epsilon))
-
-            value = float(value_tensor.squeeze().item())
-            return log_policy.tolist(), value
-
         visits = engine._native_engine.run_mcts_encoded(
             root_native_state,
             sims,
-            native_evaluator_encoded,
+            make_encoded_evaluator(engine, root if noise_pending else None),
             time_limit_s=float(engine.params.time_limit_s or 0.0),
         )
         self._sync_visits(engine, root, visits, dict(engine._native_engine.root_priors()))
