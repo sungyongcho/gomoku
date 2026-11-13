@@ -35,7 +35,7 @@ serve = [
 ]
 ray = [
   "ray==2.60.0",
-  "pyarrow==21.0.0",
+  "pyarrow==23.0.1",
   "gcsfs==2025.9.0",
   "google-api-python-client",
 ]
