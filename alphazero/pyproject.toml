@@ -40,7 +40,7 @@ ray = [
   "google-api-python-client",
 ]
 dev = [
-  "pytest==9.0.1",
+  "pytest==9.0.3",
   "pytest-cov==7.0.0",
   "pytest-asyncio==1.2.0",
   "coverage==7.12.0",
