@@ -60,6 +60,9 @@ const Noir = definePreset(Aura, {
 export default defineNuxtConfig({
   compatibilityDate: "2025-01-09",
   ssr: true,
+  // Pages served as static files. Listed here because `nuxt build` no longer derives them
+  // from the "/**" route rule below, and the client still asks for their _payload.json.
+  nitro: { prerender: { routes: ["/", "/game", "/test", "/debug"] } },
   devtools: { enabled: false },
   app: {
     baseURL: "/gomoku/",
