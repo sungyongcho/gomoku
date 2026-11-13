@@ -20,7 +20,7 @@ dependencies = [
   "numpy==2.3.3",
   "pyyaml==6.0.2",
   "tqdm==4.67.1",
-  "fsspec==2025.9.0",
+  "fsspec==2026.6.0",
   "pydantic==2.12.5",
 ]
 
