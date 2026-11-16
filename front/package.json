@@ -50,5 +50,14 @@
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "4.9.5"
+  },
+  "overrides": {
+    "katex": "^0.18.2",
+    "@nuxt/content": {
+      "minimatch": "^11.0.1"
+    },
+    "readdir-glob": {
+      "minimatch": "^11.0.1"
+    }
   }
 }
