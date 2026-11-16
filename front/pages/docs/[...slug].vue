@@ -23,7 +23,7 @@ const { data: pageData } = await useAsyncData(route.path, () =>
   findDocByPath(route.path),
 );
 
-/** docLinks 순서(About Gomoku → About Project → Minimax → AlphaZero)로 이전/다음 계산 */
+/** docLinks 순서(About Gomoku → About Project → Minimax → AlphaZero → Optimization)로 이전/다음 계산 */
 function flattenDocLinks(links: DocLink[]): DocItem[] {
   const out: DocItem[] = [];
   for (const link of links) {
