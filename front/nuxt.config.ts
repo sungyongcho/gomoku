@@ -75,6 +75,25 @@ export default defineNuxtConfig({
     "@nuxt/content",
   ],
   primevue: {
+    // Since @primevue/nuxt-module 4.5 every registered component ships its styles in each page,
+    // so register only the components the app uses.
+    components: {
+      include: [
+        "Accordion",
+        "AccordionContent",
+        "AccordionHeader",
+        "AccordionPanel",
+        "Avatar",
+        "Badge",
+        "Button",
+        "ButtonGroup",
+        "Dialog",
+        "Form",
+        "Slider",
+        "ToggleButton",
+        "ToggleSwitch",
+      ],
+    },
     options: {
       ripple: true,
       theme: {
@@ -97,6 +116,8 @@ export default defineNuxtConfig({
     plugins: {
       tailwindcss: {},
       autoprefixer: {},
+      // Nuxt 4 cannot import this extensionless CJS subpath, and no plain CSS here uses nesting.
+      "tailwindcss/nesting": false,
     },
   },
   pinia: {
