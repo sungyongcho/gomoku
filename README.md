@@ -2,6 +2,8 @@
 
 A full-stack Gomoku (five-in-a-row) game with two AI engines, built by two people: a **C++ Minimax** engine (alpha-beta with iterative deepening, a transposition table and a PVS hard mode) and a **Python AlphaZero** engine (self-play reinforcement learning with MCTS + ResNet). The École 42 project covers the game and the Minimax engine; the Python AlphaZero engine goes beyond the school project.
 
+> **Archived on 2026-11-17.** The project is finished and no longer maintained. The live demo stays up as long as its free hosting does.
+
 **[Play live](https://sungyongcho.com/gomoku)** | **[Documentation](https://sungyongcho.com/gomoku/docs/about-gomoku/intro)**
 
 <img src="front/public/images/screenshot-game.gif" alt="Gomoku gameplay" width="720" />
@@ -57,7 +59,7 @@ See `.env.example` for all configurable ports and variables.
 
 ## Third-Party Code
 
-- Double-three detection uses logic derived from the [Renju open source reference implementation](https://www.renju.se/renlib/opensrc/) (`CForbiddenPointFinder`). It was brought in on 2026-02-03 (`f9ddbc6`), after the École 42 project and during the AlphaZero work: it replaced the Minimax engine's hand-written double-three check in `minimax/src/gomoku/Rules.cpp`, which is what the 42 submission used, and the AlphaZero engine's `renju_cpp` module uses the same logic. Refer to the upstream page for license details and attribution.
+- Double-three detection uses logic derived from the [Renju open source reference implementation](https://www.renju.se/renlib/opensrc/) (`CForbiddenPointFinder`). It was brought in on 2026-02-03 (imported in `f9ddbc6` and made the only runtime check in `e2478d8` the same day), after the École 42 project and during the AlphaZero work: it replaced the Minimax engine's hand-written double-three check in `minimax/src/gomoku/Rules.cpp`, which is what the 42 submission used, and the AlphaZero engine's `renju_cpp` module uses the same logic. Refer to the upstream page for license details and attribution.
 
 ## References
 
