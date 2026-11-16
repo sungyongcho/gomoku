@@ -1,6 +1,6 @@
 # Gomoku
 
-A full-stack Gomoku (five-in-a-row) game with two AI engines, built by two people: a **C++ Minimax** engine (alpha-beta with iterative deepening, a transposition table and a PVS hard mode) and a **Python AlphaZero** engine (self-play reinforcement learning with MCTS + ResNet). The École 42 project covers the game and the Minimax engine; the Python AlphaZero engine is not part of the school project.
+A full-stack Gomoku (five-in-a-row) game with two AI engines, built by two people: a **C++ Minimax** engine (alpha-beta with iterative deepening, a transposition table and a PVS hard mode) and a **Python AlphaZero** engine (self-play reinforcement learning with MCTS + ResNet). The École 42 project covers the game and the Minimax engine; the Python AlphaZero engine goes beyond the school project.
 
 **[Play live](https://sungyongcho.com/gomoku)** | **[Documentation](https://sungyongcho.com/gomoku/docs/about-gomoku/intro)**
 
@@ -57,5 +57,17 @@ See `.env.example` for all configurable ports and variables.
 
 ## Third-Party Code
 
-- Double-three detection uses logic derived from the [Renju open source reference implementation](https://www.renju.se/renlib/opensrc/). Refer to the upstream page for license details and attribution.
-- The AlphaZero engine started in May 2025 from the AlphaZeroFromScratch tutorial and continued in private repositories (Aug 2025 - Feb 2026) before the rewritten version was imported here.
+- Double-three detection uses logic derived from the [Renju open source reference implementation](https://www.renju.se/renlib/opensrc/) (`CForbiddenPointFinder`). It was brought in on 2026-02-03 (`f9ddbc6`), after the École 42 project and during the AlphaZero work: it replaced the Minimax engine's hand-written double-three check in `minimax/src/gomoku/Rules.cpp`, which is what the 42 submission used, and the AlphaZero engine's `renju_cpp` module uses the same logic. Refer to the upstream page for license details and attribution.
+
+## References
+
+### Papers
+
+- D. Silver et al., "Mastering the game of Go with deep neural networks and tree search," *Nature* 529, 484–489 (2016). [Nature](https://www.nature.com/articles/nature16961) · [PDF (DeepMind)](https://storage.googleapis.com/deepmind-media/alphago/AlphaGoNaturePaper.pdf) — **AlphaGo**
+- D. Silver et al., "Mastering the game of Go without human knowledge," *Nature* 550, 354–359 (2017). [Nature](https://www.nature.com/articles/nature24270) — **AlphaGo Zero**
+- D. Silver et al., "A general reinforcement learning algorithm that masters chess, shogi, and Go through self-play," *Science* 362, 1140–1144 (2018). [Science](https://www.science.org/doi/10.1126/science.aar6404) · [arXiv preprint](https://arxiv.org/abs/1712.01815) — **AlphaZero**
+
+### Tutorials and lectures
+
+- R. Förster, [AlphaZeroFromScratch](https://www.youtube.com/watch?v=wuSQpLinRB4) (video tutorial, [repository](https://github.com/foersterrobert/AlphaZeroFromScratch)). The AlphaZero engine in this repository grew out of this tutorial, starting in May 2025.
+- Pang-Yo Lab, [쉽게 읽는 강화학습 논문 (Reinforcement Learning Papers Made Easy)](https://www.youtube.com/watch?v=SRVx2DFu_tY&list=PLpRS2w0xWHTfnWmr95LtIu4v4HbVxqTlM). Korean-language video series reviewing reinforcement learning papers, starting with AlphaGo.
