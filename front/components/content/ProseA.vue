@@ -1,5 +1,10 @@
 <template>
-  <NuxtLink :href="props.href" :target="props.target" class="underline text-gray-500 hover:text-black">
+  <NuxtLink
+    :href="props.href"
+    :target="props.target"
+    :prefetch="!isAbsoluteUrl"
+    class="text-gray-500 underline hover:text-black"
+  >
     <slot />
   </NuxtLink>
 </template>
@@ -26,4 +31,10 @@ const props = defineProps({
     required: false,
   },
 });
+
+// Nuxt prefetches payloads for links on the current hostname and rejects full URLs,
+// which logs NUXT_E7001 for links like https://sungyongcho.com on that domain.
+const isAbsoluteUrl = computed(() =>
+  /^([a-z][a-z\d+.-]*:|\/\/)/i.test(props.href),
+);
 </script>
