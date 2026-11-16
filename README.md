@@ -1,6 +1,6 @@
 # Gomoku
 
-A full-stack Gomoku (five-in-a-row) game with two AI engines, built as a two-person École 42 project: a **C++ Minimax** engine (alpha-beta with iterative deepening, a transposition table and a PVS hard mode) and a **Python AlphaZero** engine (self-play reinforcement learning with MCTS + ResNet).
+A full-stack Gomoku (five-in-a-row) game with two AI engines, built by two people: a **C++ Minimax** engine (alpha-beta with iterative deepening, a transposition table and a PVS hard mode) and a **Python AlphaZero** engine (self-play reinforcement learning with MCTS + ResNet). The École 42 project covers the game and the Minimax engine; the Python AlphaZero engine is not part of the school project.
 
 **[Play live](https://sungyongcho.com/gomoku)** | **[Documentation](https://sungyongcho.com/gomoku/docs/about-gomoku/intro)**
 
@@ -10,15 +10,15 @@ A full-stack Gomoku (five-in-a-row) game with two AI engines, built as a two-per
 
 | Layer | Tech |
 |---|---|
-| Frontend | Nuxt 3, Vue 3, TypeScript |
+| Frontend | Nuxt 4, Vue 3, TypeScript, PrimeVue, Tailwind CSS, Nuxt Content (docs site) |
 | Minimax engine | C++, libwebsockets, Zobrist hashing, PVS with transposition table |
-| AlphaZero engine | Python, PyTorch, MCTS (C++ native extension), ONNX inference |
-| Training infra | Ray cluster on GCP, self-play + arena evaluation pipeline |
-| Deployment | Docker containers: AlphaZero on a Google Cloud VM, Minimax on an Oracle Cloud Arm VM (since Sep 2026); Cloudflare Workers routing |
+| AlphaZero engine | Python, PyTorch, MCTS (C++ native extension), static int8 ONNX Runtime inference, FastAPI WebSocket server |
+| Training infra | Ray cluster on Google Cloud (L4 GPU head + CPU workers), self-play + arena evaluation pipeline |
+| Deployment | Frontend on Netlify; Minimax (since Sep 2026) and AlphaZero (since Nov 2026) as Docker containers on Oracle Cloud Always Free Arm VMs; Cloudflare Worker routing |
 
 ## Team
 
-A two-person 42 project by [Sungyong Cho](https://sungyongcho.com) and [Woolim Park](https://woolimi.github.io).
+By [Sungyong Cho](https://sungyongcho.com) and [Woolim Park](https://woolimi.github.io).
 
 - **Sungyong Cho**: the AlphaZero training pipeline, the C++ Minimax search, the C++ (libwebsockets) and FastAPI WebSocket servers, the deployment, the documentation pages and four interactive diagram components. Designed the hard-mode evaluation (pattern set, precomputed pattern-score lookup tables, incremental re-evaluation and move ordering), most of which Woolim implemented.
 - **Woolim Park**: the game UI and most of the hard-mode evaluation implementation.
@@ -51,7 +51,7 @@ See `.env.example` for all configurable ports and variables.
 
 - **`alias.sh`** — Docker Compose shortcuts (`dev-up`, `dev-down`, `dev-up-debug`, etc.)
 - **`Makefile`** — Original École 42 project submission entry point (front + minimax only)
-- **`front/`** — Nuxt 3 frontend with interactive documentation and diagrams
+- **`front/`** — Nuxt 4 frontend with interactive documentation and diagrams
 - **`minimax/`** — C++ minimax engine (WebSocket server)
 - **`alphazero/`** — AlphaZero training pipeline, inference server, and C++ MCTS extension
 

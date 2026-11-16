@@ -6,8 +6,15 @@ export const ACCORDION_GROUPS = new Set([
   "about project",
   "alphazero",
   "minimax",
+  "optimization",
 ]);
-const GROUP_PRIORITY = ["about gomoku", "about project", "minimax", "alphazero"];
+const GROUP_PRIORITY = [
+  "about gomoku",
+  "about project",
+  "minimax",
+  "alphazero",
+  "optimization",
+];
 
 export const useDocsStore = defineStore("docs", () => {
   const docLinks = ref<DocLink[]>([]);

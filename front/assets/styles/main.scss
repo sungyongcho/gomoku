@@ -15,21 +15,136 @@
   }
 }
 
+// Reading typography for every docs page: looser leading, softer text colour,
+// more room above headings and around paragraphs, lists and formulas.
+// Embedded diagrams keep their own typography, so the prose rules skip them.
+.docs-content {
+  font-family: "Inter", "Noto Sans", sans-serif;
+  color: #292524;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.docs-content .diagram-embed-wrap {
+  color: initial;
+  line-height: 1.5;
+}
+
+.docs-content p:not(.diagram-embed-wrap *) {
+  margin: 0 0 1.1rem;
+}
+
+.docs-content li:not(.diagram-embed-wrap *) {
+  margin: 0.5rem 0;
+}
+
+.docs-content li > p:not(.diagram-embed-wrap *) {
+  margin: 0;
+}
+
+.docs-content ul:not(.diagram-embed-wrap *),
+.docs-content ol:not(.diagram-embed-wrap *) {
+  margin-top: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.docs-content h1:not(.diagram-embed-wrap *),
+.docs-content h2:not(.diagram-embed-wrap *),
+.docs-content h3:not(.diagram-embed-wrap *) {
+  line-height: 1.3;
+  color: #1c1917;
+}
+
+.docs-content h1:not(.diagram-embed-wrap *) {
+  margin-bottom: 1.5rem;
+}
+
+.docs-content h2:not(.diagram-embed-wrap *) {
+  margin-top: 2.75rem;
+  margin-bottom: 1rem;
+}
+
+// A section heading right under the page title needs no extra gap.
+.docs-content h1 + h2 {
+  margin-top: 0;
+}
+
+.docs-content h3:not(.diagram-embed-wrap *) {
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.docs-content strong:not(.diagram-embed-wrap *) {
+  color: #1c1917;
+}
+
+// Inline code stays light so sentences with many identifiers still read as text;
+// a code span split over two lines keeps its padding on both pieces.
+.docs-content :not(pre) > code:not(.diagram-embed-wrap *) {
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  border-radius: 0.3rem;
+  color: #44403c;
+  background-color: #f5f5f4;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.docs-content pre {
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+// One monospace face on every OS; ligatures off so operators such as ++ and != read literally.
+.docs-content pre:not(.diagram-embed-wrap *),
+.docs-content code:not(.diagram-embed-wrap *) {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-ligatures: none;
+}
+
 .docs-content .katex-display {
   text-align: center !important;
-  margin: 1rem auto !important;
+  margin: 1.75rem auto !important;
+  padding: 0.35rem 0;
   overflow-x: auto;
   overflow-y: hidden;
 }
 
 .docs-content .math-display {
   text-align: center !important;
-  margin: 1rem auto !important;
+  margin: 1.75rem auto !important;
+  padding: 0.35rem 0;
   overflow-x: auto;
   overflow-y: hidden;
 }
 
+// Display formulas a little larger than inline ones so fractions and
+// subscripts stay legible.
+.docs-content .katex-display > .katex {
+  font-size: 1.12em;
+}
+
+// Inline formulas with sums and fractions need extra room so they do not
+// collide with the lines above and below.
+.docs-content p .katex,
+.docs-content li .katex {
+  padding: 0 0.1em;
+}
+
+// Long inline code (file paths, identifiers) wraps instead of widening the page on phones.
+.docs-content :not(pre) > code,
+.docs-content a {
+  overflow-wrap: anywhere;
+}
+
+// Wide tables scroll inside their own box instead of widening the page on phones.
 .docs-content table {
+  display: block;
+  max-width: fit-content;
+  overflow-x: auto;
   margin: 1.25rem auto;
   border-collapse: collapse;
   border: 1px solid #d6d3d1;
@@ -39,7 +154,7 @@
 .docs-content th,
 .docs-content td {
   border: 1px solid #d6d3d1;
-  padding: 0.55rem 0.85rem;
+  padding: 0.5rem 0.7rem;
 }
 
 .docs-content thead th {
@@ -50,6 +165,34 @@
 
 .docs-content tbody td {
   vertical-align: top;
+}
+
+// Tables read denser than prose: smaller type, tighter leading, zebra rows.
+// Identifiers in cells wrap only at their own break points (hyphens, spaces),
+// so hashes stay whole and wide tables still fit without a scrollbar.
+.docs-content table:not(.diagram-embed-wrap *) {
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.docs-content thead th:not(.diagram-embed-wrap *) {
+  line-height: 1.35;
+  vertical-align: bottom;
+}
+
+.docs-content tbody tr:nth-child(even):not(.diagram-embed-wrap *) {
+  background-color: #fafaf9;
+}
+
+.docs-content tbody td:first-child:not(.diagram-embed-wrap *) {
+  font-weight: 600;
+  color: #1c1917;
+}
+
+.docs-content td code:not(.diagram-embed-wrap *),
+.docs-content th code:not(.diagram-embed-wrap *) {
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .docs-content .diagram-embed-wrap {
@@ -67,7 +210,41 @@
   display: block;
 }
 
-.docs-content .diagram-embed-link {
-  margin: 0 0 1.25rem 0;
-  font-size: 0.9rem;
+// "Open in a new tab" sits on the diagram's top-right corner as a tab.
+.docs-content p.diagram-embed-link {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1.5rem 0 0;
+  line-height: 1.2;
+}
+
+.docs-content p.diagram-embed-link a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  text-decoration: none;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+
+.docs-content p.diagram-embed-link a::after {
+  content: "↗";
+  font-size: 0.95em;
+}
+
+.docs-content p.diagram-embed-link a:hover {
+  color: #1e3a8a;
+  background: #dbeafe;
+}
+
+.docs-content p.diagram-embed-link + .diagram-embed-wrap {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  border-top-right-radius: 0;
 }
