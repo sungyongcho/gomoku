@@ -11,8 +11,14 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 // Import diagram components explicitly (or let Nuxt auto-import handle it if configured globally, but explicit is safer here for dynamic resolution)
+import Diagram01 from '~/components/diagrams/Diagram01.vue';
+import Diagram02 from '~/components/diagrams/Diagram02.vue';
 import Diagram03 from '~/components/diagrams/Diagram03.vue';
 import Diagram04 from '~/components/diagrams/Diagram04.vue';
+import Diagram05 from '~/components/diagrams/Diagram05.vue';
+import Diagram06 from '~/components/diagrams/Diagram06.vue';
+import Diagram07 from '~/components/diagrams/Diagram07.vue';
+import Diagram08 from '~/components/diagrams/Diagram08.vue';
 import Diagram09 from '~/components/diagrams/Diagram09.vue';
 import Diagram10 from '~/components/diagrams/Diagram10.vue';
 import Diagram11 from '~/components/diagrams/Diagram11.vue';
@@ -39,13 +45,28 @@ import Diagram31 from '~/components/diagrams/Diagram31.vue';
 import Diagram32 from '~/components/diagrams/Diagram32.vue';
 import Diagram33 from '~/components/diagrams/Diagram33.vue';
 import Diagram34 from '~/components/diagrams/Diagram34.vue';
+import Diagram35 from '~/components/diagrams/Diagram35.vue';
+import Diagram36 from '~/components/diagrams/Diagram36.vue';
+import Diagram37 from '~/components/diagrams/Diagram37.vue';
+import Diagram38 from '~/components/diagrams/Diagram38.vue';
+import Diagram39 from '~/components/diagrams/Diagram39.vue';
+import Diagram40 from '~/components/diagrams/Diagram40.vue';
+import Diagram41 from '~/components/diagrams/Diagram41.vue';
+import Diagram42 from '~/components/diagrams/Diagram42.vue';
+import Diagram43 from '~/components/diagrams/Diagram43.vue';
 
 const route = useRoute();
 const diagramId = computed(() => String(route.params.id ?? ''));
 
 const componentMap = {
+  'diagram_01': Diagram01,
+  'diagram_02': Diagram02,
   'diagram_03': Diagram03,
   'diagram_04': Diagram04,
+  'diagram_05': Diagram05,
+  'diagram_06': Diagram06,
+  'diagram_07': Diagram07,
+  'diagram_08': Diagram08,
   'diagram_09': Diagram09,
   'diagram_10': Diagram10,
   'diagram_11': Diagram11,
@@ -72,6 +93,15 @@ const componentMap = {
   'diagram_32': Diagram32,
   'diagram_33': Diagram33,
   'diagram_34': Diagram34,
+  'diagram_35': Diagram35,
+  'diagram_36': Diagram36,
+  'diagram_37': Diagram37,
+  'diagram_38': Diagram38,
+  'diagram_39': Diagram39,
+  'diagram_40': Diagram40,
+  'diagram_41': Diagram41,
+  'diagram_42': Diagram42,
+  'diagram_43': Diagram43,
 };
 
 const activeComponent = computed(() => componentMap[diagramId.value]);
