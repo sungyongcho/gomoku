@@ -6,14 +6,14 @@ export const ACCORDION_GROUPS = new Set([
   "about project",
   "alphazero",
   "minimax",
-  "optimization",
+  "optimization with ai for alphazero",
 ]);
 const GROUP_PRIORITY = [
   "about gomoku",
   "about project",
   "minimax",
   "alphazero",
-  "optimization",
+  "optimization with ai for alphazero",
 ];
 
 export const useDocsStore = defineStore("docs", () => {
