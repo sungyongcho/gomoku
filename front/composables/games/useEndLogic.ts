@@ -34,9 +34,13 @@ export const useEndLogic = () => {
     } = situation;
 
     if (player1 >= goal || player2 >= goal) {
+      // Black (X) is whichever player moves first.
+      const { settings } = storeToRefs(useGameStore());
+      const player1Stone: Stone =
+        settings.value.firstMove === "Player1" ? "X" : "O";
       return {
         result: GAME_END_SCENARIO.PAIR_CAPTURED,
-        winner: player1 >= goal ? "X" : "O",
+        winner: player1 >= goal ? player1Stone : getOppositeStone(player1Stone),
       };
     }
     return {};
